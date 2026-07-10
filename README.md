@@ -1,3 +1,4 @@
+<img width="1254" height="1254" alt="1000166839" src="https://github.com/user-attachments/assets/52c9a11b-76e7-421a-9576-e77566ddfe45" />
 # 🧠 TidyMind
 
 > **A privacy-first, AI-powered desktop application that intelligently
