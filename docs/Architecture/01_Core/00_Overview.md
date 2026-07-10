@@ -1,210 +1,167 @@
-# TidyMind System Overview
+# Core Overview
 
-# TidyMind System Overview
+> This document provides an overview of the Core subsystem, which serves as the foundation of the TidyMind application. The Core provides shared infrastructure, common services, application lifecycle management, and communication mechanisms used throughout the system.
 
-This diagram represents the highest level architecture of TidyMind.
+---
 
-Every major subsystem is shown here.
+## Purpose
 
-Each subsystem will later receive its own architecture document.
+The Core subsystem provides the fundamental services required by every other subsystem within TidyMind.
+
+Rather than implementing application features, the Core establishes the infrastructure that enables the rest of the application to operate consistently and reliably.
+
+Every major subsystem depends on the Core, while the Core itself remains independent of higher-level application features.
+
+---
+
+# Responsibilities
+
+The Core subsystem is responsible for:
+
+* Application startup and shutdown
+* Global configuration management
+* Logging
+* Event-based communication
+* Service registration and discovery
+* Global application state
+* Background task management
+* Shared utilities
+* Common error handling
+
+These responsibilities provide a consistent foundation for the remainder of the application.
+
+---
+
+# Architectural Overview
+
+The Core sits at the center of the application architecture and provides shared services to all major subsystems.
 
 ```mermaid
-flowchart TD
+flowchart TB
 
-    User["👤 User"]
+    Core["Core"]
 
-    Core["⚙️ Core System"]
-
-    Scanner["📂 Scanner"]
-
-    Readers["📄 File Readers"]
-
-    AI["🧠 AI Engine"]
-
-    Search["🔍 Search Engine"]
-
-    Database["🗄️ Database"]
-
-    Rules["📋 Rule Engine"]
-
-    Reports["📊 Reports"]
-
-    GUI["🖥️ User Interface"]
-
-    Plugins["🔌 Plugin System"]
-
-
-    User --> GUI
-
-    GUI --> Core
+    Scanner["Scanner"]
+    Readers["Readers"]
+    AI["AI"]
+    Database["Database"]
+    Search["Search"]
+    Rules["Rules"]
+    GUI["GUI"]
+    Reports["Reports"]
+    Plugins["Plugins"]
 
     Core --> Scanner
-
-    Scanner --> Readers
-
-    Readers --> AI
-
-    AI --> Rules
-
-    Rules --> Database
-
-    Database --> Search
-
-    Search --> GUI
-
-    Database --> Reports
-
-    Plugins --> Core
-
-    Plugins --> Readers
-
-    Plugins --> AI
-
-    Plugins --> Search
+    Core --> Readers
+    Core --> AI
+    Core --> Database
+    Core --> Search
+    Core --> Rules
+    Core --> GUI
+    Core --> Reports
+    Core --> Plugins
 ```
 
 ---
 
-## Responsibilities
+# Core Components
 
-### Core
+The Core subsystem consists of several infrastructure components.
 
-Coordinates every subsystem.
+| Component         | Responsibility                                                    |
+| ----------------- | ----------------------------------------------------------------- |
+| Application       | Controls application startup, shutdown, and lifecycle.            |
+| Configuration     | Loads and manages application settings.                           |
+| Logging           | Provides centralized logging services.                            |
+| Event Bus         | Enables communication between subsystems.                         |
+| Service Registry  | Manages shared services and dependency resolution.                |
+| Application State | Maintains global runtime state.                                   |
+| Task Manager      | Executes and monitors background tasks.                           |
+| Utilities         | Provides shared helper functions used throughout the application. |
+| Error Handling    | Defines common error reporting and recovery mechanisms.           |
 
----
-
-### Scanner
-
-Discovers folders and files.
-
----
-
-### Readers
-
-Extracts information from supported file types.
-
----
-
-### AI
-
-Understands document contents.
-
-Generates summaries.
-
-Suggests filenames.
-
-Suggests folder structures.
+Each component is documented individually within this section.
 
 ---
 
-### Rule Engine
+# Design Principles
 
-Applies user-defined rules.
+The Core subsystem follows several architectural principles.
 
----
+### Independent
 
-### Database
+The Core should not depend on higher-level application modules.
 
-Stores metadata, history, settings and cached AI results.
-
----
-
-### Search
-
-Provides keyword and semantic search.
+Dependencies should always point toward the Core rather than away from it.
 
 ---
 
-### Reports
+### Reusable
 
-Generates cleanup statistics and reports.
-
----
-
-### GUI
-
-Displays information to the user.
-
-Allows interaction with every subsystem.
+Core services should be generic enough to support any subsystem without modification.
 
 ---
 
-### Plugins
+### Lightweight
 
-Allows extension of TidyMind without modifying the core application.
+The Core should contain only infrastructure.
 
+Business logic belongs in feature-specific modules.
 
-```mermaid
-mindmap
-  root((TidyMind))
+---
 
-    Core
+### Consistent
 
-      Configuration
-      Logging
-      Settings
-      Startup
-      Dependency Injection
+Shared functionality should be implemented once within the Core rather than duplicated across multiple subsystems.
 
-    Scanner
+---
 
-      Folder Traversal
-      File Enumeration
-      Metadata Extraction
-      Duplicate Detection
-      Progress Tracking
+### Extensible
 
-    Readers
+New infrastructure services should integrate naturally into the Core without requiring major architectural changes.
 
-      PDF
-      DOCX
-      Excel
-      Images
-      Audio
-      Video
+---
 
-    AI
+# Responsibilities of Other Subsystems
 
-      Providers
-      Classification
-      Summarization
-      Renaming
-      Folder Suggestions
-      Embeddings
+The Core deliberately does **not** implement business functionality.
 
-    Search
+The following responsibilities belong elsewhere:
 
-      Keyword Search
-      Semantic Search
-      Filters
-      Indexing
+| Responsibility    | Subsystem |
+| ----------------- | --------- |
+| File discovery    | Scanner   |
+| Document reading  | Readers   |
+| AI processing     | AI        |
+| Search indexing   | Search    |
+| Database storage  | Database  |
+| User interface    | GUI       |
+| Report generation | Reports   |
 
-    Database
+Maintaining this separation helps preserve a clean architecture.
 
-      Metadata
-      History
-      Cache
-      Settings
+---
 
-    GUI
+# Dependency Rule
 
-      Dashboard
-      Scanner
-      Preview
-      History
-      Reports
-      Settings
+The Core forms the lowest architectural layer of the application.
 
-    Reports
+Higher-level subsystems may depend on the Core.
 
-      Statistics
-      Cleanup Reports
-      Logs
+The Core must **never** depend on feature-specific subsystems.
 
-    Plugins
+This dependency rule helps prevent circular dependencies and maintains a stable architectural foundation.
 
-      Readers
-      AI Providers
-      OCR
-      Exporters
-```
+---
+
+# Related Documents
+
+* [Application](01_Application.md)
+* [Configuration](02_Configuration.md)
+* [Logging](03_Logging.md)
+* [Event Bus](04_Event_Bus.md)
+* [Service Registry](05_Service_Registry.md)
+* [Application State](06_Application_State.md)
+* [Task Manager](07_Task_Manager.md)
+* [Utilities](08_Utilities.md)
+* [Error Handling](09_Error_Handling.md)
