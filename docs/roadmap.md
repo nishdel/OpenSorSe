@@ -175,3 +175,13 @@ The roadmap should remain a living document that reflects the project's directio
 * [Technology Stack](04_Technology_Stack.md)
 * [Architecture Decision Records](03_Architecture_Decision_Records.md)
 * [Contributing Guide](06_Contributing.md)
+
+
+graph TD
+
+A[Vision] --> B[Architecture]
+B --> C[Implementation Spec]
+C --> D[Continue Prompt]
+D --> E[Code Review]
+E --> F[Test]
+F --> G[Git Commit]
