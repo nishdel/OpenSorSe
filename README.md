@@ -228,6 +228,9 @@ Planned plugin support for:
 -   [ ] Multi-language support
 -   [ ] Stable release
 
+<img width="856" height="406" alt="image" src="https://github.com/user-attachments/assets/9f21cac1-48ef-4996-8e86-648ea79fbeb6" />
+
+
 ------------------------------------------------------------------------
 
 ## 🎯 Long-Term Vision
