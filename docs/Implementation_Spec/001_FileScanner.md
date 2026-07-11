@@ -110,3 +110,16 @@ Future versions may include:
 - Network drive optimization.
 
 These are **not** part of v0.1.
+
+flowchart LR
+
+A[001 File Scanner]
+--> B[002 File Metadata]
+--> C[003 File Hasher]
+--> D[004 File Classifier]
+--> E[005 Duplicate Detector]
+--> F[006 Rule Engine]
+--> G[007 Move Planner]
+--> H[008 Conflict Resolver]
+--> I[009 Move Executor]
+--> J[010 Undo Engine]
