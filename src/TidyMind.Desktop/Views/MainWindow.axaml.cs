@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using TidyMind.Desktop.ViewModels;
 
 namespace TidyMind.Desktop.Views;
 
@@ -8,10 +9,20 @@ namespace TidyMind.Desktop.Views;
 public partial class MainWindow : Window
 {
     /// <summary>
-    /// Initialises the window and its XAML-defined content.
+    /// Initialises the window for Avalonia's XAML runtime loader and designer.
     /// </summary>
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    /// <summary>
+    /// Initialises the window with its runtime presentation model.
+    /// </summary>
+    /// <param name="viewModel">The view model supplied by application composition.</param>
+    public MainWindow(MainViewModel viewModel)
+        : this()
+    {
+        DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     }
 }
