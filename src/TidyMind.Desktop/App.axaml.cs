@@ -52,6 +52,7 @@ public partial class App : Application
         var services = new ServiceCollection();
         services.AddTidyMindCore(new TidyMindCoreOptions { ConfigurationFilePath = settingsPath });
         services.AddSingleton<IFileScanner, FileScanner>();
+        services.AddSingleton<IFileMetadataReader, FileMetadataReader>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions
