@@ -25,5 +25,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TidyMind.Core\TidyMind.Core.csproj" />
+    <ProjectReference Include="..\TidyMind.Scanner\TidyMind.Scanner.csproj" />
   </ItemGroup>
 </Project>

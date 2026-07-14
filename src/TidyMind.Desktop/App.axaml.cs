@@ -6,6 +6,7 @@ using TidyMind.Core.DependencyInjection;
 using TidyMind.Core.Lifecycle;
 using TidyMind.Desktop.ViewModels;
 using TidyMind.Desktop.Views;
+using TidyMind.Scanner;
 
 namespace TidyMind.Desktop;
 
@@ -50,6 +51,7 @@ public partial class App : Application
             "settings.json");
         var services = new ServiceCollection();
         services.AddTidyMindCore(new TidyMindCoreOptions { ConfigurationFilePath = settingsPath });
+        services.AddSingleton<IFileScanner, FileScanner>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions
