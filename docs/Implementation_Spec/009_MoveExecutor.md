@@ -128,3 +128,11 @@ Depends on:
 Required by:
 
 - 010 - Undo Engine
+
+---
+
+# v0.1 Contract
+
+The Action Executor sequentially executes only accepted Move, Copy, and Rename operations. Delete is returned as an `UnsupportedOperation` skip. It revalidates source and destination state immediately before each operation, never overwrites or creates a directory, and produces ordered outcomes and deterministic `undo:<input-index>` records. Copy is streamed asynchronously with a 64 KiB pooled buffer and create-new destination semantics. Cancellation stops future operations and returns completed outcomes and undo records; an active cancelled copy is failed and its newly created partial destination is removed best-effort.
+
+The executor uses `IActionExecutor.ExecuteAsync(IReadOnlyCollection<PlannedOperation>, IProgress<ActionExecutionProgress>?, CancellationToken)` and is registered as `IActionExecutor`. It performs no planning, conflict resolution, persistence, events, UI behavior, AI, undo execution, overwrite handling, retries, rollback, or automatic destination naming.

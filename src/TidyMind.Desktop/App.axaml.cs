@@ -8,6 +8,7 @@ using TidyMind.Desktop.ViewModels;
 using TidyMind.Desktop.Views;
 using TidyMind.Scanner;
 using TidyMind.Rules;
+using TidyMind.Executor;
 
 namespace TidyMind.Desktop;
 
@@ -59,6 +60,9 @@ public partial class App : Application
         services.AddSingleton<IDuplicateDetector, DuplicateDetector>();
         services.AddSingleton<IRuleEngine, RuleEngine>();
         services.AddSingleton<IActionPlanner, ActionPlanner>();
+        services.AddSingleton<IConflictResolver, ConflictResolver>();
+        services.AddSingleton<IActionExecutor, ActionExecutor>();
+        services.AddSingleton<IUndoEngine, UndoEngine>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions

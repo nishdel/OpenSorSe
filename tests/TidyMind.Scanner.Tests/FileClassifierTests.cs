@@ -25,7 +25,7 @@ public sealed class FileClassifierTests
     [Fact]
     public async Task ClassifyAsync_UsesFirstCustomMatch()
     {
-        var options = new FileClassificationOptions(new[] { new FileClassificationRule("name", FileClassificationMatchKind.ExactFileName, "README", FileCategory.Data), new FileClassificationRule("extension", FileClassificationMatchKind.Extension, ".MD", FileCategory.Document) });
+        var options = new FileClassificationOptions(new[] { new FileClassificationRule("name", FileClassificationMatchKind.ExactFileName, "README.MD", FileCategory.Data), new FileClassificationRule("extension", FileClassificationMatchKind.Extension, ".MD", FileCategory.Document) });
         var result = await CreateClassifier().ClassifyAsync(new[] { Entry("readme.MD") }, options);
         Assert.Equal(FileCategory.Data, result.Files[0].Classification!.Category);
     }

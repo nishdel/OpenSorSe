@@ -112,7 +112,7 @@ public sealed class ActionPlannerTests
         var missingMove = Decision(new RuleAction(RuleActionKind.Move, "C:\\Destination"), new FileEntry("C:\\Source\\missing.txt"));
         var missingCopy = Decision(new RuleAction(RuleActionKind.Copy, "C:\\Destination"), new FileEntry("C:\\Source\\missing.txt"));
         var missingRename = Decision(new RuleAction(RuleActionKind.Rename, NameTemplate: "{name}"), new FileEntry("C:\\Source\\missing.txt"));
-        var missingCategory = Decision(new RuleAction(RuleActionKind.Rename, NameTemplate: "{category}.txt"));
+        var missingCategory = Decision(new RuleAction(RuleActionKind.Rename, NameTemplate: "{category}.txt"), File(category: null));
         var validDelete = Decision(new RuleAction(RuleActionKind.Delete), new FileEntry("C:\\Source\\delete.bin"));
         var result = await CreatePlanner().PlanAsync([missingMove, missingCopy, missingRename, missingCategory, validDelete]);
 
