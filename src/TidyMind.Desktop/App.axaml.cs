@@ -7,6 +7,7 @@ using TidyMind.Core.Lifecycle;
 using TidyMind.Desktop.ViewModels;
 using TidyMind.Desktop.Views;
 using TidyMind.Scanner;
+using TidyMind.Rules;
 
 namespace TidyMind.Desktop;
 
@@ -54,6 +55,10 @@ public partial class App : Application
         services.AddSingleton<IFileScanner, FileScanner>();
         services.AddSingleton<IFileMetadataReader, FileMetadataReader>();
         services.AddSingleton<IFileHasher, FileHasher>();
+        services.AddSingleton<IFileClassifier, FileClassifier>();
+        services.AddSingleton<IDuplicateDetector, DuplicateDetector>();
+        services.AddSingleton<IRuleEngine, RuleEngine>();
+        services.AddSingleton<IActionPlanner, ActionPlanner>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions

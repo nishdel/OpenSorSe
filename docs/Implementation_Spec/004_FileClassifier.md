@@ -116,3 +116,20 @@ Depends on:
 Required by:
 
 - 006 - Rule Engine
+
+---
+
+# v0.1 Classification Contract
+
+`FileClassifier` is a deterministic Scanner-stage metadata classifier, not the future AI content classifier. It uses only `FileMetadata.FileName` and `FileMetadata.Extension`, assigns exactly one `FileCategory`, and produces no AI output, confidence, tags, or evidence.
+
+```csharp
+public enum FileCategory { Unknown, Document, Spreadsheet, Presentation, Image, Audio, Video, Archive, Code, Data, Executable, Font }
+public enum FileClassificationMatchKind { ExactFileName, Extension }
+public sealed record FileClassificationRule(string Id, FileClassificationMatchKind MatchKind, string Pattern, FileCategory Category);
+public sealed record FileClassificationOptions(IReadOnlyList<FileClassificationRule> Rules) { public static FileClassificationOptions Default { get; } }
+```
+
+`Default` uses case-insensitive, lowercase-invariant leading-dot mappings: Document `.txt .md .rtf .pdf .doc .docx .odt`; Spreadsheet `.csv .xls .xlsx .ods`; Presentation `.ppt .pptx .odp`; Image `.jpg .jpeg .png .gif .bmp .tif .tiff .webp .svg .heic`; Audio `.mp3 .wav .flac .aac .m4a .ogg .wma`; Video `.mp4 .mkv .mov .avi .wmv .webm .m4v`; Archive `.zip .7z .rar .tar .gz .bz2 .xz`; Code `.cs .fs .vb .java .py .js .ts .tsx .jsx .c .cpp .h .hpp .rs .go .php .rb .swift .kt .kts .html .css .scss .xml .json .yaml .yml .toml .sql .sh .ps1`; Data `.db .sqlite .sqlite3 .parquet .avro`; Executable `.exe .msi .dll .bat .cmd .com .appx .msix`; Font `.ttf .otf .woff .woff2`.
+
+Custom options replace defaults. Rules are validated before processing: nonempty unique IDs/patterns, non-Unknown category, extension patterns beginning `.`, and defined match kinds. Rules are evaluated in supplied order; first match wins. A missing metadata value yields Unknown plus one `MetadataUnavailable` issue; an unmatched or extensionless entry yields Unknown without issue. Existing classifications are replaced; path, metadata, hash, order, and duplicates are preserved. Cancellation throws without a partial result. No filesystem access, AI, persistence, events, progress, or later-stage behavior is permitted.

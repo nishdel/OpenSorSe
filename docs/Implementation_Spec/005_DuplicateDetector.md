@@ -117,3 +117,31 @@ Depends on:
 Required by:
 
 - 006 - Rule Engine
+
+---
+
+# v0.1 Contract
+
+## Identity and boundaries
+
+The Duplicate Detector performs exact-content duplicate detection from already calculated SHA-256 hashes. It does not open files, calculate hashes, compare names, paths, metadata, or file contents, or modify the filesystem. It does not perform fuzzy, perceptual, semantic, or near-duplicate detection.
+
+## Input, output, and supported hashes
+
+The detector accepts `FileEntry` values and returns enriched entries, ordered duplicate groups, statistics, and recoverable issues. It supports only the `SHA-256` algorithm, matched case-insensitively. Hash values must be exactly 64 hexadecimal characters; uppercase values are normalized to lowercase. Every output entry receives a newly calculated duplicate classification, replacing any prior value while preserving its full path, metadata, hash, and file classification.
+
+An absent hash produces `HashUnavailable`; a missing or unsupported algorithm produces `UnsupportedHashAlgorithm`; an empty or malformed value produces `InvalidHashValue`. Each affected entry receives exactly one recoverable issue and an `Unknown` classification. Valid singleton hashes are `Unique`; valid hashes shared by two or more entries are `Duplicate` and receive group ID `sha256:<normalized-hash>`. Groups contain enriched entries, preserve input order, and are ordered by the first occurrence of their hash.
+
+The public model is `DuplicateStatus` (`Unknown`, `Unique`, `Duplicate`), `DuplicateClassification(DuplicateStatus Status, string? GroupId = null)`, `DuplicateGroup(string GroupId, string Algorithm, string HashValue, IReadOnlyList<FileEntry> Files)`, `DuplicateDetectionIssueKind` (`HashUnavailable`, `UnsupportedHashAlgorithm`, `InvalidHashValue`), `DuplicateDetectionIssue(string FilePath, DuplicateDetectionIssueKind Kind, string Message)`, `DuplicateDetectionStatistics(long FilesProcessed, long FilesUnique, long FilesDuplicate, long FilesUnknown, long DuplicateGroups, long IssuesEncountered)`, and `DuplicateDetectionResult(IReadOnlyList<FileEntry> Files, IReadOnlyList<DuplicateGroup> Groups, DuplicateDetectionStatistics Statistics, IReadOnlyList<DuplicateDetectionIssue> Issues)`. `FileEntry` is immutably enriched with optional `DuplicateClassification? Duplicate = null`.
+
+The public service contract is `Task<DuplicateDetectionResult> IDuplicateDetector.DetectAsync(IReadOnlyCollection<FileEntry> files, CancellationToken cancellationToken = default)`. The implementation is constructed with `ILoggingService` and `IErrorHandler`, is registered as `AddSingleton<IDuplicateDetector, DuplicateDetector>()`, and has no other subsystem dependency.
+
+## Processing and cancellation
+
+The detector validates the collection and null entries before processing and returns no partial result for validation errors. It checks cancellation before processing, before each entry, and while creating output entries and groups; cancellation throws `OperationCanceledException` without error reporting or a partial result. Processing is sequential and synchronous; no `Task.Run` or parallelism is used.
+
+Unexpected operation-level failures are logged, reported once through `IErrorHandler`, and rethrown. Recoverable hash-validation issues are returned and may be logged, but are not reported through the global error handler. Empty input returns empty files, groups, and issues with all-zero statistics.
+
+## Exclusions
+
+v0.1 excludes hash calculation, filesystem access, persistence, events, progress reporting, UI behavior, AI, rules, planning, deletion, cleanup, preferred-copy selection, and any similarity detection.
