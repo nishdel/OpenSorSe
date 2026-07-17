@@ -4,6 +4,12 @@
 
 ---
 
+## Implementation Status
+
+The Database subsystem is future architecture only. The validated v0.2 release has no database, migrations, search index, or persisted results store; its settings and operation history are application-session concerns rather than a database-backed product capability. The design below is not a shipped feature set or release commitment.
+
+---
+
 ## Purpose
 
 The Database subsystem provides persistent storage for all information managed by OpenSorSe.

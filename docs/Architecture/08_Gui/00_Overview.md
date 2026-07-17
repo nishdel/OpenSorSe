@@ -1,186 +1,54 @@
 # GUI Overview
 
-> This document provides an overview of the Graphical User Interface (GUI) subsystem, which is responsible for presenting information and enabling user interaction within OpenSorSe.
+> The current GUI is an Avalonia MVVM desktop application focused on a safe, read-only scan and review workflow.
 
 ---
 
-## Purpose
+## Current scope
 
-The GUI subsystem provides the primary interface through which users interact with OpenSorSe.
+The implemented Desktop application hosts these user-facing areas:
 
-Its purpose is to present application data, visualize processing results, provide access to application functionality, and enable users to configure and control the system.
+| Component | Current role |
+| --- | --- |
+| Main Window | Hosts application navigation and shared status. |
+| Dashboard | Shows current-session summary and routes to primary workflows. |
+| Scan | Accepts selected local folders and presents processing progress and cancellation. |
+| Results | Hosts the Results Explorer, selected details, warnings, and exact-duplicate review. |
+| Rules | Presents in-memory deterministic rule editing and validation. |
+| Settings | Edits implemented application settings. |
+| Diagnostics | Presents aggregate logging health. |
+| Operation History | Presents in-memory, review-only history state. |
+| Notifications | Shows non-blocking user-safe status messages. |
 
-The GUI serves as the presentation layer of the application and remains independent of the application's business logic.
+The current GUI does not expose execution, undo, file opening, file revealing, result export, AI, OCR, or semantic search controls.
 
----
+## Presentation boundary
 
-# Responsibilities
-
-The GUI subsystem is responsible for:
-
-* Presenting application data.
-* Displaying processing progress.
-* Managing user interaction.
-* Providing application navigation.
-* Displaying search results.
-* Presenting reports.
-* Managing application dialogs.
-* Displaying notifications.
-
----
-
-# Scope
-
-### In Scope
-
-* Windows and pages
-* Navigation
-* User interaction
-* Data presentation
-* Application dialogs
-* Notifications
-* Themes
-
-### Out of Scope
-
-The GUI subsystem is **not** responsible for:
-
-* AI inference
-* Search execution
-* Rule evaluation
-* Database management
-* File scanning
-* Business logic
-
-These responsibilities belong to other architectural subsystems.
-
----
-
-# Architectural Overview
-
-The GUI provides a presentation layer over the application's core functionality.
-
-```mermaid id="2y9v4k"
-flowchart TB
-
-GUI["GUI"]
-
-Core["Core"]
-
-Scanner["Scanner"]
-
-AI["AI"]
-
-Database["Database"]
-
-Search["Search"]
-
-Rules["Rules"]
-
-Reports["Reports"]
-
-GUI --> Core
-
-Core --> Scanner
-Core --> AI
-Core --> Database
-Core --> Search
-Core --> Rules
-Core --> Reports
+```mermaid
+flowchart LR
+    Views["Avalonia Views"] --> ViewModels["MVVM View Models"]
+    ViewModels --> Application["Application services"]
+    Application --> Scanner["Read-only scanner pipeline"]
+    Application --> Results["Immutable results snapshot"]
+    Results --> ViewModels
 ```
 
-The GUI communicates with the application through well-defined interfaces while remaining independent of subsystem implementation details.
+Views and view models present already-computed application data. They must not perform filesystem access, execute planned operations, or bypass the Application layer.
 
----
+## Current usability guarantees
 
-# GUI Components
+- Scan progress and cancellation are visible.
+- Results are bounded through paging and are filtered and sorted in memory.
+- Result and duplicate details reflect the completed scan; they do not inspect the live filesystem.
+- The Results surface includes persistent read-only safety wording.
+- Empty, limitation, and error states use user-safe messages.
 
-The GUI subsystem consists of several specialized components.
+## Future design material
 
-| Component     | Responsibility                       |
-| ------------- | ------------------------------------ |
-| Main Window   | Primary application window.          |
-| Dashboard     | System overview and quick actions.   |
-| Scanner Page  | File scanning and progress.          |
-| Results Page  | Display processing results.          |
-| History Page  | Document history and activity.       |
-| Settings Page | Application configuration.           |
-| Reports Page  | Statistics and analytics.            |
-| Dialogs       | User interaction dialogs.            |
-| Notifications | User feedback and alerts.            |
-| Themes        | Appearance and visual customization. |
+The remaining GUI documents may describe future pages or extension points such as reports, dialogs, themes, and plugin-provided UI. Those descriptions are design intent unless a current release document or implementation specification identifies a feature as implemented.
 
-Each component is documented separately within this section.
+## Related documents
 
----
-
-# User Interaction Flow
-
-A typical interaction consists of the following stages:
-
-1. User performs an action.
-2. GUI forwards the request.
-3. Appropriate subsystem performs the work.
-4. Results are returned.
-5. GUI updates the displayed information.
-
-The GUI should remain responsive while long-running operations execute in the background.
-
----
-
-# User Experience Principles
-
-The GUI should strive to be:
-
-* Responsive.
-* Predictable.
-* Accessible.
-* Consistent.
-* Informative.
-* Non-intrusive.
-
-The interface should help users understand the application's state without overwhelming them.
-
----
-
-# Design Principles
-
-The GUI subsystem should remain:
-
-* Independent of business logic.
-* Modular.
-* Extensible.
-* Platform-aware.
-* Easy to maintain.
-
-Presentation logic should remain separate from application functionality.
-
----
-
-# Future Considerations
-
-The architecture should support future enhancements, including:
-
-* Multiple window layouts.
-* Workspace customization.
-* Accessibility improvements.
-* Plugin-defined interface components.
-* Multi-language user interfaces.
-* Additional visual themes.
-
-These enhancements should preserve the GUI subsystem's primary responsibility of presenting information and supporting user interaction.
-
----
-
-# Related Documents
-
-* [Main Window](01_Main_Window.md)
-* [Dashboard](02_Dashboard.md)
-* [Scanner Page](03_Scanner_Page.md)
-* [Results Page](04_Results_Page.md)
-* [History Page](05_History_Page.md)
-* [Settings Page](06_Settings_Page.md)
-* [Reports Page](07_Reports_Page.md)
-* [Dialogs](08_Dialogs.md)
-* [Notifications](09_Notifications.md)
-* [Themes](10_Themes.md)
+- [System Overview](../00_System/00_Overview.md)
+- [Results Page](04_Results_Page.md)
+- [Release Status](../../RELEASE_STATUS.md)

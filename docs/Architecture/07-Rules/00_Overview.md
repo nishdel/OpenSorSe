@@ -4,6 +4,14 @@
 
 ---
 
+## Implementation Status
+
+The validated v0.2 release implements deterministic rule evaluation as part of the read-only analysis pipeline. Rules evaluate supplied conditions and surface display-only plans or outcomes for review, but the Desktop application does not expose action execution and no rule may rename, move, delete, or otherwise modify user files.
+
+The remaining material in this directory records broader automation architecture and must be read as future design where it refers to user-defined actions, execution, persistence, or database-backed history. It is not a shipped v0.2 capability or release commitment.
+
+---
+
 ## Purpose
 
 The Rules subsystem enables configurable automation by evaluating document information against user-defined conditions and executing corresponding actions.

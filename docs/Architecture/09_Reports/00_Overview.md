@@ -4,6 +4,12 @@
 
 ---
 
+## Implementation Status
+
+The Reports subsystem is future architecture only. The validated v0.2 release does not generate analytical reports, exports, trends, or AI outcome reports. The design below is not a shipped feature set or release commitment.
+
+---
+
 ## Purpose
 
 The Reports subsystem transforms application data into meaningful summaries, statistics, and analytical reports.

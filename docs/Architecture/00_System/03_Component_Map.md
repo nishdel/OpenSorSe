@@ -1,173 +1,45 @@
 # Component Map
 
-> This document provides a high-level view of the major architectural components that make up OpenSorSe and illustrates how they interact with one another.
+> The map below reflects the implemented v0.2 component relationships. Longer-term components are listed separately as future design intent.
 
 ---
 
-## Purpose
-
-The Component Map defines the primary subsystems of OpenSorSe and their relationships.
-
-Its purpose is to provide contributors with a clear understanding of the overall architecture before exploring the implementation details of individual modules.
-
-This document focuses on component responsibilities and dependencies rather than implementation.
-
----
-
-# Architectural Overview
-
-OpenSorSe is organized as a collection of independent subsystems.
-
-Each subsystem has a clearly defined responsibility and communicates with other subsystems through well-defined interfaces.
-
-This modular approach improves maintainability, scalability, and extensibility.
-
----
-
-# High-Level Component Diagram
+## Implemented components
 
 ```mermaid
 flowchart TB
+    Desktop["OpenSorSe.Desktop\nAvalonia + MVVM"]
+    Application["OpenSorSe.Application\nOrchestration + sessions + result snapshots"]
+    Core["OpenSorSe.Core\nConfiguration + logging + lifecycle"]
+    Scanner["OpenSorSe.Scanner\nRead-only analysis"]
+    Rules["OpenSorSe.Rules\nEvaluation + planning"]
+    Executor["OpenSorSe.Executor\nNot exposed by Desktop"]
 
-    GUI["GUI"]
-
-    Core["Core"]
-
-    Scanner["Scanner"]
-
-    Readers["Readers"]
-
-    AI["AI"]
-
-    Database["Database"]
-
-    Search["Search"]
-
-    Rules["Rules"]
-
-    Reports["Reports"]
-
-    Plugins["Plugins"]
-
-    GUI --> Core
-
-    Core --> Scanner
-    Core --> AI
-    Core --> Database
-    Core --> Search
-    Core --> Rules
-    Core --> Reports
-
-    Scanner --> Readers
-    Readers --> AI
-
-    AI --> Database
-
-    Database --> Search
-    Database --> Reports
-
-    Rules --> Database
-
-    Plugins -. Extends .-> Scanner
-    Plugins -. Extends .-> Readers
-    Plugins -. Extends .-> AI
-    Plugins -. Extends .-> Search
-    Plugins -. Extends .-> Rules
+    Desktop --> Application
+    Desktop --> Core
+    Application --> Scanner
+    Application --> Rules
+    Application --> Core
+    Rules -. produces planned operations .-> Executor
 ```
 
----
+| Component | Implemented responsibility | Current safety boundary |
+| --- | --- | --- |
+| Desktop | Presents scan and review workflows, including Results Explorer and exact-duplicate review. | Contains no file-operation control. |
+| Application | Coordinates the completed processing pipeline and projects immutable in-memory results. | Does not persist results or access files outside the scanner pipeline. |
+| Scanner | Traverses selected folders, reads metadata, hashes files, classifies deterministically, and detects exact duplicates. | Read-only filesystem access. |
+| Rules | Evaluates supplied rules and produces display-only plans and conflict resolution. | Does not execute plans. |
+| Core | Provides shared infrastructure and local application configuration/logging support. | Does not create a user-file mutation path. |
+| Executor | Contains execution and undo infrastructure from the foundation work. | Not invoked or surfaced by the validated Desktop workflow. |
 
-# Component Responsibilities
+## Future design areas
 
-| Component | Responsibility                                                                                             |
-| --------- | ---------------------------------------------------------------------------------------------------------- |
-| Core      | Provides shared infrastructure, configuration, logging, events, application state, and common services.    |
-| Scanner   | Discovers files, folders, and filesystem changes.                                                          |
-| Readers   | Extracts metadata and content from supported file formats.                                                 |
-| AI        | Performs document understanding, classification, summarization, renaming, and intelligent recommendations. |
-| Database  | Stores application data, metadata, settings, history, and caches.                                          |
-| Search    | Provides keyword and semantic search across indexed content.                                               |
-| Rules     | Executes user-defined automation based on configurable conditions and actions.                             |
-| GUI       | Presents the application's user interface and coordinates user interactions.                               |
-| Reports   | Generates statistics, summaries, and analytical reports.                                                   |
-| Plugins   | Extends existing functionality without modifying the core application.                                     |
+Readers, AI, Database, Search, Reports, and Plugins remain architectural design areas. They are not projects or user-visible capabilities in the current v0.2 release.
 
----
+Future additions should use the implemented boundaries above rather than bypassing the Application layer or coupling UI code directly to scanner models.
 
-# Dependency Overview
+## Related documents
 
-The architecture intentionally minimizes coupling between subsystems.
-
-General dependency direction follows the pattern:
-
-```text
-GUI
-│
-▼
-Core
-│
-├── Scanner
-├── AI
-├── Database
-├── Search
-├── Rules
-└── Reports
-
-Scanner
-│
-▼
-Readers
-│
-▼
-AI
-│
-▼
-Database
-│
-├── Search
-└── Reports
-```
-
-Subsystems should communicate through well-defined interfaces rather than relying on implementation details.
-
----
-
-# Architectural Characteristics
-
-The component architecture has been designed with the following characteristics:
-
-* Modular
-* Loosely coupled
-* Highly cohesive
-* Extensible
-* Testable
-* Maintainable
-* Local-first
-* Platform independent
-
-Each subsystem is responsible for a specific area of functionality and should avoid overlapping responsibilities.
-
----
-
-# Extension Points
-
-The architecture has been designed to support future expansion.
-
-Examples include:
-
-* Additional file readers
-* New AI model providers
-* Alternative search engines
-* Custom automation rules
-* New reporting modules
-* Third-party plugins
-
-New functionality should integrate through existing extension points wherever possible instead of modifying unrelated components.
-
----
-
-# Related Documents
-
-* [System Overview](00_Overview.md)
-* [Design Principles](02_Design_Principles.md)
-* [Data Flow](04_Data_Flow.md)
+- [System Overview](00_Overview.md)
+- [Data Flow](04_Data_Flow.md)
+- [Release Status](../../RELEASE_STATUS.md)

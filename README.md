@@ -1,29 +1,44 @@
 # OpenSorSe
 
-OpenSorSe is a local-first Avalonia desktop application for inspecting selected folders safely. The v0.2 desktop workflow discovers files and folders, reads filesystem metadata, calculates SHA-256 hashes, applies deterministic classification and duplicate analysis, and provides bounded read-only exploration of completed results without changing the selected files.
+> Open Sort & Search — a local-first, read-only desktop tool for analyzing selected folders safely.
 
-## v0.2 scope
+## Project status
 
-- Select one or more accessible local folders with the native folder picker or an absolute path.
-- Recursively discover files and directories across multiple roots.
-- Skip symbolic links, junctions, and other reparse points.
-- Report progress and allow cancellation.
-- Continue after recoverable filesystem issues and present user-safe status.
-- Read filesystem metadata, hash regular files, classify by metadata, and detect exact SHA-256 duplicates.
-- Display discovered files, directories, warnings, duplicate information, and read-only planned-operation results.
-- Filter, sort, page, and inspect one completed in-memory scan without rescanning.
-- Review exact SHA-256 duplicate groups and their historical theoretical reclaimable-space estimate without displaying hashes or recommending an action.
+OpenSorSe v0.1 Foundation and v0.2 Results Exploration are complete on the validated `coding/v0.2` branch.
 
-The v0.1 desktop UI is intentionally read-only. It does not invoke the executor, move, rename, delete, overwrite, or modify selected user files. Configuration and optional local log files are stored only under the application's local-data directory.
+- .NET restore and build succeed.
+- The automated suite contains 233 passing tests.
+- Manual UI validation has been completed.
+- The Desktop workflow remains read-only with respect to selected user files.
 
-## Prerequisites
+OpenSorSe does not rename, move, delete, overwrite, or otherwise modify selected user files. It does not run AI, OCR, semantic search, or content readers in the current release.
 
-- .NET SDK `9.0.315` (pinned in [global.json](global.json)); the projects target `net8.0`.
-- A supported Avalonia desktop platform. The current environment validates Windows; other platforms require local verification.
+## What the application does today
 
-## Build, test, and run
+| Area | Available in v0.2 |
+| --- | --- |
+| Folder analysis | Select local folders, traverse recursively, report progress, continue after recoverable issues, and support cancellation. |
+| File analysis | Read filesystem metadata, calculate SHA-256 hashes, apply deterministic classification, and detect exact duplicates. |
+| Results review | Explore one completed in-memory scan with filtering, sorting, bounded paging, and read-only file details. |
+| Duplicate review | Inspect exact SHA-256 duplicate groups and a conservative theoretical reclaimable-space estimate without exposing hashes or recommending an action. |
+| Application workflow | Use the Dashboard, Scan, Results, Rules, Settings, Diagnostics, and Operation History surfaces. |
+| Safety | Keep scan results process-local and avoid execution, shell-launch, persistence of results, or file-modification controls. |
 
-From the repository root:
+Planned operations and operation-history information are presentation-only in the Desktop application; they are not executed from the current workflow.
+
+## Technology stack
+
+- .NET 8 target framework and C#.
+- Avalonia UI desktop application.
+- MVVM with CommunityToolkit.Mvvm.
+- Microsoft dependency injection and logging abstractions.
+- xUnit automated tests.
+
+The repository currently pins the .NET SDK in [global.json](global.json). See the [technology stack document](docs/Architecture/99_Appendix/Technology_Stack.md) for current and future technology boundaries.
+
+## Build from source
+
+There is no installer or published package in this repository. To build from source, install the SDK version specified in [global.json](global.json), then run:
 
 ```powershell
 dotnet restore .\OpenSorSe.sln
@@ -32,30 +47,49 @@ dotnet test .\OpenSorSe.sln --configuration Debug --no-build
 dotnet run --project .\src\OpenSorSe.Desktop\OpenSorSe.Desktop.csproj
 ```
 
-Create a Release build with:
+For a Release build:
 
 ```powershell
 dotnet build .\OpenSorSe.sln --configuration Release
 ```
 
-## Manual smoke test
+## Project structure
 
-1. Launch the desktop application and verify the main window opens without an error.
-2. Open **Scan**, choose a small non-critical folder with **Browse...**, and start the scan.
-3. Confirm progress changes, then filter, sort, page, and inspect the completed results without opening or changing a file.
-4. For a controlled duplicate fixture, open **Exact duplicates**, inspect group members, and return to the filtered group files.
-5. Start a second scan and use **Cancel scan** while it is active.
-6. Confirm the application remains responsive, closes cleanly, and no source file in the selected test folder changed.
+```text
+src/
+  OpenSorSe.Core/          Shared infrastructure, configuration, events, logging, state, and tasks
+  OpenSorSe.Scanner/       Read-only scan, metadata, hashing, classification, and duplicate detection
+  OpenSorSe.Rules/         Deterministic rule evaluation, planning, and conflict resolution
+  OpenSorSe.Executor/      Execution and undo components; not exposed by the current Desktop workflow
+  OpenSorSe.Application/   Read-only processing orchestration, sessions, and result snapshots
+  OpenSorSe.Desktop/       Avalonia UI and MVVM presentation layer
+tests/                     Automated unit and integration tests for each implemented project
+docs/                      Architecture, specifications, release status, and roadmap documentation
+```
 
-## Current limitations
+## Release roadmap
 
-- No AI classification, semantic search, embedded-document readers, rule persistence, or execution UI is included in this release workflow.
-- Planned operations are displayed for review only; the desktop app does not execute them.
-- A native folder picker requires a platform storage provider. Absolute local paths remain available when it is unavailable.
+| Release | Status | Scope |
+| --- | --- | --- |
+| v0.1 Foundation | Complete | Scanning, metadata, hashing, deterministic rules, configuration, diagnostics, and Dashboard foundation. |
+| v0.2 Results Exploration | Complete | Results Explorer, filtering, sorting, paging, details, and exact-duplicate review. |
+| v0.3 | Planned | Usability improvements and workflow enhancements, scoped through future proposals. |
+| Future releases | Ideas only | Content readers, OCR, AI providers, rename or folder suggestions, semantic search, automatic tagging, and plugins. |
+
+See the [roadmap](docs/roadmap.md) and [release status](docs/RELEASE_STATUS.md) for details.
+
+## Manual validation checklist
+
+1. Launch the desktop application and verify that the main window opens.
+2. Scan a small, non-critical local folder and confirm progress, results, and warnings are understandable.
+3. Filter, sort, page, and inspect completed results without opening or changing a file.
+4. Use a controlled duplicate fixture to review exact duplicate groups and return to their filtered result rows.
+5. Cancel a second scan and confirm the application remains responsive.
+6. Compare a before/after manifest of the test folder and confirm that no selected user file changed.
 
 ## Contributing
 
-Keep changes focused, preserve the read-only scan boundary, and run the build and test commands above before opening a pull request.
+Keep contributions focused, preserve the read-only safety boundary, update affected documentation, and run the build and test commands above. The current release does not authorize file-modification, AI, OCR, or semantic-search features without a dedicated proposal.
 
 ## License
 

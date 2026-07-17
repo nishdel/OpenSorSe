@@ -4,6 +4,12 @@
 
 ---
 
+## Implementation Status
+
+The Plugins subsystem is future architecture only. The validated v0.2 release has no plugin API, discovery mechanism, loading mechanism, or extension sandbox. The design below is not a shipped feature set or release commitment.
+
+---
+
 ## Purpose
 
 The Plugins subsystem provides a structured mechanism for extending OpenSorSe without modifying its core source code.

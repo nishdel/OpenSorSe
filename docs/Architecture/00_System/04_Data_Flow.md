@@ -1,149 +1,45 @@
 # Data Flow
 
-> This document describes how data moves through OpenSorSe, from initial file discovery to storage, indexing, and presentation.
+> This document describes the current read-only v0.2 data flow. Future architecture documents for storage, readers, AI, and search are not part of this flow.
 
 ---
 
-## Purpose
-
-The purpose of this document is to describe the lifecycle of data within OpenSorSe.
-
-Understanding the flow of data between subsystems helps contributors understand component responsibilities, dependencies, and processing order.
-
-This document focuses on **what data moves** and **where it flows**, rather than how individual components are implemented.
-
----
-
-# Data Flow Overview
-
-The following diagram illustrates the primary flow of information through the system.
+## Implemented flow
 
 ```mermaid
 flowchart LR
-
-Filesystem["Filesystem"]
-
-Scanner["Scanner"]
-
-Readers["Readers"]
-
-AI["AI Engine"]
-
-Database["Database"]
-
-Search["Search Index"]
-
-Rules["Rules Engine"]
-
-Reports["Reports"]
-
-GUI["GUI"]
-
-Filesystem --> Scanner
-Scanner --> Readers
-Readers --> AI
-AI --> Database
-
-Database --> Search
-Database --> Rules
-Database --> Reports
-
-Search --> GUI
-Rules --> GUI
-Reports --> GUI
-Database --> GUI
+    User["Selected local folders"] --> Scan["Scanner\nDiscovery + metadata"]
+    Scan --> Hash["SHA-256 hashing"]
+    Hash --> Classify["Deterministic classification"]
+    Classify --> Duplicates["Exact duplicate detection"]
+    Duplicates --> Rules["Rule evaluation + planning"]
+    Rules --> Snapshot["Immutable in-memory results snapshot"]
+    Snapshot --> Explorer["Results Explorer + duplicate review"]
 ```
 
----
+## Data ownership and lifetime
 
-# Processing Pipeline
+| Data | Producer | Consumer | Lifetime |
+| --- | --- | --- | --- |
+| Scan entries and recoverable issues | Scanner | Application pipeline | Processing session. |
+| Metadata, hashes, classifications, and duplicate groups | Scanner enrichers | Application pipeline and results snapshot | Processing session. |
+| Rule decisions and planned operations | Rules | Results snapshot | Processing session; display-only in Desktop. |
+| Results snapshot | Application | Desktop Results Explorer and duplicate review | Process memory until replaced or application exit. |
+| Settings and diagnostic logs | Core | Desktop and supporting services | Local application-data scope, independent of scan results. |
 
-A typical file progresses through the following stages:
+## Safety constraints
 
-| Stage               | Description                                                   |
-| ------------------- | ------------------------------------------------------------- |
-| File Discovery      | The Scanner locates files within the selected directories.    |
-| Metadata Collection | Filesystem metadata is collected.                             |
-| Content Extraction  | Readers extract readable content from supported file formats. |
-| AI Processing       | The AI subsystem analyzes and enriches extracted information. |
-| Database Storage    | Metadata, AI results, and processing history are stored.      |
-| Search Indexing     | Search indexes are updated.                                   |
-| Rule Evaluation     | User-defined automation rules are evaluated.                  |
-| Presentation        | Results become available through the graphical interface.     |
+- The Scanner reads selected filesystem information; it does not modify selected user files.
+- The Results Explorer filters and sorts already-projected in-memory data; it does not rescan, open, reveal, or validate paths.
+- Duplicate review consumes existing exact-hash groups and does not recalculate hashes or recommend deletion.
+- The current Desktop workflow does not invoke `IActionExecutor` or `IUndoEngine`.
 
----
+## Deferred flows
 
-# Data Types
+Persistent databases, content readers, OCR, AI, keyword or semantic search indexes, reporting, and plugins are not part of the current flow. Their architecture documents describe possible future work only.
 
-Several different types of data flow through the application.
+## Related documents
 
-| Data Type        | Produced By      | Consumed By       |
-| ---------------- | ---------------- | ----------------- |
-| File Information | Scanner          | Readers, Database |
-| Metadata         | Scanner, Readers | AI, Database      |
-| Document Content | Readers          | AI                |
-| AI Results       | AI               | Database, Rules   |
-| Search Index     | Database         | Search            |
-| Search Results   | Search           | GUI               |
-| Reports          | Reports          | GUI               |
-| User Settings    | GUI              | Core, Database    |
-| Rules            | GUI              | Rules Engine      |
-
----
-
-# Data Ownership
-
-Each subsystem owns the data it produces.
-
-| Subsystem | Primary Responsibility |
-| --------- | ---------------------- |
-| Scanner   | File discovery         |
-| Readers   | Content extraction     |
-| AI        | Document understanding |
-| Database  | Persistent storage     |
-| Search    | Search indexes         |
-| Rules     | Automation execution   |
-| Reports   | Generated statistics   |
-| GUI       | User interaction       |
-
-Ownership helps maintain clear architectural boundaries and reduces unnecessary coupling between components.
-
----
-
-# Data Persistence
-
-Not all information generated during processing is permanently stored.
-
-Examples of persistent data include:
-
-* Application settings
-* File metadata
-* AI classifications
-* Search indexes
-* Processing history
-* User-defined rules
-* Cached embeddings
-
-Temporary processing data should remain in memory only for the duration of the operation unless explicitly required elsewhere.
-
----
-
-# Design Considerations
-
-The data flow architecture is designed to achieve the following objectives:
-
-* Minimize redundant processing.
-* Maintain clear ownership of data.
-* Reduce unnecessary dependencies.
-* Enable efficient indexing and searching.
-* Support asynchronous processing.
-* Allow future expansion without redesigning the pipeline.
-
----
-
-# Related Documents
-
-* [Component Map](03_Component_Map.md)
-* [Event Flow](05_Event_Flow.md)
-* [Database Overview](../05_Database/00_Overview.md)
-* [Search Overview](../06_Search/00_Overview.md)
+- [System Overview](00_Overview.md)
+- [Component Map](03_Component_Map.md)
+- [Results Explorer Specification](../../Implementation_Spec/v0.2/030_ResultsExplorer.md)

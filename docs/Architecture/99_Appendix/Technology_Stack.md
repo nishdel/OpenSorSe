@@ -1,166 +1,44 @@
 # Technology Stack
 
-> This document defines the primary technologies, frameworks, libraries, and platforms used throughout the OpenSorSe project.
+> This document distinguishes technologies used by the validated v0.2 release from longer-term technology ideas.
 
 ---
 
-# Purpose
+## Implemented stack
 
-The Technology Stack document provides an overview of the technologies selected for building, running, and extending OpenSorSe.
+| Area | Technology | Current use |
+| --- | --- | --- |
+| Runtime | .NET 8 target framework | All production and test projects target `net8.0`. |
+| Language | C# | Primary implementation language. |
+| Desktop UI | Avalonia UI | Cross-platform-capable desktop presentation framework. |
+| Presentation pattern | MVVM | Separates view state and commands from application and scanner logic. |
+| MVVM support | CommunityToolkit.Mvvm | Observable view models and commands. |
+| Infrastructure | Microsoft.Extensions dependency injection and logging | Service composition and diagnostic logging. |
+| Testing | xUnit, Microsoft.NET.Test.Sdk, coverlet collector | Automated unit and integration test coverage. |
+| Documentation | Markdown and Mermaid | Repository documentation and architecture diagrams. |
+| Version control | Git | Local repository history and collaboration workflow. |
 
-Its purpose is to communicate the project's technical foundation, promote consistency across contributions, and explain the role of each major technology within the architecture.
+The repository pins an SDK version in the root [global.json](../../../global.json). The pinned SDK may be newer than the .NET 8 target framework; the application runtime target remains .NET 8.
 
-This document describes the intended technology choices rather than implementation details.
+## Current non-adoptions
 
----
+The v0.2 release does not use the following as implemented product capabilities:
 
-# Guiding Principles
+- SQLite or another database for scan-result persistence.
+- Full-text or vector search.
+- AI model providers, embeddings, or cloud AI APIs.
+- OCR or format-specific content readers.
+- Plugin loading or a plugin marketplace.
+- Python, PySide, or other legacy desktop stack components.
 
-Technology selection should prioritize:
+## Future technology considerations
 
-* Simplicity.
-* Maintainability.
-* Performance.
-* Cross-platform compatibility.
-* Open standards where practical.
-* Long-term sustainability.
+Readers, OCR, AI providers, persistent storage, keyword or semantic search, reports, and plugins are future architectural ideas. A technology named in a future architecture document is not a dependency or delivered capability until a dedicated proposal and implementation add it.
 
-Technologies should be adopted because they solve real architectural needs rather than because they are popular.
+Future technology selection should continue to prioritize local-first privacy, user control, maintainability, and explicit safety boundaries for any feature that could affect user files.
 
----
+## Related documents
 
-# Core Platform
-
-| Technology | Purpose                                   |
-| ---------- | ----------------------------------------- |
-| .NET       | Primary application platform and runtime. |
-| C#         | Primary programming language.             |
-| MVVM       | User interface architectural pattern.     |
-
----
-
-# User Interface
-
-| Technology  | Purpose                                          |
-| ----------- | ------------------------------------------------ |
-| Avalonia UI | Cross-platform desktop user interface framework. |
-
----
-
-# Data Storage
-
-| Technology | Purpose                                                         |
-| ---------- | --------------------------------------------------------------- |
-| SQLite     | Embedded relational database for application data and metadata. |
-
----
-
-# Artificial Intelligence
-
-| Technology             | Purpose                                                                    |
-| ---------------------- | -------------------------------------------------------------------------- |
-| Ollama                 | Local model management and inference.                                      |
-| ONNX Runtime           | Efficient execution of supported machine learning models where applicable. |
-| OpenAI-Compatible APIs | Optional support for cloud-based AI providers through a common interface.  |
-
-The architecture remains provider-independent.
-
----
-
-# Search
-
-| Technology                    | Purpose                                                                      |
-| ----------------------------- | ---------------------------------------------------------------------------- |
-| SQLite Full-Text Search (FTS) | Keyword search.                                                              |
-| Vector Search Provider        | Semantic search using document embeddings through interchangeable providers. |
-
-Specific vector database implementations may evolve without changing the architecture.
-
----
-
-# Document Processing
-
-| Technology              | Purpose                                                                   |
-| ----------------------- | ------------------------------------------------------------------------- |
-| Native .NET Libraries   | General file handling where appropriate.                                  |
-| Format-Specific Readers | Extraction of document content from supported file types.                 |
-| OCR Providers           | Text extraction from scanned documents through interchangeable providers. |
-
----
-
-# Plugin System
-
-| Technology | Purpose                                                |
-| ---------- | ------------------------------------------------------ |
-| Plugin API | Stable extension interface for third-party developers. |
-
-Plugin implementations remain independent of the core application.
-
----
-
-# Testing
-
-| Technology             | Purpose                                     |
-| ---------------------- | ------------------------------------------- |
-| Unit Testing Framework | Automated testing of individual components. |
-| Integration Testing    | Validation of subsystem interactions.       |
-
-Specific testing frameworks may be selected as the project evolves.
-
----
-
-# Build & Tooling
-
-| Technology     | Purpose                                         |
-| -------------- | ----------------------------------------------- |
-| Git            | Version control.                                |
-| GitHub         | Source code hosting and collaboration.          |
-| GitHub Actions | Continuous Integration and automated workflows. |
-
-Equivalent tooling may be adopted if project requirements change.
-
----
-
-# Documentation
-
-| Technology | Purpose                             |
-| ---------- | ----------------------------------- |
-| Markdown   | Documentation format.               |
-| Mermaid    | Architecture and workflow diagrams. |
-
----
-
-# Dependency Philosophy
-
-The project should:
-
-* Prefer mature libraries.
-* Minimize unnecessary dependencies.
-* Favor actively maintained projects.
-* Avoid vendor lock-in where practical.
-* Abstract external technologies behind interfaces.
-
-External dependencies should be replaceable whenever practical.
-
----
-
-# Future Considerations
-
-The technology stack may evolve to include:
-
-* Alternative AI providers.
-* Additional vector search implementations.
-* Cloud synchronization providers.
-* Mobile or web frontends.
-* Additional build tooling.
-
-Technology choices should continue to support the project's architectural goals rather than dictate them.
-
----
-
-# Related Documents
-
-* [Architecture Decision Records](03_Architecture_Decision_Records.md)
-* [Coding Standards](01_Coding_Standards.md)
-* [Plugins Overview](../10_Plugins/00_Overview.md)
-* [AI Overview](../04_AI/00_Overview.md)
+- [System Overview](../00_System/00_Overview.md)
+- [Release Status](../../RELEASE_STATUS.md)
+- [Roadmap](../../roadmap.md)

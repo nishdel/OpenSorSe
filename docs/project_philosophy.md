@@ -12,6 +12,10 @@ Its purpose is to provide a shared foundation for contributors, maintainers, and
 
 When multiple solutions are technically valid, these principles should help determine which direction best aligns with the project's vision.
 
+## Current Release Boundary
+
+The validated v0.2 release is a local-first, read-only file analysis application. It does not modify selected user files or implement AI, OCR, semantic search, or automatic organization. References to intelligent assistance and automation below describe possible future direction, not shipped functionality.
+
 ---
 
 # Vision
@@ -153,8 +157,7 @@ Every contribution should move the project one step closer to that vision.
 
 # Related Documents
 
-* [Glossary](00_Glossary.md)
-* [Coding Standards](01_Coding_Standards.md)
-* [Architecture Decision Records](03_Architecture_Decision_Records.md)
-* [Roadmap](05_Roadmap.md)
-* [Contributing Guide](06_Contributing.md)
+* [Release Status](RELEASE_STATUS.md)
+* [Roadmap](roadmap.md)
+* [System Overview](Architecture/00_System/00_Overview.md)
+* [Technology Stack](Architecture/99_Appendix/Technology_Stack.md)
