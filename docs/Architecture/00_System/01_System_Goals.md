@@ -1,12 +1,12 @@
 # System Goals
 
-> This document defines the primary objectives of TidyMind. These goals guide architectural decisions, feature development, and long-term project direction.
+> This document defines the primary objectives of OpenSorSe. These goals guide architectural decisions, feature development, and long-term project direction.
 
 ---
 
 ## Purpose
 
-The purpose of this document is to establish the core goals of TidyMind and provide a consistent foundation for future development.
+The purpose of this document is to establish the core goals of OpenSorSe and provide a consistent foundation for future development.
 
 Every architectural decision, feature request, or implementation should support one or more of these goals. If a proposed change conflicts with these goals, it should be carefully evaluated before being introduced into the project.
 
@@ -16,7 +16,7 @@ Every architectural decision, feature request, or implementation should support 
 
 ## 1. Organize Files Intelligently
 
-TidyMind should help users organize their files in a logical and meaningful way by combining traditional file management techniques with Artificial Intelligence.
+OpenSorSe should help users organize their files in a logical and meaningful way by combining traditional file management techniques with Artificial Intelligence.
 
 The system should reduce manual effort while maintaining transparency and user control.
 
@@ -46,7 +46,7 @@ The application should explain its recommendations, allow users to review change
 
 ## 4. Operate Locally
 
-TidyMind is designed as a local-first application.
+OpenSorSe is designed as a local-first application.
 
 Core functionality should work without requiring cloud services or an internet connection.
 
@@ -123,7 +123,7 @@ Each subsystem should have clearly defined responsibilities, minimizing unnecess
 
 # Non-Goals
 
-The following are intentionally outside the scope of TidyMind:
+The following are intentionally outside the scope of OpenSorSe:
 
 * Replacing the operating system's native file manager.
 * Providing cloud storage services.
@@ -138,7 +138,7 @@ These limitations help maintain a focused and maintainable architecture.
 
 # Architectural Impact
 
-These goals influence every subsystem within TidyMind.
+These goals influence every subsystem within OpenSorSe.
 
 When introducing new functionality, contributors should consider the following questions:
 

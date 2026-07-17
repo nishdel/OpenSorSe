@@ -1,12 +1,12 @@
 # Plugins Overview
 
-> This document provides an overview of the Plugins subsystem, which enables third-party developers to extend TidyMind with additional functionality while preserving the integrity of the core application.
+> This document provides an overview of the Plugins subsystem, which enables third-party developers to extend OpenSorSe with additional functionality while preserving the integrity of the core application.
 
 ---
 
 ## Purpose
 
-The Plugins subsystem provides a structured mechanism for extending TidyMind without modifying its core source code.
+The Plugins subsystem provides a structured mechanism for extending OpenSorSe without modifying its core source code.
 
 Its purpose is to enable developers to introduce new capabilities, integrations, and custom behaviors through well-defined extension points while maintaining compatibility with the application's architecture.
 

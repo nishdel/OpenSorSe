@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 021 |
 | Component | Undo History |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -15,13 +15,13 @@
 
 The Undo History view displays previous organization operations and allows users to review and restore eligible operations.
 
-It provides a safe and transparent way to reverse changes made by TidyMind.
+It provides a safe and transparent way to reverse changes made by OpenSorSe.
 
 ---
 
 # Why
 
-Users should always be able to see what TidyMind has changed and restore previous organization operations if necessary.
+Users should always be able to see what OpenSorSe has changed and restore previous organization operations if necessary.
 
 This builds trust in the application and reduces the risk of accidental file organization.
 

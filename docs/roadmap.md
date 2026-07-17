@@ -1,12 +1,12 @@
 # Roadmap
 
-> This document outlines the long-term vision and planned evolution of the TidyMind project.
+> This document outlines the long-term vision and planned evolution of the OpenSorSe project.
 
 ---
 
 # Purpose
 
-The Roadmap communicates the intended direction of TidyMind by highlighting planned capabilities, architectural goals, and future areas of development.
+The Roadmap communicates the intended direction of OpenSorSe by highlighting planned capabilities, architectural goals, and future areas of development.
 
 Its purpose is to help contributors understand project priorities and identify opportunities for contribution.
 
@@ -16,7 +16,7 @@ The Roadmap is a planning document rather than a release schedule.
 
 # Vision
 
-TidyMind aims to become an intelligent, privacy-first knowledge management platform that helps users discover, understand, organize, and automate their digital documents.
+OpenSorSe aims to become an intelligent, privacy-first knowledge management platform that helps users discover, understand, organize, and automate their digital documents.
 
 The project emphasizes:
 
@@ -129,7 +129,7 @@ Contributors may help with:
 
 # Success Criteria
 
-The long-term success of TidyMind will be measured by:
+The long-term success of OpenSorSe will be measured by:
 
 * A maintainable architecture.
 * A healthy contributor community.

@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\TidyMind.Core\TidyMind.Core.csproj" />
-    <ProjectReference Include="..\TidyMind.Rules\TidyMind.Rules.csproj" />
-  </ItemGroup>
-</Project>

@@ -1,6 +1,6 @@
 # Utilities
 
-> This document defines the Utilities component, which provides shared helper functionality used throughout TidyMind.
+> This document defines the Utilities component, which provides shared helper functionality used throughout OpenSorSe.
 
 ---
 

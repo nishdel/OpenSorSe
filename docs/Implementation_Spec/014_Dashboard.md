@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 014 |
 | Component | Dashboard |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -15,13 +15,13 @@
 
 The Dashboard is the application's home screen.
 
-It provides users with an overview of TidyMind, quick access to common actions, and a summary of recent activity.
+It provides users with an overview of OpenSorSe, quick access to common actions, and a summary of recent activity.
 
 ---
 
 # Why
 
-The Dashboard gives users a central place to begin using TidyMind without needing to navigate through multiple screens.
+The Dashboard gives users a central place to begin using OpenSorSe without needing to navigate through multiple screens.
 
 It should answer:
 

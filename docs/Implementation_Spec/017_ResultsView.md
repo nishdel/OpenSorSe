@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 017 |
 | Component | Results View |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -21,7 +21,7 @@ No file operations may be executed from this view without explicit user confirma
 
 # Why
 
-Users should always understand what TidyMind intends to do before their files are modified.
+Users should always understand what OpenSorSe intends to do before their files are modified.
 
 The Results View provides transparency and allows users to review, adjust, or cancel the planned operations.
 

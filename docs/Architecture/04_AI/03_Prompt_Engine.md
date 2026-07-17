@@ -1,6 +1,6 @@
 # Prompt Engine
 
-> This document defines the Prompt Engine component, which is responsible for constructing, managing, and preparing prompts for AI interactions within TidyMind.
+> This document defines the Prompt Engine component, which is responsible for constructing, managing, and preparing prompts for AI interactions within OpenSorSe.
 
 ---
 

@@ -1,12 +1,12 @@
 # Design Principles
 
-> This document defines the architectural principles that guide the design and development of TidyMind. These principles should be considered when making architectural decisions, implementing new features, or extending the system.
+> This document defines the architectural principles that guide the design and development of OpenSorSe. These principles should be considered when making architectural decisions, implementing new features, or extending the system.
 
 ---
 
 ## Purpose
 
-The purpose of these design principles is to ensure that TidyMind remains consistent, maintainable, scalable, and easy to understand as the project evolves.
+The purpose of these design principles is to ensure that OpenSorSe remains consistent, maintainable, scalable, and easy to understand as the project evolves.
 
 Every subsystem should be designed with these principles in mind.
 
@@ -14,7 +14,7 @@ Every subsystem should be designed with these principles in mind.
 
 # 1. Modular Architecture
 
-TidyMind is designed as a collection of independent subsystems.
+OpenSorSe is designed as a collection of independent subsystems.
 
 Each subsystem should have a clearly defined responsibility and expose well-defined interfaces for interacting with other parts of the application.
 

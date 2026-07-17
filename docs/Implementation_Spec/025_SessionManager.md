@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 025 |
 | Component | Session Manager |
-| Project | TidyMind.Application |
+| Project | OpenSorSe.Application |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -15,7 +15,7 @@
 
 The Session Manager is responsible for creating, tracking, and closing application sessions.
 
-Each scan performed by TidyMind is represented as a unique session.
+Each scan performed by OpenSorSe is represented as a unique session.
 
 ---
 

@@ -1,12 +1,12 @@
 # AI Manager
 
-> This document defines the AI Manager component, which is responsible for coordinating all AI operations within TidyMind.
+> This document defines the AI Manager component, which is responsible for coordinating all AI operations within OpenSorSe.
 
 ---
 
 ## Purpose
 
-The AI Manager serves as the central coordinator for all Artificial Intelligence functionality within TidyMind.
+The AI Manager serves as the central coordinator for all Artificial Intelligence functionality within OpenSorSe.
 
 Rather than performing AI operations directly, it determines which AI capabilities are required, coordinates the execution of those operations, and manages the flow of information between AI components.
 

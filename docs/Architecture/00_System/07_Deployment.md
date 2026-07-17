@@ -1,12 +1,12 @@
 # Deployment
 
-> This document describes the runtime deployment architecture of TidyMind, including the major runtime components, local storage, optional external services, and the overall execution environment.
+> This document describes the runtime deployment architecture of OpenSorSe, including the major runtime components, local storage, optional external services, and the overall execution environment.
 
 ---
 
 ## Purpose
 
-The purpose of this document is to define how TidyMind is deployed and executed.
+The purpose of this document is to define how OpenSorSe is deployed and executed.
 
 Unlike the logical architecture described in previous documents, this document focuses on the physical arrangement of application components during runtime.
 
@@ -16,7 +16,7 @@ The deployment architecture is designed around a **local-first** philosophy wher
 
 # Deployment Overview
 
-TidyMind is deployed as a desktop application.
+OpenSorSe is deployed as a desktop application.
 
 All primary components execute locally and communicate internally through the application's architecture.
 
@@ -33,7 +33,7 @@ flowchart TB
 
     User["User"]
 
-    App["TidyMind Desktop Application"]
+    App["OpenSorSe Desktop Application"]
 
     Filesystem["Local Filesystem"]
 
@@ -64,7 +64,7 @@ The deployed application consists of the following runtime components.
 | Component               | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |
 | Desktop Application     | Hosts the user interface and application logic.              |
-| Local Filesystem        | Source of files and folders managed by TidyMind.             |
+| Local Filesystem        | Source of files and folders managed by OpenSorSe.             |
 | SQLite Database         | Stores metadata, settings, history, indexes, and caches.     |
 | Local AI Models         | Perform document understanding and AI-assisted features.     |
 | Plugin Directory        | Contains user-installed plugins that extend the application. |
@@ -93,7 +93,7 @@ The exact storage locations are platform-dependent and are documented separately
 
 # Optional External Services
 
-Although TidyMind is designed to operate completely offline, optional integrations may be supported.
+Although OpenSorSe is designed to operate completely offline, optional integrations may be supported.
 
 Examples include:
 

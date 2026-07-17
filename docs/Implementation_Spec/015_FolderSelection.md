@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 015 |
 | Component | Folder Selection |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,7 +13,7 @@
 
 # Purpose
 
-The Folder Selection view allows users to choose one or more folders for TidyMind to analyze.
+The Folder Selection view allows users to choose one or more folders for OpenSorSe to analyze.
 
 It serves as the starting point of every scan.
 
@@ -21,7 +21,7 @@ It serves as the starting point of every scan.
 
 # Why
 
-Before TidyMind can organize files, it needs to know which locations the user wants to process.
+Before OpenSorSe can organize files, it needs to know which locations the user wants to process.
 
 The Folder Selection view provides a simple, safe, and intuitive way to define scan targets.
 

@@ -14,7 +14,7 @@
 
 The File Scanner is responsible for discovering all files and directories within one or more user-selected locations.
 
-It is the first stage of the TidyMind processing pipeline and provides the complete filesystem structure for downstream components.
+It is the first stage of the OpenSorSe processing pipeline and provides the complete filesystem structure for downstream components.
 
 The scanner is **read-only** and must never modify the user's files.
 

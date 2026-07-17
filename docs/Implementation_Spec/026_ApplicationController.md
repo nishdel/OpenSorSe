@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 026 |
 | Component | Application Controller |
-| Project | TidyMind.Application |
+| Project | OpenSorSe.Application |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |

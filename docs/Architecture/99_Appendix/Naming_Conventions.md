@@ -1,6 +1,6 @@
 # Naming Conventions
 
-> This document defines the naming conventions used throughout the TidyMind project to promote consistency, readability, and maintainability.
+> This document defines the naming conventions used throughout the OpenSorSe project to promote consistency, readability, and maintainability.
 
 ---
 
@@ -8,7 +8,7 @@
 
 The Naming Conventions document establishes consistent naming practices for source code, documentation, configuration, and project structure.
 
-Its purpose is to ensure that contributors use clear, descriptive, and predictable names throughout the TidyMind codebase.
+Its purpose is to ensure that contributors use clear, descriptive, and predictable names throughout the OpenSorSe codebase.
 
 Consistent naming reduces ambiguity and improves collaboration.
 

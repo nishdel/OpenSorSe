@@ -1,6 +1,6 @@
 # Service Registry
 
-> This document defines the Service Registry architecture used to manage shared services within TidyMind.
+> This document defines the Service Registry architecture used to manage shared services within OpenSorSe.
 
 ---
 

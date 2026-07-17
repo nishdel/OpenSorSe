@@ -1,12 +1,12 @@
 # User Flow
 
-> This document describes the typical interaction between a user and TidyMind, from launching the application to organizing, searching, and managing files.
+> This document describes the typical interaction between a user and OpenSorSe, from launching the application to organizing, searching, and managing files.
 
 ---
 
 ## Purpose
 
-The purpose of this document is to provide a high-level overview of how users interact with TidyMind.
+The purpose of this document is to provide a high-level overview of how users interact with OpenSorSe.
 
 It describes the major user workflows without focusing on specific interface layouts or implementation details.
 
@@ -50,7 +50,7 @@ A typical user session consists of the following stages:
 1. Launch the application.
 2. Select one or more folders to scan.
 3. Start the scanning process.
-4. Allow TidyMind to analyze discovered files.
+4. Allow OpenSorSe to analyze discovered files.
 5. Review classifications, suggestions, and detected issues.
 6. Accept, modify, or reject recommendations.
 7. Search, browse, or filter organized files.
@@ -63,7 +63,7 @@ The user remains in control throughout the entire workflow.
 
 # Primary User Actions
 
-Users interact with TidyMind through several core activities.
+Users interact with OpenSorSe through several core activities.
 
 | Action    | Description                                               |
 | --------- | --------------------------------------------------------- |
@@ -78,7 +78,7 @@ Users interact with TidyMind through several core activities.
 
 # User Control
 
-TidyMind is designed to assist rather than automate without oversight.
+OpenSorSe is designed to assist rather than automate without oversight.
 
 Users should always be able to:
 

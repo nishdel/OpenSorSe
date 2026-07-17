@@ -1,12 +1,12 @@
 # Technology Stack
 
-> This document defines the primary technologies, frameworks, libraries, and platforms used throughout the TidyMind project.
+> This document defines the primary technologies, frameworks, libraries, and platforms used throughout the OpenSorSe project.
 
 ---
 
 # Purpose
 
-The Technology Stack document provides an overview of the technologies selected for building, running, and extending TidyMind.
+The Technology Stack document provides an overview of the technologies selected for building, running, and extending OpenSorSe.
 
 Its purpose is to communicate the project's technical foundation, promote consistency across contributions, and explain the role of each major technology within the architecture.
 

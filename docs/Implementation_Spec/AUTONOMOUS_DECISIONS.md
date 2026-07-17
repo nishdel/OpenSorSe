@@ -9,8 +9,8 @@ The original draft required log files and statistics but did not define their de
 ### Decisions
 
 - Retain `Microsoft.Extensions.Logging`, Debug output, and the existing minimum-level configuration.
-- Add an optional local UTF-8 daily text sink, enabled by default, under the platform local-application-data `TidyMind/Logs` directory unless configured otherwise.
-- Use UTC daily names (`tidymind-YYYY-MM-DD.log`), seven-file retention, serialized writes, and a flush after each entry.
+- Add an optional local UTF-8 daily text sink, enabled by default, under the platform local-application-data `OpenSorSe/Logs` directory unless configured otherwise.
+- Use UTC daily names (`opensorse-YYYY-MM-DD.log`), seven-file retention, serialized writes, and a flush after each entry.
 - Count process-lifetime accepted entries and file-sink failures; do not retain or query log entries.
 - Omit supplied exceptions from file text and require callers not to log contents, hashes, credentials, or raw sensitive diagnostics.
 - Swallow local file-sink failures and retain Debug output.

@@ -1,6 +1,6 @@
 # Configuration
 
-> This document defines the configuration architecture of TidyMind, including how application settings are organized, loaded, accessed, validated, and persisted.
+> This document defines the configuration architecture of OpenSorSe, including how application settings are organized, loaded, accessed, validated, and persisted.
 
 ---
 

@@ -1,6 +1,6 @@
 # Settings
 
-> This document defines the Settings component, which is responsible for persistently storing and managing application configuration and user preferences within TidyMind.
+> This document defines the Settings component, which is responsible for persistently storing and managing application configuration and user preferences within OpenSorSe.
 
 ---
 

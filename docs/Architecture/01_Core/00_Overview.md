@@ -1,12 +1,12 @@
 # Core Overview
 
-> This document provides an overview of the Core subsystem, which serves as the foundation of the TidyMind application. The Core provides shared infrastructure, common services, application lifecycle management, and communication mechanisms used throughout the system.
+> This document provides an overview of the Core subsystem, which serves as the foundation of the OpenSorSe application. The Core provides shared infrastructure, common services, application lifecycle management, and communication mechanisms used throughout the system.
 
 ---
 
 ## Purpose
 
-The Core subsystem provides the fundamental services required by every other subsystem within TidyMind.
+The Core subsystem provides the fundamental services required by every other subsystem within OpenSorSe.
 
 Rather than implementing application features, the Core establishes the infrastructure that enables the rest of the application to operate consistently and reliably.
 

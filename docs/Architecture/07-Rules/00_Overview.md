@@ -1,6 +1,6 @@
 # Rules Overview
 
-> This document provides an overview of the Rules subsystem, which is responsible for evaluating conditions and executing user-defined automation based on information available within TidyMind.
+> This document provides an overview of the Rules subsystem, which is responsible for evaluating conditions and executing user-defined automation based on information available within OpenSorSe.
 
 ---
 

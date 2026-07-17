@@ -1,12 +1,12 @@
 # Data Flow
 
-> This document describes how data moves through TidyMind, from initial file discovery to storage, indexing, and presentation.
+> This document describes how data moves through OpenSorSe, from initial file discovery to storage, indexing, and presentation.
 
 ---
 
 ## Purpose
 
-The purpose of this document is to describe the lifecycle of data within TidyMind.
+The purpose of this document is to describe the lifecycle of data within OpenSorSe.
 
 Understanding the flow of data between subsystems helps contributors understand component responsibilities, dependencies, and processing order.
 

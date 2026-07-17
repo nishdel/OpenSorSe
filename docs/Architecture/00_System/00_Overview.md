@@ -1,14 +1,14 @@
 # System Overview
 
-> This document provides a high-level overview of the TidyMind architecture. It introduces the project's purpose, the major architectural components, and the structure of the architecture documentation.
+> This document provides a high-level overview of the OpenSorSe architecture. It introduces the project's purpose, the major architectural components, and the structure of the architecture documentation.
 
 ---
 
 ## Introduction
 
-TidyMind is a local-first, AI-powered file organization and knowledge management application designed to help users organize, understand, and retrieve information from their digital files.
+OpenSorSe is a local-first, AI-powered file organization and knowledge management application designed to help users organize, understand, and retrieve information from their digital files.
 
-Rather than replacing the operating system's file manager, TidyMind works alongside it by providing intelligent analysis, semantic understanding, automated organization, and powerful search capabilities while ensuring that the user remains in complete control of their data.
+Rather than replacing the operating system's file manager, OpenSorSe works alongside it by providing intelligent analysis, semantic understanding, automated organization, and powerful search capabilities while ensuring that the user remains in complete control of their data.
 
 The architecture has been designed with modularity, maintainability, and extensibility as primary goals. Each subsystem has a clearly defined responsibility and communicates with other subsystems through well-defined interfaces.
 
@@ -16,7 +16,7 @@ The architecture has been designed with modularity, maintainability, and extensi
 
 ## Purpose of the Architecture
 
-The purpose of this architecture documentation is to define how TidyMind is structured, how its components interact, and the responsibilities of each subsystem.
+The purpose of this architecture documentation is to define how OpenSorSe is structured, how its components interact, and the responsibilities of each subsystem.
 
 This documentation serves as the primary technical reference for:
 
@@ -31,7 +31,7 @@ It is intended to provide a clear understanding of the system before implementat
 
 ## Architectural Overview
 
-TidyMind is divided into a collection of independent but cooperating subsystems.
+OpenSorSe is divided into a collection of independent but cooperating subsystems.
 
 Each subsystem focuses on a single area of responsibility while remaining loosely coupled to the rest of the application.
 

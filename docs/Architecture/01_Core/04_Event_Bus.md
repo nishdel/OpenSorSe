@@ -1,6 +1,6 @@
 # Event Bus
 
-> This document defines the Event Bus architecture used for communication between the various subsystems of TidyMind.
+> This document defines the Event Bus architecture used for communication between the various subsystems of OpenSorSe.
 
 ---
 
@@ -8,7 +8,7 @@
 
 The Event Bus provides a centralized communication mechanism that enables subsystems to exchange information without requiring direct knowledge of one another.
 
-By using an event-driven architecture, TidyMind reduces coupling between components while improving modularity, extensibility, and maintainability.
+By using an event-driven architecture, OpenSorSe reduces coupling between components while improving modularity, extensibility, and maintainability.
 
 The Event Bus is responsible only for delivering events. It does not contain business logic.
 

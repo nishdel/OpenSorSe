@@ -1,6 +1,6 @@
 # Themes
 
-> This document defines the Themes component, which is responsible for managing the visual appearance and presentation style of the TidyMind user interface.
+> This document defines the Themes component, which is responsible for managing the visual appearance and presentation style of the OpenSorSe user interface.
 
 ---
 

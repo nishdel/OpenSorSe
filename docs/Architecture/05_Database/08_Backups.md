@@ -6,7 +6,7 @@
 
 ## Purpose
 
-The Backups component provides mechanisms for creating, storing, and restoring backups of the TidyMind database.
+The Backups component provides mechanisms for creating, storing, and restoring backups of the OpenSorSe database.
 
 Its primary purpose is to protect user data against accidental loss, corruption, hardware failure, or software errors by maintaining recoverable copies of the application's persistent data.
 

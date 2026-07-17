@@ -1,6 +1,6 @@
 # File Hashing
 
-> This document defines the File Hashing component, which is responsible for generating unique file fingerprints for use throughout the TidyMind processing pipeline.
+> This document defines the File Hashing component, which is responsible for generating unique file fingerprints for use throughout the OpenSorSe processing pipeline.
 
 ---
 

@@ -1,12 +1,12 @@
 # Scanner Page
 
-> This document defines the Scanner Page component, which provides the user interface for configuring, monitoring, and controlling document scanning operations within TidyMind.
+> This document defines the Scanner Page component, which provides the user interface for configuring, monitoring, and controlling document scanning operations within OpenSorSe.
 
 ---
 
 ## Purpose
 
-The Scanner Page provides users with a dedicated interface for discovering, importing, and monitoring documents processed by TidyMind.
+The Scanner Page provides users with a dedicated interface for discovering, importing, and monitoring documents processed by OpenSorSe.
 
 Its purpose is to allow users to configure scan operations, observe real-time progress, review scan results, and manage scanning tasks without exposing the underlying implementation details.
 

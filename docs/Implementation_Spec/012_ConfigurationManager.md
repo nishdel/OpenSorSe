@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 012 |
 | Component | Configuration Manager |
-| Project | TidyMind.Core |
+| Project | OpenSorSe.Core |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -129,7 +129,7 @@ Required by:
 
 `IConfigurationService` remains the public contract: `Current`, `InitializeAsync`, and `SaveAsync`. Settings are immutable-after-initialization object graphs for v0.1; user-edit APIs belong to Specification 019. JSON configuration is stored only at the absolute composition-root path.
 
-Defaults are represented by a new `ApplicationSettings` instance. Load order is defaults, persisted JSON when present, then the existing `TIDYMIND_LOGGING__MINIMUMLEVEL` environment override. A malformed JSON document is reported as `ConfigurationValidationException` without exposing serializer internals. Missing configuration is normal.
+Defaults are represented by a new `ApplicationSettings` instance. Load order is defaults, persisted JSON when present, then the existing `OPENSORSE_LOGGING__MINIMUMLEVEL` environment override. A malformed JSON document is reported as `ConfigurationValidationException` without exposing serializer internals. Missing configuration is normal.
 
 ## Persistence and safety
 

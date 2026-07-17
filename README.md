@@ -1,5 +1,5 @@
 <img width="1254" height="1254" alt="1000166839" src="https://github.com/user-attachments/assets/52c9a11b-76e7-421a-9576-e77566ddfe45" />
-# 🧠 TidyMind
+# 🧠 OpenSorSe
 
 > **A privacy-first, AI-powered desktop application that intelligently
 > understands, organizes, renames, categorizes, and searches your files
@@ -11,11 +11,11 @@
 
 ## 📖 Overview
 
-TidyMind is an open-source desktop application designed to help users
+OpenSorSe is an open-source desktop application designed to help users
 regain control of their digital files.
 
 Unlike traditional file organizers that rely on filenames or extensions
-alone, TidyMind uses local AI models to understand the actual content of
+alone, OpenSorSe uses local AI models to understand the actual content of
 documents, images, and other files. It can suggest meaningful filenames,
 build logical folder structures, detect duplicates, summarize documents,
 and provide semantic search---all while keeping your data on your own
@@ -232,7 +232,7 @@ Planned plugin support for:
 
 ## 🎯 Long-Term Vision
 
-TidyMind aims to become more than a document organizer.
+OpenSorSe aims to become more than a document organizer.
 
 The long-term vision is a privacy-first AI File Manager that understands
 relationships between documents, photos, videos, projects, companies and
@@ -247,7 +247,7 @@ Contributions of every size are welcome.
 
 Whether you're interested in AI, OCR, desktop development, UI/UX,
 testing, accessibility, indexing, documentation or performance
-optimisation, we'd love your help build TidyMind.
+optimisation, we'd love your help build OpenSorSe.
 
 ------------------------------------------------------------------------
 

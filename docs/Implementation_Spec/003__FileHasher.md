@@ -76,7 +76,7 @@ The component returns:
 
 # Public Models and Contracts
 
-The implementation shall expose these public contracts in `TidyMind.Scanner` and `TidyMind.Scanner.Models`:
+The implementation shall expose these public contracts in `OpenSorSe.Scanner` and `OpenSorSe.Scanner.Models`:
 
 ```csharp
 public sealed record FileHash(string Algorithm, string Value);

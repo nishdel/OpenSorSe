@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OpenSorSe.Desktop.ViewModels"
+             x:Class="OpenSorSe.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <StackPanel Spacing="12">
+        <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Text="Logging" FontWeight="SemiBold" />
+        <CheckBox Content="Enable local daily file logging" IsChecked="{Binding Draft.FileLoggingEnabled, Mode=TwoWay}" />
+        <TextBox PlaceholderText="Optional absolute log directory" Text="{Binding Draft.LogDirectoryPath, Mode=TwoWay}" />
+        <TextBox PlaceholderText="Retained daily log files" Text="{Binding Draft.RetainedFileCount, Mode=TwoWay}" />
+        <ComboBox ItemsSource="{Binding AvailableLogLevels}" SelectedItem="{Binding Draft.MinimumLogLevel, Mode=TwoWay}" />
+        <TextBlock Text="Restart required after saving to apply active logging changes."
+                   IsVisible="{Binding RestartRequired}" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Restore defaults" Command="{Binding RestoreDefaultsCommand}" />
+            <Button Content="Discard changes" Command="{Binding CancelCommand}" />
+            <Button Content="Save" Command="{Binding SaveCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

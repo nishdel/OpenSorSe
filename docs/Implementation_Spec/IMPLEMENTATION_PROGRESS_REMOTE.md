@@ -27,7 +27,7 @@ This report records remote static implementation work only. It does not redefine
 ## Specification 006 — Rule Engine
 
 - Status: Implemented but not locally verified.
-- Files created: `TidyMind.Rules` and `TidyMind.Rules.Tests` projects, pure rule engine, rule models, and tests.
+- Files created: `OpenSorSe.Rules` and `OpenSorSe.Rules.Tests` projects, pure rule engine, rule models, and tests.
 - Files modified: solution, desktop project/reference and composition root, and `006_RuleEngine.md`.
 - Public APIs: `IRuleEngine`, `RuleEngine`, actions, conditions, rules, decisions, result, and statistics.
 - Tests: matching, priority/ties, validation, missing enriched data, input preservation, statistics, and cancellation.

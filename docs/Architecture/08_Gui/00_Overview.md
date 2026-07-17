@@ -1,12 +1,12 @@
 # GUI Overview
 
-> This document provides an overview of the Graphical User Interface (GUI) subsystem, which is responsible for presenting information and enabling user interaction within TidyMind.
+> This document provides an overview of the Graphical User Interface (GUI) subsystem, which is responsible for presenting information and enabling user interaction within OpenSorSe.
 
 ---
 
 ## Purpose
 
-The GUI subsystem provides the primary interface through which users interact with TidyMind.
+The GUI subsystem provides the primary interface through which users interact with OpenSorSe.
 
 Its purpose is to present application data, visualize processing results, provide access to application functionality, and enable users to configure and control the system.
 

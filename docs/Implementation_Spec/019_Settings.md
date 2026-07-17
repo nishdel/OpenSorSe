@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 019 |
 | Component | Settings |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,7 +13,7 @@
 
 # Purpose
 
-The Settings view allows users to configure TidyMind's behavior and application preferences.
+The Settings view allows users to configure OpenSorSe's behavior and application preferences.
 
 It provides a centralized location for managing all configurable options.
 
@@ -21,7 +21,7 @@ It provides a centralized location for managing all configurable options.
 
 # Why
 
-Users should be able to customize how TidyMind behaves without modifying configuration files manually.
+Users should be able to customize how OpenSorSe behaves without modifying configuration files manually.
 
 The Settings view makes configuration accessible, consistent, and easy to understand.
 

@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 024 |
 | Component | Scan Orchestrator |
-| Project | TidyMind.Application |
+| Project | OpenSorSe.Application |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,7 +13,7 @@
 
 # Purpose
 
-The Scan Orchestrator coordinates the complete TidyMind processing pipeline.
+The Scan Orchestrator coordinates the complete OpenSorSe processing pipeline.
 
 It executes each processing stage in the correct order and manages communication between the UI and backend services.
 
@@ -134,6 +134,6 @@ Required by:
 
 # Autonomous v0.1 Decisions
 
-The draft places orchestration in an unspecified Application project and omits rules input, result composition, stage progression, and cancellation-result semantics. v0.1 adds `TidyMind.Application`, accepts an explicit `ProcessingRequest` containing the established Scanner request and ordered rules (empty is valid), and returns all reached immutable stage results in `ProcessingResult`.
+The draft places orchestration in an unspecified Application project and omits rules input, result composition, stage progression, and cancellation-result semantics. v0.1 adds `OpenSorSe.Application`, accepts an explicit `ProcessingRequest` containing the established Scanner request and ordered rules (empty is valid), and returns all reached immutable stage results in `ProcessingResult`.
 
 Stages run sequentially in this exact order: scanner, metadata, hashing, classification, duplicate detection, rule evaluation, planning, then lexical conflict resolution. A scanner-level cancelled result returns a partial cancelled processing result. Cancellation thrown by later stages remains standard `OperationCanceledException` because those stages cannot return their own partial results. No executor is invoked; actions remain planned and conflict-resolved only.

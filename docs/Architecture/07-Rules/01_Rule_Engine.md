@@ -1,12 +1,12 @@
 # Rule Engine
 
-> This document defines the Rule Engine component, which is responsible for coordinating the evaluation and execution of automation rules within TidyMind.
+> This document defines the Rule Engine component, which is responsible for coordinating the evaluation and execution of automation rules within OpenSorSe.
 
 ---
 
 ## Purpose
 
-The Rule Engine serves as the central coordinator for all automation within TidyMind.
+The Rule Engine serves as the central coordinator for all automation within OpenSorSe.
 
 It is responsible for receiving rule execution requests, evaluating applicable rules, coordinating condition evaluation, executing matching actions, and recording execution results.
 

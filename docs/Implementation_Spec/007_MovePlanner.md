@@ -20,7 +20,7 @@ It prepares every required file operation but does not perform any filesystem ch
 
 # Why
 
-Separating planning from execution allows TidyMind to:
+Separating planning from execution allows OpenSorSe to:
 
 - Preview planned changes.
 - Validate operations before execution.

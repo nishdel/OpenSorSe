@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 013 |
 | Component | Main Window |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,7 +13,7 @@
 
 # Purpose
 
-The Main Window serves as the primary user interface for TidyMind.
+The Main Window serves as the primary user interface for OpenSorSe.
 
 It provides access to all application features and hosts the major UI components.
 
@@ -132,7 +132,7 @@ Required by:
 
 # Autonomous v0.1 Decisions
 
-The existing `TidyMind.Desktop` project is the implementation project; no separate UI project is introduced. The initial shell presents a menu region, toolbar/title region, persistent navigation list, content host, and status bar. Navigation is an immutable ordered enum list and defaults to Dashboard. Selecting an unsupported destination throws before state changes.
+The existing `OpenSorSe.Desktop` project is the implementation project; no separate UI project is introduced. The initial shell presents a menu region, toolbar/title region, persistent navigation list, content host, and status bar. Navigation is an immutable ordered enum list and defaults to Dashboard. Selecting an unsupported destination throws before state changes.
 
 The shell does not construct later page implementations. Until their specifications provide those views, the content host presents the selected destination title only. Application startup and shutdown remain owned by the existing `App` and `IApplicationHost` composition path. Tests cover deterministic navigation state and invalid destination validation without starting Avalonia.
 

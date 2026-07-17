@@ -10,14 +10,14 @@
 
 ## Purpose
 
-Provide centralized, local-only diagnostic logging for all TidyMind components without changing application behavior or exposing sensitive file data.
+Provide centralized, local-only diagnostic logging for all OpenSorSe components without changing application behavior or exposing sensitive file data.
 
 ## Responsibilities
 
 - Create categorized `Microsoft.Extensions.Logging.ILogger` instances.
 - Apply the configured minimum level to Debug and optional local-file output.
 - Write one UTF-8 text entry per line to a UTC daily file when file logging is enabled.
-- Retain at most a configured number of `tidymind-YYYY-MM-DD.log` files.
+- Retain at most a configured number of `opensorse-YYYY-MM-DD.log` files.
 - Serialize file writes, flush each complete entry, and isolate logging-output failures.
 - Expose process-lifetime emitted-entry and file-write-failure counters.
 
@@ -27,13 +27,13 @@ The service does not execute business actions, change filesystem plans, expose a
 
 ## Placement and dependencies
 
-The service remains in `TidyMind.Core.Logging`. It uses the existing `Microsoft.Extensions.Logging` packages only. `ApplicationHost` maps validated configuration to logging options; the logging service does not read configuration files itself.
+The service remains in `OpenSorSe.Core.Logging`. It uses the existing `Microsoft.Extensions.Logging` packages only. `ApplicationHost` maps validated configuration to logging options; the logging service does not read configuration files itself.
 
 ## Public contract
 
 `ILoggingService` retains `Initialize(LogLevel)` and adds `Initialize(LoggingOptions)` and `GetStatistics()`.
 
-`LoggingOptions` contains `MinimumLevel`, `FileLoggingEnabled`, optional `LogDirectoryPath`, and `RetainedFileCount`. The default directory is `<LocalApplicationData>/TidyMind/Logs`; the default retention is seven files. `RetainedFileCount` must be at least one. A caller may disable the file sink.
+`LoggingOptions` contains `MinimumLevel`, `FileLoggingEnabled`, optional `LogDirectoryPath`, and `RetainedFileCount`. The default directory is `<LocalApplicationData>/OpenSorSe/Logs`; the default retention is seven files. `RetainedFileCount` must be at least one. A caller may disable the file sink.
 
 `LoggingStatistics` contains process-lifetime counts for Trace, Debug, Information, Warning, Error, Critical, and file-write failures. Counts include entries accepted by the logging factory's configured minimum level, exactly once per emitted entry. No entry payload is retained.
 
@@ -46,7 +46,7 @@ The service remains in `TidyMind.Core.Logging`. It uses the existing `Microsoft.
 1. `ApplicationHost` loads and validates settings, then initializes logging with mapped options.
 2. Initialization replaces any previous logging factory after the new factory is ready.
 3. Debug output is always configured. When enabled, the local provider writes `timestamp [level] [category] message` as one line using a UTC round-trip timestamp and UTF-8 without a BOM.
-4. The provider uses `tidymind-YYYY-MM-DD.log` according to the current UTC date and removes only older matching daily files beyond retention.
+4. The provider uses `opensorse-YYYY-MM-DD.log` according to the current UTC date and removes only older matching daily files beyond retention.
 5. File sink and retention failures are swallowed, increment `FileWriteFailures`, and leave Debug output available. They never invoke the global error handler or throw from an `ILogger.Log` call.
 6. Disposing the service disposes its logging factory. Creating a logger or reinitializing after disposal throws `ObjectDisposedException`.
 

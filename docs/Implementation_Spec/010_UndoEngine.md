@@ -99,7 +99,7 @@ The implementation is complete when:
 - Previously moved files are restored.
 - Undo operations are recorded.
 - Recoverable errors do not stop processing.
-- Files not managed by TidyMind remain untouched.
+- Files not managed by OpenSorSe remain untouched.
 - Unit tests pass.
 
 ---

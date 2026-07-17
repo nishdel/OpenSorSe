@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 023 |
 | Component | Notification Center |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -21,7 +21,7 @@ It provides consistent feedback throughout the application without interrupting 
 
 # Why
 
-Users should always receive clear feedback about what TidyMind is doing.
+Users should always receive clear feedback about what OpenSorSe is doing.
 
 A centralized notification system provides a consistent user experience and avoids duplicate notification logic across the application.
 
@@ -153,7 +153,7 @@ A["Core Pipeline (001-010)"]
 B["Infrastructure (011-012)"]
 C["User Interface (013-023)"]
 
-A --> D["TidyMind v0.1"]
+A --> D["OpenSorSe v0.1"]
 B --> D
 C --> D
 

@@ -1,12 +1,12 @@
 # Application
 
-> This document defines the Application component, which is responsible for managing the lifecycle of TidyMind.
+> This document defines the Application component, which is responsible for managing the lifecycle of OpenSorSe.
 
 ---
 
 ## Purpose
 
-The Application component acts as the entry point of TidyMind.
+The Application component acts as the entry point of OpenSorSe.
 
 It is responsible for initializing the application, coordinating startup and shutdown, creating the required infrastructure, and ensuring that all subsystems are started in the correct order.
 

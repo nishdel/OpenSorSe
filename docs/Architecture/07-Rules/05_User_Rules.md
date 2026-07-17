@@ -1,6 +1,6 @@
 # User Rules
 
-> This document defines the User Rules component, which is responsible for creating, storing, managing, and configuring user-defined automation rules within TidyMind.
+> This document defines the User Rules component, which is responsible for creating, storing, managing, and configuring user-defined automation rules within OpenSorSe.
 
 ---
 

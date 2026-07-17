@@ -1,6 +1,6 @@
 # History Page
 
-> This document defines the History Page component, which presents the historical activity and lifecycle of documents processed by TidyMind.
+> This document defines the History Page component, which presents the historical activity and lifecycle of documents processed by OpenSorSe.
 
 ---
 

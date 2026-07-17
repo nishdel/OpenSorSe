@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 018 |
 | Component | Rule Editor |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -15,7 +15,7 @@
 
 The Rule Editor allows users to create, modify, enable, disable, and delete organization rules.
 
-It provides a simple interface for customizing how TidyMind organizes files.
+It provides a simple interface for customizing how OpenSorSe organizes files.
 
 ---
 

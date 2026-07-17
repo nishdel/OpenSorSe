@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 020 |
 | Component | Log Viewer |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.UI |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -21,7 +21,7 @@ It provides visibility into application activity for troubleshooting and auditin
 
 # Why
 
-Users and developers need an easy way to understand what TidyMind has done, especially when diagnosing problems or reviewing completed operations.
+Users and developers need an easy way to understand what OpenSorSe has done, especially when diagnosing problems or reviewing completed operations.
 
 ---
 

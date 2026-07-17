@@ -1,6 +1,6 @@
 # Task Manager
 
-> This document defines the Task Manager architecture used to coordinate and manage long-running operations within TidyMind.
+> This document defines the Task Manager architecture used to coordinate and manage long-running operations within OpenSorSe.
 
 ---
 

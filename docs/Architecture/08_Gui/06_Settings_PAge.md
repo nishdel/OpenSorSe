@@ -1,6 +1,6 @@
 # Settings Page
 
-> This document defines the Settings Page component, which provides the user interface for configuring TidyMind and managing application preferences.
+> This document defines the Settings Page component, which provides the user interface for configuring OpenSorSe and managing application preferences.
 
 ---
 
@@ -8,7 +8,7 @@
 
 The Settings Page provides a centralized interface for viewing and modifying application configuration.
 
-Its purpose is to allow users to customize TidyMind's behavior, configure subsystem preferences, and manage application-wide settings while maintaining consistency with the underlying architecture.
+Its purpose is to allow users to customize OpenSorSe's behavior, configure subsystem preferences, and manage application-wide settings while maintaining consistency with the underlying architecture.
 
 The Settings Page presents and modifies configuration but does not implement application behavior.
 

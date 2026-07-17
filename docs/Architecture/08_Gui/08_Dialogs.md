@@ -1,6 +1,6 @@
 # Dialogs
 
-> This document defines the Dialogs component, which provides temporary user interface elements for focused interaction, confirmation, and data entry within TidyMind.
+> This document defines the Dialogs component, which provides temporary user interface elements for focused interaction, confirmation, and data entry within OpenSorSe.
 
 ---
 

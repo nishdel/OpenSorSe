@@ -22,7 +22,7 @@ The component is read-only.
 
 # Why
 
-TidyMind needs to understand what each file represents before it can decide how it should be organized.
+OpenSorSe needs to understand what each file represents before it can decide how it should be organized.
 
 Classification provides a consistent category for every file regardless of its location.
 

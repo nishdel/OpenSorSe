@@ -1,12 +1,12 @@
 # Project Philosophy
 
-> This document defines the guiding principles and long-term philosophy of the TidyMind project.
+> This document defines the guiding principles and long-term philosophy of the OpenSorSe project.
 
 ---
 
 # Purpose
 
-The Project Philosophy describes the values that guide the design, development, and evolution of TidyMind.
+The Project Philosophy describes the values that guide the design, development, and evolution of OpenSorSe.
 
 Its purpose is to provide a shared foundation for contributors, maintainers, and users when making architectural, technical, and product decisions.
 
@@ -16,7 +16,7 @@ When multiple solutions are technically valid, these principles should help dete
 
 # Vision
 
-TidyMind exists to help people better understand, organize, discover, and automate their digital knowledge.
+OpenSorSe exists to help people better understand, organize, discover, and automate their digital knowledge.
 
 The project is built on the belief that Artificial Intelligence should enhance human decision-making rather than replace it.
 
@@ -106,7 +106,7 @@ Architectural knowledge should be preserved, maintained, and shared alongside th
 
 ## Community
 
-TidyMind is intended to grow through collaboration.
+OpenSorSe is intended to grow through collaboration.
 
 Contributors should be welcomed, respected, and encouraged to improve the project through thoughtful discussion and constructive feedback.
 
@@ -129,7 +129,7 @@ If the answer to most of these questions is "yes," the proposal is likely aligne
 
 # Long-Term Goal
 
-The long-term goal of TidyMind is not simply to organize files.
+The long-term goal of OpenSorSe is not simply to organize files.
 
 It is to build a trustworthy, extensible, and intelligent knowledge platform that helps people make better use of the information they already own.
 
@@ -139,7 +139,7 @@ The project should evolve carefully while preserving the principles that define 
 
 # Closing Statement
 
-TidyMind is built on a simple belief:
+OpenSorSe is built on a simple belief:
 
 Technology should reduce complexity, not create it.
 

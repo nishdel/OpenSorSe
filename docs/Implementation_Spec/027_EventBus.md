@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 027 |
 | Component | Event Bus |
-| Project | TidyMind.Core |
+| Project | OpenSorSe.Core |
 | Version | 1.0 |
 | Target Release | v0.1 |
 

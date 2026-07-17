@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OpenSorSe.Desktop.ViewModels"
+             x:Class="OpenSorSe.Desktop.Views.ResultsView"
+             x:DataType="vm:ResultsViewModel">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+        <TextBlock Text="Results" FontSize="24" FontWeight="SemiBold" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+            <TextBlock Text="{Binding Summary.FilesScanned, StringFormat='Files scanned: {0}'}" />
+            <TextBlock Grid.Column="1" Text="{Binding Summary.PlannedOperations, StringFormat='Operations: {0}'}" />
+            <TextBlock Grid.Column="2" Text="{Binding Summary.DuplicateGroups, StringFormat='Duplicates: {0}'}" />
+            <TextBlock Grid.Column="3" Text="{Binding Summary.Warnings, StringFormat='Warnings: {0}'}" />
+        </Grid>
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Planned operations" FontWeight="SemiBold" />
+                <ListBox ItemsSource="{Binding Operations}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Text="Warnings" FontWeight="SemiBold" />
+                <ListBox ItemsSource="{Binding Warnings}" />
+            </StackPanel>
+        </Grid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
+            <Button Content="Back" Command="{Binding BackCommand}" />
+            <Button Content="Cancel" Command="{Binding CancelCommand}" />
+            <Button Content="Approve execution" Command="{Binding ApproveExecutionCommand}" />
+            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>

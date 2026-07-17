@@ -1,12 +1,12 @@
 # Component Map
 
-> This document provides a high-level view of the major architectural components that make up TidyMind and illustrates how they interact with one another.
+> This document provides a high-level view of the major architectural components that make up OpenSorSe and illustrates how they interact with one another.
 
 ---
 
 ## Purpose
 
-The Component Map defines the primary subsystems of TidyMind and their relationships.
+The Component Map defines the primary subsystems of OpenSorSe and their relationships.
 
 Its purpose is to provide contributors with a clear understanding of the overall architecture before exploring the implementation details of individual modules.
 
@@ -16,7 +16,7 @@ This document focuses on component responsibilities and dependencies rather than
 
 # Architectural Overview
 
-TidyMind is organized as a collection of independent subsystems.
+OpenSorSe is organized as a collection of independent subsystems.
 
 Each subsystem has a clearly defined responsibility and communicates with other subsystems through well-defined interfaces.
 

@@ -1,6 +1,6 @@
 # Notifications
 
-> This document defines the Notifications component, which provides non-intrusive feedback about application events, background tasks, and system status within TidyMind.
+> This document defines the Notifications component, which provides non-intrusive feedback about application events, background tasks, and system status within OpenSorSe.
 
 ---
 

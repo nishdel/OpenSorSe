@@ -1,6 +1,6 @@
 # Application State
 
-> This document defines the Application State architecture used to manage the runtime state of TidyMind.
+> This document defines the Application State architecture used to manage the runtime state of OpenSorSe.
 
 ---
 

@@ -24,7 +24,7 @@ The component is read-only.
 
 Duplicate files waste storage space and can make file organization more difficult.
 
-Identifying duplicates allows TidyMind to suggest or perform intelligent cleanup while avoiding false matches based solely on filenames.
+Identifying duplicates allows OpenSorSe to suggest or perform intelligent cleanup while avoiding false matches based solely on filenames.
 
 ---
 
