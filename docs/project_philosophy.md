@@ -14,7 +14,7 @@ When multiple solutions are technically valid, these principles should help dete
 
 ## Current Release Boundary
 
-The validated v0.2 release is a local-first, read-only file analysis application. It does not modify selected user files or implement AI, OCR, semantic search, or automatic organization. References to intelligent assistance and automation below describe possible future direction, not shipped functionality.
+The v0.3 release is a local-first, read-only file analysis application. It does not modify selected user files. It offers optional local Ollama-generated suggestions only after application validation and explicit review; it does not implement OCR, embedding-based semantic search, automatic organization, or operation execution. References below to broader automation remain future direction.
 
 ---
 

@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-The Database subsystem is future architecture only. The validated v0.2 release has no database, migrations, search index, or persisted results store; its settings and operation history are application-session concerns rather than a database-backed product capability. The design below is not a shipped feature set or release commitment.
+The Database subsystem remains future architecture. v0.3 has no database, migrations, persistent search index, or persisted results store. It persists settings and a small separate local JSON AI decision history, neither of which is a database-backed catalog. The design below is not a shipped feature set or release commitment.
 
 ---
 

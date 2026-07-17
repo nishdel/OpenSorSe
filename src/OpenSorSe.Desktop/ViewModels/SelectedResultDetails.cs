@@ -13,6 +13,7 @@ public sealed record SelectedResultDetails(
     string ModifiedTime,
     string Classification,
     string DuplicateStatus,
+    string Tags,
     IReadOnlyList<ResultPlannedOperation> PlannedOperations)
 {
     /// <summary>
@@ -20,8 +21,9 @@ public sealed record SelectedResultDetails(
     /// </summary>
     /// <param name="file">The selected result row.</param>
     /// <param name="operations">The display-only operations related to the row.</param>
+    /// <param name="tags">The accepted application-owned tags for the current in-memory result session.</param>
     /// <returns>Immutable safe detail values.</returns>
-    public static SelectedResultDetails From(ResultFile file, IReadOnlyList<ResultPlannedOperation> operations)
+    public static SelectedResultDetails From(ResultFile file, IReadOnlyList<ResultPlannedOperation> operations, IReadOnlyList<TagAssociation>? tags = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(operations);
@@ -33,6 +35,9 @@ public sealed record SelectedResultDetails(
             file.LastWriteTimeUtc?.ToString("u", System.Globalization.CultureInfo.InvariantCulture) ?? "Modified time unavailable",
             file.ClassificationDisplay,
             ResultsFileRow.FormatDuplicateStatus(file.DuplicateStatus),
+            tags is null || tags.Count == 0
+                ? "No tags"
+                : string.Join(", ", tags.Where(tag => tag.AcceptanceState == TagAcceptanceState.Accepted).Select(tag => tag.DisplayName).Distinct(StringComparer.OrdinalIgnoreCase)),
             Array.AsReadOnly(operations.ToArray()));
     }
 }

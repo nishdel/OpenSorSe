@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-The Search subsystem is future architecture only. The validated v0.2 release provides filtering, sorting, and paging over the current results snapshot; it does not provide content search, indexed search, relevance ranking, or semantic search. The design below is not a shipped feature set or release commitment.
+v0.3 implements deterministic metadata-aware ranked search over the current in-memory results snapshot: filename, path, extension, deterministic category, and accepted session tags. It supports normalized multi-token matching, stable relevance ranking, match explanations, existing filters/sorts/paging, and cancellation. It does not implement extracted-text indexes, persistent search catalogs, embeddings, or semantic search. The broader design below remains future architecture unless it matches v0.3 specifications.
 
 ---
 

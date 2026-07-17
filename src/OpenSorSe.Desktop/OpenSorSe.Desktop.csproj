@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <Version>0.1.0</Version>
+    <Version>0.3.0</Version>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
@@ -30,5 +30,6 @@
     <ProjectReference Include="..\OpenSorSe.Rules\OpenSorSe.Rules.csproj" />
     <ProjectReference Include="..\OpenSorSe.Executor\OpenSorSe.Executor.csproj" />
     <ProjectReference Include="..\OpenSorSe.Application\OpenSorSe.Application.csproj" />
+    <ProjectReference Include="..\OpenSorSe.AI\OpenSorSe.AI.csproj" />
   </ItemGroup>
 </Project>

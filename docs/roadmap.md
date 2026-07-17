@@ -6,7 +6,7 @@
 
 OpenSorSe is a local-first, read-only desktop application for analyzing selected folders and reviewing the results safely. The project is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
-The current application does not modify selected user files and does not provide AI, OCR, semantic search, or content-reader functionality.
+The current application does not modify selected user files. It provides optional local Ollama suggestions and metadata-aware ranked search, but not OCR, content readers, embeddings, or semantic search.
 
 ## Completed releases
 
@@ -33,16 +33,15 @@ Complete.
 
 ## v0.3 — Usability improvements and workflow enhancements
 
-Planned. The release will focus on improving the existing read-only workflow rather than expanding into unapproved file modification or AI capabilities.
+Implemented. v0.3 retains the read-only workflow while adding optional local assistance only through validated, review-only proposals.
 
-Potential areas for proposal and prioritization include:
+- Optional Ollama endpoint configuration, health check, installed-model discovery, model selection, timeout, cancellation, redacted diagnostics, and safe unavailable states.
+- Validated rename, tag, category, destination, and bounded folder-structure previews using minimal metadata context.
+- Local JSON decision history and optional approved-pattern reuse; no model training or fine-tuning.
+- Application-owned in-memory tags and deterministic ranked search over filename, path, extension, deterministic category, and accepted tags.
+- Results and Settings product-polish pass with match explanations, explicit safety text, and clearer status/disabled states.
 
-- User-interface and accessibility improvements.
-- Performance and responsiveness improvements for realistic result sets.
-- Better read-only search and duplicate-review workflows.
-- User-feedback and workflow clarity improvements.
-
-Specific features will be documented and approved before implementation.
+The release does not enable filesystem mutation, persistent scan catalogs, content extraction, embedding-based semantic search, or automatic organization.
 
 ## Future release ideas
 
@@ -50,10 +49,10 @@ The following are longer-term ideas, not current capabilities or committed relea
 
 - PDF, DOCX, and Excel content readers.
 - OCR.
-- Local or optional AI providers.
-- Rename suggestions and folder suggestions.
-- Semantic search.
-- Automatic tagging.
+- Content readers and OCR.
+- Embedding-based semantic search and vector indexes.
+- Persistent scan catalogs and tags.
+- Safe, explicitly authorized operation execution.
 - Plugin system.
 
 Any future feature that could modify user files requires a separate safety design covering explicit authorization, live preflight, preview, failure handling, and recovery expectations.

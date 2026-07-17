@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
+using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Models;
+using OpenSorSe.Core.Configuration;
 using OpenSorSe.Scanner.Models;
 
 namespace OpenSorSe.Desktop.ViewModels;
@@ -21,6 +23,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     private readonly ObservableCollection<string> _warnings = [];
     private readonly ObservableCollection<ResultsExtensionFilterOption> _extensionOptions = [];
     private readonly ObservableCollection<ResultsCategoryFilterOption> _categoryOptions = [];
+    private readonly Dictionary<string, IReadOnlyList<TagAssociation>> _tagsByFile = new(StringComparer.Ordinal);
     private CancellationTokenSource? _queryCancellation;
     private long _queryVersion;
     private ResultsSnapshot? _snapshot;
@@ -37,7 +40,18 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// Initializes the result explorer and its non-mutating navigation commands.
     /// </summary>
     public ResultsViewModel()
+        : this(new PreviewConfigurationService(), null)
     {
+    }
+
+    /// <summary>
+    /// Initializes the result explorer with optional application-owned AI suggestion review.
+    /// </summary>
+    /// <param name="configurationService">The centralized configuration source used only by the optional suggestion workflow.</param>
+    /// <param name="aiSuggestionService">The optional application-owned suggestion service.</param>
+    public ResultsViewModel(IConfigurationService configurationService, IAiSuggestionService? aiSuggestionService)
+    {
+        ArgumentNullException.ThrowIfNull(configurationService);
         PageRows = new ReadOnlyObservableCollection<ResultsFileRow>(_pageRows);
         Directories = new ReadOnlyObservableCollection<ResultDirectory>(_directories);
         PlannedOperations = new ReadOnlyObservableCollection<ResultPlannedOperation>(_plannedOperations);
@@ -47,6 +61,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         DuplicateReview = new DuplicateReviewViewModel();
         DuplicateReview.ShowGroupFilesRequested += OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested += OnBackToExplorerRequested;
+        AiSuggestions = new AiSuggestionsViewModel(configurationService, aiSuggestionService);
+        AiSuggestions.TagsAccepted += OnTagsAccepted;
         ClearFiltersCommand = new RelayCommand(ClearFilters, CanClearFilters);
         PreviousPageCommand = new RelayCommand(GoToPreviousPage, () => CanGoPreviousPage);
         NextPageCommand = new RelayCommand(GoToNextPage, () => CanGoNextPage);
@@ -92,6 +108,9 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets the child view model for exact-duplicate review.</summary>
     public DuplicateReviewViewModel DuplicateReview { get; }
+
+    /// <summary>Gets the preview-only optional AI suggestion workflow for the selected result.</summary>
+    public AiSuggestionsViewModel AiSuggestions { get; }
 
     /// <summary>Gets the current normalized explorer query.</summary>
     public ResultsQuery Query
@@ -361,12 +380,13 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
 
         var cancellation = ReplaceQueryCancellation();
         var version = Interlocked.Increment(ref _queryVersion);
+        var tagsSnapshot = _tagsByFile.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         IsLoading = true;
         StatusText = "Updating results…";
         try
         {
             var result = await Task.Run(
-                () => ResultsQueryEngine.Evaluate(snapshot, Query, cancellation.Token),
+                () => ResultsQueryEngine.Evaluate(snapshot, Query, cancellation.Token, tagsSnapshot),
                 cancellation.Token);
             if (cancellation.IsCancellationRequested || version != Volatile.Read(ref _queryVersion))
             {
@@ -378,7 +398,10 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
             _pageRows.Clear();
             foreach (var item in result.Page.Items)
             {
-                _pageRows.Add(ResultsFileRow.FromResultFile(item));
+                _pageRows.Add(ResultsFileRow.FromResultFile(
+                    item,
+                    GetTags(item.Id),
+                    result.Page.Matches.TryGetValue(item.Id, out var match) ? match : null));
             }
 
             if (SelectedRow is not null && !_pageRows.Any(row => row.FileId == SelectedRow.FileId))
@@ -391,6 +414,10 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
                     ? "No files match the active filters."
                     : "This completed scan found no files."
                 : PageRangeText;
+            AiSuggestions.SetContext(
+                SelectedRow is null ? null : snapshot.Files.FirstOrDefault(file => file.Id == SelectedRow.FileId),
+                snapshot,
+                Page.Items);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -425,6 +452,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     {
         DuplicateReview.ShowGroupFilesRequested -= OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested -= OnBackToExplorerRequested;
+        AiSuggestions.TagsAccepted -= OnTagsAccepted;
+        AiSuggestions.Dispose();
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();
     }
@@ -438,6 +467,24 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
 
     private void ReplaceSnapshotCollections(ResultsSnapshot snapshot)
     {
+        _tagsByFile.Clear();
+        foreach (var file in snapshot.Files)
+        {
+            var extensionTag = file.NormalizedExtension.TrimStart('.');
+            if (extensionTag.Length > 0 && AiSuggestionValidator.TryNormalizeTags([extensionTag], out var tags, out _))
+            {
+                _tagsByFile[file.Id] = Array.AsReadOnly(tags.Select(tag => new TagAssociation(
+                    $"tag:{file.Id}:extension:{tag.NormalizedValue}",
+                    file.Id,
+                    tag.DisplayName,
+                    tag.NormalizedValue,
+                    "File type",
+                    TagSource.Deterministic,
+                    TagAcceptanceState.Accepted,
+                    "Derived from the scanned file extension.",
+                    snapshot.ProjectedAtUtc)).ToArray());
+            }
+        }
         _directories.Clear();
         foreach (var directory in snapshot.Directories)
         {
@@ -517,7 +564,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
             ? null
             : SelectedResultDetails.From(
                 selected,
-                Array.AsReadOnly(Snapshot!.PlannedOperations.Where(operation => operation.SourceFileId == selected.Id).ToArray()));
+                Array.AsReadOnly(Snapshot!.PlannedOperations.Where(operation => operation.SourceFileId == selected.Id).ToArray()),
+                GetTags(selected.Id));
     }
 
     private bool HasActiveFilters() => Query != ResultsQuery.Default;
@@ -567,4 +615,42 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     }
 
     private void OnBackToExplorerRequested(object? sender, EventArgs eventArgs) => BackToExplorer();
+
+    private IReadOnlyList<TagAssociation> GetTags(string fileId) => _tagsByFile.TryGetValue(fileId, out var tags)
+        ? tags
+        : Array.Empty<TagAssociation>();
+
+    private void OnTagsAccepted(object? sender, IReadOnlyList<TagAssociation> tags)
+    {
+        if (tags.Count == 0)
+        {
+            return;
+        }
+
+        var fileId = tags[0].FileId;
+        var existing = GetTags(fileId);
+        _tagsByFile[fileId] = Array.AsReadOnly(existing
+            .Concat(tags)
+            .GroupBy(tag => tag.NormalizedValue, StringComparer.Ordinal)
+            .Select(group => group.Last())
+            .OrderBy(tag => tag.NormalizedValue, StringComparer.Ordinal)
+            .ToArray());
+        _ = RefreshAsync();
+        UpdateSelectedDetails();
+    }
+
+    private sealed class PreviewConfigurationService : IConfigurationService
+    {
+        public ApplicationSettings Current { get; private set; } = new();
+
+        public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+        {
+            Current = settings;
+            return Task.CompletedTask;
+        }
+    }
 }

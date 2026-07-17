@@ -12,6 +12,12 @@ It provides a consistent interface for the AI subsystem, allowing OpenSorSe to s
 
 The rest of the application should remain independent of provider-specific APIs and implementation details.
 
+## v0.3 implementation status
+
+v0.3 implements one optional provider: Ollama. `IAiSuggestionProvider` is the narrow application contract; `OllamaSuggestionProvider` lives in the infrastructure-oriented `OpenSorSe.AI` project and owns `/api/tags` and `/api/generate` DTOs. It supports a configurable endpoint, localhost default, health/model discovery, model selection, timeout, cancellation, structured JSON requests, redacted logging, and safe unavailable states.
+
+No cloud provider, automatic fallback, streaming, embeddings, or broad capability negotiation is shipped. The application owns all parsing and validation, so no Ollama contract leaks into result/domain values or ViewModels.
+
 ---
 
 # Responsibilities

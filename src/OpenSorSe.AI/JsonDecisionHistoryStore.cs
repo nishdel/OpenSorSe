@@ -1,0 +1,156 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
+using OpenSorSe.Application.AI;
+using OpenSorSe.Core.Logging;
+
+namespace OpenSorSe.AI;
+
+/// <summary>
+/// Stores bounded local preference decisions in a versioned JSON file outside scan results and user folders.
+/// </summary>
+public sealed class JsonDecisionHistoryStore : IDecisionHistoryStore
+{
+    private const int CurrentSchemaVersion = 1;
+    private const int MaximumDecisionCount = 1_000;
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    private readonly string _historyFilePath;
+    private readonly ILogger _logger;
+    private readonly SemaphoreSlim _mutex = new(1, 1);
+
+    /// <summary>
+    /// Initializes local decision-history persistence at an explicit application-data path.
+    /// </summary>
+    /// <param name="historyFilePath">The rooted JSON history path owned by OpenSorSe.</param>
+    /// <param name="loggingService">The central redacted diagnostic logging service.</param>
+    public JsonDecisionHistoryStore(string historyFilePath, ILoggingService loggingService)
+    {
+        if (string.IsNullOrWhiteSpace(historyFilePath) || !Path.IsPathRooted(historyFilePath))
+        {
+            throw new ArgumentException("An absolute decision-history path is required.", nameof(historyFilePath));
+        }
+
+        _historyFilePath = historyFilePath;
+        _logger = (loggingService ?? throw new ArgumentNullException(nameof(loggingService))).CreateLogger(nameof(JsonDecisionHistoryStore));
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AiSuggestionDecision>> LoadAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await LoadCoreAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task AppendAsync(AiSuggestionDecision decision, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(decision);
+        cancellationToken.ThrowIfCancellationRequested();
+        await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var decisions = (await LoadCoreAsync(cancellationToken).ConfigureAwait(false)).ToList();
+            decisions.Add(decision);
+            if (decisions.Count > MaximumDecisionCount)
+            {
+                decisions = decisions.OrderBy(item => item.RecordedAtUtc).TakeLast(MaximumDecisionCount).ToList();
+            }
+
+            await SaveCoreAsync(decisions, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task ClearAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await _mutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (File.Exists(_historyFilePath))
+            {
+                File.Delete(_historyFilePath);
+            }
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+    }
+
+    private async Task<IReadOnlyList<AiSuggestionDecision>> LoadCoreAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_historyFilePath))
+        {
+            return Array.Empty<AiSuggestionDecision>();
+        }
+
+        try
+        {
+            await using var stream = File.OpenRead(_historyFilePath);
+            var envelope = await JsonSerializer.DeserializeAsync<DecisionHistoryEnvelope>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
+            if (envelope is null || envelope.SchemaVersion != CurrentSchemaVersion || envelope.Decisions is null || envelope.Decisions.Any(decision => decision is null))
+            {
+                throw new InvalidDataException("The local AI decision history has an unsupported format.");
+            }
+
+            return Array.AsReadOnly(envelope.Decisions.OrderBy(item => item.RecordedAtUtc).ToArray());
+        }
+        catch (JsonException exception)
+        {
+            _logger.LogWarning(exception, "The local AI decision history is malformed and will not be used.");
+            throw new InvalidDataException("The local AI decision history is malformed.", exception);
+        }
+    }
+
+    private async Task SaveCoreAsync(IReadOnlyList<AiSuggestionDecision> decisions, CancellationToken cancellationToken)
+    {
+        var directory = Path.GetDirectoryName(_historyFilePath);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            throw new InvalidDataException("The local AI decision-history path has no directory.");
+        }
+
+        Directory.CreateDirectory(directory);
+        var temporaryPath = $"{_historyFilePath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await using (var stream = File.Create(temporaryPath))
+            {
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    new DecisionHistoryEnvelope(CurrentSchemaVersion, decisions.ToArray()),
+                    JsonOptions,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            File.Move(temporaryPath, _historyFilePath, true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    private sealed record DecisionHistoryEnvelope(int SchemaVersion, IReadOnlyList<AiSuggestionDecision>? Decisions);
+}

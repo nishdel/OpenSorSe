@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-The Reports subsystem is future architecture only. The validated v0.2 release does not generate analytical reports, exports, trends, or AI outcome reports. The design below is not a shipped feature set or release commitment.
+The Reports subsystem is future architecture only. v0.3 does not generate analytical reports, exports, trends, or AI outcome reports. The design below is not a shipped feature set or release commitment.
 
 ---
 

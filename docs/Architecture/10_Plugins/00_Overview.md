@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-The Plugins subsystem is future architecture only. The validated v0.2 release has no plugin API, discovery mechanism, loading mechanism, or extension sandbox. The design below is not a shipped feature set or release commitment.
+The Plugins subsystem is future architecture only. v0.3 has no plugin API, discovery mechanism, loading mechanism, or extension sandbox. The design below is not a shipped feature set or release commitment.
 
 ---
 

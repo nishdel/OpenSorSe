@@ -18,7 +18,9 @@ public sealed record ResultsFileRow(
     string DuplicateStatus,
     string ModifiedTime,
     string Classification,
-    string PlannedOperation)
+    string PlannedOperation,
+    string Tags,
+    string MatchExplanation)
 {
     /// <summary>
     /// Creates a display row without changing the supplied scanner model.
@@ -53,13 +55,17 @@ public sealed record ResultsFileRow(
             FormatDuplicateStatus(file.Duplicate?.Status),
             metadata?.LastWriteTimeUtc?.ToString("u", CultureInfo.InvariantCulture) ?? "Modified time unavailable",
             file.Classification?.Category.ToString() ?? "Unclassified",
-            "No");
+            "No",
+            "",
+            "");
     }
 
     /// <summary>Creates a bounded-page display row from a projected result file.</summary>
     /// <param name="file">The projected file to present.</param>
+    /// <param name="tags">The accepted application-owned tags for the current in-memory result session.</param>
+    /// <param name="match">The optional deterministic text-match explanation for the active query.</param>
     /// <returns>A presentation-only row.</returns>
-    public static ResultsFileRow FromResultFile(ResultFile file)
+    public static ResultsFileRow FromResultFile(ResultFile file, IReadOnlyList<TagAssociation>? tags = null, ResultSearchMatch? match = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         var containingFolder = Path.GetDirectoryName(file.FullPath);
@@ -73,7 +79,9 @@ public sealed record ResultsFileRow(
             FormatDuplicateStatus(file.DuplicateStatus),
             file.LastWriteTimeUtc?.ToString("u", CultureInfo.InvariantCulture) ?? "Modified time unavailable",
             file.ClassificationDisplay,
-            file.HasPlannedOperation ? "Yes" : "No");
+            file.HasPlannedOperation ? "Yes" : "No",
+            FormatTags(tags),
+            match?.Explanation ?? "No text query applied.");
     }
 
     internal static string FormatSize(long? sizeInBytes)
@@ -105,4 +113,11 @@ public sealed record ResultsFileRow(
         null => "Not checked",
         _ => "Not checked",
     };
+
+    private static string FormatTags(IReadOnlyList<TagAssociation>? tags) => tags is null || tags.Count == 0
+        ? "—"
+        : string.Join(", ", tags
+            .Where(tag => tag.AcceptanceState == TagAcceptanceState.Accepted)
+            .Select(tag => tag.DisplayName)
+            .Distinct(StringComparer.OrdinalIgnoreCase));
 }

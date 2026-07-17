@@ -1,6 +1,6 @@
 # Results Explorer
 
-> This document defines the read-only Results Explorer delivered in the validated v0.2 release.
+> This document defines the read-only Results Explorer delivered in v0.2 and extended in v0.3.
 
 ---
 
@@ -21,6 +21,8 @@ The Results Explorer is responsible for:
 * Showing a focused details panel for the selected item.
 * Presenting exact duplicate groups derived from matching hashes.
 * Showing scan and rule diagnostics relevant to the snapshot.
+* Performing metadata-aware ranked search with concise match explanations.
+* Showing accepted in-memory tags and optional validated AI suggestion previews.
 
 ---
 
@@ -28,7 +30,7 @@ The Results Explorer is responsible for:
 
 The page and its view models do not perform filesystem traversal, read file contents, calculate hashes, execute rules, or modify files. They obtain completed state through application-layer services and keep presentation state separate from the scan pipeline.
 
-Filtering, sorting, paging, and selection operate on the current snapshot. They are not a document-content search engine, a persistent catalog, or semantic search.
+Filtering, sorting, paging, selection, ranked search, and accepted tags operate on the current snapshot. They are not a document-content search engine, a persistent catalog, or semantic search. Optional AI suggestions are never execution controls: accepting, rejecting, or editing records a decision only.
 
 ---
 

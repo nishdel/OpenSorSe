@@ -11,5 +11,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
-  <ItemGroup><ProjectReference Include="..\..\src\OpenSorSe.Application\OpenSorSe.Application.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenSorSe.Application\OpenSorSe.Application.csproj" />
+    <ProjectReference Include="..\..\src\OpenSorSe.AI\OpenSorSe.AI.csproj" />
+  </ItemGroup>
 </Project>

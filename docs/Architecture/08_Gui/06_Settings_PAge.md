@@ -12,6 +12,10 @@ Its purpose is to allow users to customize OpenSorSe's behavior, configure subsy
 
 The Settings Page presents and modifies configuration but does not implement application behavior.
 
+## v0.3 implementation status
+
+The delivered page now includes optional Ollama settings: enabled state, endpoint, timeout, installed-model discovery/selection, connection status, local preference-adaptation toggle, and decision-history reset. The ViewModel delegates discovery and reset to application services; it contains no HTTP transport or persistence implementation. Remote endpoint privacy guidance is visible in the UI.
+
 ---
 
 # Responsibilities
