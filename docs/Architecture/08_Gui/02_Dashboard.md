@@ -6,7 +6,7 @@
 
 ## Purpose
 
-The Dashboard serves as the primary landing page for TidyMind.
+The Dashboard serves as the primary landing page for OpenSorSe.
 
 Its purpose is to provide users with a high-level overview of their document library, recent activity, processing status, storage insights, and quick access to common tasks.
 

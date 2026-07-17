@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 012 |
 | Component | Configuration Manager |
-| Project | TidyMind.Core |
+| Project | OpenSorSe.Core |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -120,3 +120,21 @@ Depends on:
 Required by:
 
 - All configurable components
+
+---
+
+# Autonomous v0.1 Decisions
+
+## Contract
+
+`IConfigurationService` remains the public contract: `Current`, `InitializeAsync`, and `SaveAsync`. Settings are immutable-after-initialization object graphs for v0.1; user-edit APIs belong to Specification 019. JSON configuration is stored only at the absolute composition-root path.
+
+Defaults are represented by a new `ApplicationSettings` instance. Load order is defaults, persisted JSON when present, then the existing `OPENSORSE_LOGGING__MINIMUMLEVEL` environment override. A malformed JSON document is reported as `ConfigurationValidationException` without exposing serializer internals. Missing configuration is normal.
+
+## Persistence and safety
+
+Saving creates only the configured application-settings parent directory. It writes a GUID-suffixed temporary file and atomically replaces the configuration file; this controlled overwrite is limited to the application's own configuration path. Cancellation is observed before file access and through asynchronous serialization. No user file, scan result, history, or database data is accessed.
+
+## Errors, ordering, and tests
+
+Invalid paths, invalid settings, invalid overrides, malformed JSON, and failed serialization are request failures; no partial `Current` replacement occurs. Tests cover defaults, precedence, malformed data, invalid settings, save/load round-trip, cancellation, temporary cleanup, and no mutation of unrelated files.

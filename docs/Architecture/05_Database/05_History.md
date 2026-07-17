@@ -1,6 +1,6 @@
 # History
 
-> This document defines the History component, which is responsible for recording the lifecycle and processing history of documents managed by TidyMind.
+> This document defines the History component, which is responsible for recording the lifecycle and processing history of documents managed by OpenSorSe.
 
 ---
 

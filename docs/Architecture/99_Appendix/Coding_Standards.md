@@ -1,12 +1,12 @@
 # Coding Standards
 
-> This document defines the coding standards and development practices used throughout the TidyMind project.
+> This document defines the coding standards and development practices used throughout the OpenSorSe project.
 
 ---
 
 # Purpose
 
-The Coding Standards document establishes consistent development practices across the TidyMind codebase.
+The Coding Standards document establishes consistent development practices across the OpenSorSe codebase.
 
 Its purpose is to improve readability, maintainability, collaboration, and long-term project quality by encouraging a consistent coding style and development approach.
 

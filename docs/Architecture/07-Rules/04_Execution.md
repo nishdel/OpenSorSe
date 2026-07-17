@@ -1,6 +1,6 @@
 # Execution
 
-> This document defines the Execution component, which is responsible for managing the lifecycle of rule execution within TidyMind.
+> This document defines the Execution component, which is responsible for managing the lifecycle of rule execution within OpenSorSe.
 
 ---
 

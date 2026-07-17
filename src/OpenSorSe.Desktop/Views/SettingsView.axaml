@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OpenSorSe.Desktop.ViewModels"
+             x:Class="OpenSorSe.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="Application logging" FontSize="18" FontWeight="SemiBold" />
+            <StackPanel Spacing="4">
+                <CheckBox Content="Enable local daily diagnostic logging" IsChecked="{Binding Draft.FileLoggingEnabled, Mode=TwoWay}" />
+                <TextBlock Text="Writes OpenSorSe application diagnostics to its local log folder. This does not read or change scanned user files."
+                           TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Text="Diagnostic log folder" FontWeight="SemiBold" />
+                <TextBlock Text="Optional absolute folder for OpenSorSe application log files. Leave empty to use the default local application-data folder."
+                           TextWrapping="Wrap" />
+                <TextBox PlaceholderText="Optional absolute log directory" Text="{Binding Draft.LogDirectoryPath, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding DailyLogRetentionLabel}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding DailyLogRetentionDescription}" TextWrapping="Wrap" />
+                <TextBox PlaceholderText="At least 1" Text="{Binding Draft.RetainedFileCount, Mode=TwoWay}" />
+                <TextBlock Text="{Binding DailyLogRetentionValidation}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Text="Minimum diagnostic detail level" FontWeight="SemiBold" />
+                <TextBlock Text="Controls the least severe OpenSorSe application events recorded in diagnostic logs."
+                           TextWrapping="Wrap" />
+                <ComboBox ItemsSource="{Binding AvailableLogLevels}" SelectedItem="{Binding Draft.MinimumLogLevel, Mode=TwoWay}" />
+            </StackPanel>
+            <TextBlock Text="Restart required after saving to apply active logging changes."
+                       IsVisible="{Binding RestartRequired}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Restore defaults" Command="{Binding RestoreDefaultsCommand}" />
+                <Button Content="Discard changes" Command="{Binding CancelCommand}" />
+                <Button Content="Save" Command="{Binding SaveCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

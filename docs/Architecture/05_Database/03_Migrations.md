@@ -8,7 +8,7 @@
 
 The Database Migrations component manages changes to the database schema over time.
 
-Its primary purpose is to ensure that existing databases can be upgraded safely and consistently as TidyMind evolves, while preserving user data and maintaining database integrity.
+Its primary purpose is to ensure that existing databases can be upgraded safely and consistently as OpenSorSe evolves, while preserving user data and maintaining database integrity.
 
 Database migrations provide a controlled mechanism for introducing structural changes without requiring users to recreate their databases.
 

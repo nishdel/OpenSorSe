@@ -1,6 +1,6 @@
 # Lifecycle
 
-> This document defines the Lifecycle component, which is responsible for managing the operational state of plugins throughout their lifetime within TidyMind.
+> This document defines the Lifecycle component, which is responsible for managing the operational state of plugins throughout their lifetime within OpenSorSe.
 
 ---
 

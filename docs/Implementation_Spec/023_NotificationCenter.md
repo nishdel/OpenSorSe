@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 023 |
 | Component | Notification Center |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -21,7 +21,7 @@ It provides consistent feedback throughout the application without interrupting 
 
 # Why
 
-Users should always receive clear feedback about what TidyMind is doing.
+Users should always receive clear feedback about what OpenSorSe is doing.
 
 A centralized notification system provides a consistent user experience and avoids duplicate notification logic across the application.
 
@@ -153,6 +153,14 @@ A["Core Pipeline (001-010)"]
 B["Infrastructure (011-012)"]
 C["User Interface (013-023)"]
 
-A --> D["TidyMind v0.1"]
+A --> D["OpenSorSe v0.1"]
 B --> D
 C --> D
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define notification models, queue bounds, timeouts, event contracts, or a notification source. v0.1 provides a local in-memory presentation queue with immutable requests/messages, sequential process-local identifiers, manual dismissal, and automatic expiry. Information and success notifications default to five seconds; warnings and errors require manual dismissal to avoid concealing actionable feedback.
+
+The component accepts explicit UI requests only and does not subscribe to the Event Bus or error handler before their later contracts are finalized. It uses a captured UI synchronization context for timer-driven expiry. History, actions, desktop notifications, progress notifications, event subscriptions, persistence, and cross-process delivery remain deferred.

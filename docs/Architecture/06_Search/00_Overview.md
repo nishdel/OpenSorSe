@@ -4,9 +4,15 @@
 
 ---
 
+## Implementation Status
+
+The Search subsystem is future architecture only. The validated v0.2 release provides filtering, sorting, and paging over the current results snapshot; it does not provide content search, indexed search, relevance ranking, or semantic search. The design below is not a shipped feature set or release commitment.
+
+---
+
 ## Purpose
 
-The Search subsystem enables users to efficiently discover and retrieve documents managed by TidyMind.
+The Search subsystem enables users to efficiently discover and retrieve documents managed by OpenSorSe.
 
 It combines multiple search strategies—including keyword search, semantic search, metadata filtering, and intelligent ranking—to provide accurate and relevant search results regardless of how a document was originally processed.
 

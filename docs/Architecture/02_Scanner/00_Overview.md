@@ -1,192 +1,52 @@
-# Error Handling
+# Scanner Overview
 
-> This document defines the error handling architecture used throughout TidyMind.
+> This document describes the read-only Scanner subsystem implemented in the validated v0.2 release.
 
 ---
 
 ## Purpose
 
-The Error Handling component establishes a consistent approach for detecting, reporting, recovering from, and communicating errors across the application.
-
-Its purpose is to ensure that failures are handled predictably, users receive meaningful feedback, and the application remains as stable and reliable as possible.
-
-Error handling is a cross-cutting concern that applies to every subsystem within TidyMind.
+The Scanner analyzes a user-selected folder without changing its contents. It traverses directories recursively, gathers filesystem metadata, calculates SHA-256 hashes, detects exact duplicates, and reports recoverable issues, progress, and cancellation through the application pipeline.
 
 ---
 
-# Responsibilities
+## Current Responsibilities
 
-The Error Handling architecture is responsible for:
-
-* Defining a consistent error handling strategy.
-* Classifying different categories of errors.
-* Reporting failures.
-* Coordinating recovery where possible.
-* Preventing application instability.
-* Providing meaningful feedback to users and developers.
-
-Error handling should minimize the impact of failures while preserving application integrity.
+* Validate the selected scan root.
+* Traverse accessible directories recursively while respecting the configured link/reparse-point policy.
+* Discover files and collect filesystem metadata.
+* Calculate SHA-256 hashes for analysis and exact-duplicate detection.
+* Isolate inaccessible paths and other recoverable failures as diagnostics.
+* Report progress and honour cancellation.
+* Produce data consumed by deterministic rules and the in-memory results snapshot.
 
 ---
 
-# Scope
+## Safety Boundary
 
-### In Scope
-
-* Runtime errors
-* Startup failures
-* Configuration errors
-* File system errors
-* Database errors
-* AI processing failures
-* Plugin failures
-* Unexpected exceptions
-* User-facing error reporting
-
-### Out of Scope
-
-The Error Handling architecture is **not** responsible for:
-
-* Logging implementation
-* User notifications
-* Business logic
-* Validation rules
-
-These responsibilities belong to their respective components.
+The Scanner reads filesystem information only. It does not rename, move, delete, modify, or organize user files; it does not read document content, perform OCR, or execute AI.
 
 ---
 
-# Error Handling Strategy
-
-Errors should be handled as close as possible to the point where they occur.
-
-If recovery is not possible, the error should be propagated to the appropriate component where it can be handled safely and consistently.
-
-The application should avoid allowing errors to propagate unnecessarily through unrelated parts of the system.
-
----
-
-# Error Lifecycle
+## Processing Flow
 
 ```mermaid
 flowchart LR
-
-A[Error Occurs]
-B[Detect Error]
-C[Classify Error]
-D[Attempt Recovery]
-E[Report Error]
-F[Continue or Terminate Operation]
-
-A --> B
-B --> C
-C --> D
-D --> E
-E --> F
+    Root["Selected folder"] --> Traverse["Recursive traversal"]
+    Traverse --> Metadata["Metadata collection"]
+    Metadata --> Hash["SHA-256 hashing"]
+    Hash --> Duplicates["Exact duplicate detection"]
+    Duplicates --> Rules["Deterministic rule evaluation"]
+    Rules --> Snapshot["In-memory results snapshot"]
+    Traverse -. "warnings / cancellation" .-> Diagnostics["Diagnostics and status"]
 ```
 
-Every error should follow a predictable handling process.
-
 ---
 
-# Error Categories
+## Related Documents
 
-Errors should be classified according to their severity.
-
-| Category    | Description                                                              |
-| ----------- | ------------------------------------------------------------------------ |
-| Information | Non-critical events that require no action.                              |
-| Warning     | Recoverable issues that may affect part of the application.              |
-| Error       | Failures that prevent an operation from completing successfully.         |
-| Critical    | Severe failures that may prevent the application from continuing safely. |
-
-Consistent classification enables predictable handling across all subsystems.
-
----
-
-# Recovery Principles
-
-Whenever practical, the application should:
-
-* Continue operating after recoverable failures.
-* Isolate failures to the affected subsystem.
-* Preserve user data.
-* Prevent cascading failures.
-* Allow interrupted operations to be retried.
-
-Recovery should always prioritize application stability over completing a failed operation.
-
----
-
-# User Experience
-
-Errors presented to users should be:
-
-* Clear
-* Understandable
-* Actionable
-* Free from unnecessary technical details
-
-Whenever appropriate, error messages should explain:
-
-* What happened.
-* Why the operation failed.
-* What the user can do next.
-
-Technical diagnostic information should remain available through the logging system.
-
----
-
-# Design Principles
-
-The Error Handling architecture follows these principles:
-
-* Fail gracefully.
-* Recover whenever possible.
-* Isolate failures.
-* Preserve application stability.
-* Protect user data.
-* Maintain consistent behavior.
-* Provide meaningful diagnostics.
-
-These principles apply to every subsystem within TidyMind.
-
----
-
-# Subsystem Responsibilities
-
-Every subsystem is responsible for handling errors within its own domain whenever possible.
-
-Subsystems should:
-
-* Detect failures early.
-* Report errors consistently.
-* Avoid suppressing unexpected failures.
-* Clean up allocated resources.
-* Leave the application in a valid state.
-
-Cross-subsystem recovery should be coordinated through the application's shared infrastructure.
-
----
-
-# Future Considerations
-
-The architecture should support future enhancements, including:
-
-* Centralized error reporting
-* Error diagnostics
-* Recovery recommendations
-* Plugin-specific error isolation
-* Automated crash reporting (optional)
-* Health monitoring
-
-These capabilities should extend the existing architecture without changing its overall design principles.
-
----
-
-# Related Documents
-
-* [Logging](03_Logging.md)
-* [Application](01_Application.md)
-* [Task Manager](07_Task_Manager.md)
-* [Application State](06_Application_State.md)
+* [System Data Flow](../00_System/04_Data_Flow.md)
+* [Folder Scanner](01_Folder_Scanner.md)
+* [Cancellation](07_Cancellation.md)
+* [Scanner Error Handling](08_Error_Handling.md)
+* [Release Status](../../RELEASE_STATUS.md)

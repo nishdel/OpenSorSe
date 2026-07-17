@@ -8,7 +8,7 @@
 
 The Keyword Search component enables users to locate documents by searching for specific words, phrases, or patterns.
 
-It provides fast, deterministic retrieval based on indexed textual information stored within the TidyMind database.
+It provides fast, deterministic retrieval based on indexed textual information stored within the OpenSorSe database.
 
 Keyword Search complements semantic search by providing precise matching against document content and metadata.
 

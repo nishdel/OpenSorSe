@@ -122,6 +122,18 @@ Required by:
 
 - 007 - Move Planner
 
+---
+
+# v0.1 Contract
+
+Specification 006 defines a deterministic, side-effect-free evaluator. It accepts enriched `FileEntry` values and ordered `FileRule` values, evaluates all enabled rules, and returns proposed `RuleDecision` values. It never accesses the filesystem, executes actions, invokes later execution components, persists data, publishes events, or uses AI.
+
+Supported proposed action kinds are `NoAction`, `Move`, `Copy`, `Rename`, and `Delete`. Actions are validated without resolving paths or templates. Conditions are AND-combined and support category, duplicate status, case-insensitive extension and exact filename, and inclusive minimum or maximum metadata size. Every condition uses exactly its documented value field. Rules are validated as a complete request before any file is evaluated.
+
+Every enabled matching rule ID is returned in supplied rule order. The winning rule is the matching rule with the highest numeric priority; ties retain supplied order. A file with no matching rule receives a `NoAction` decision. Results preserve file order and duplicate inputs; `FileEntry` values are not changed. Empty rules are valid and produce `NoAction` decisions.
+
+The service contract is `Task<RuleEvaluationResult> IRuleEngine.EvaluateAsync(IReadOnlyCollection<FileEntry> files, IReadOnlyList<FileRule> rules, CancellationToken cancellationToken = default)`. Cancellation produces no partial result. Invalid input or rules throw before processing. Unexpected failures are logged, reported through `IErrorHandler`, and rethrown. The implementation is registered as `AddSingleton<IRuleEngine, RuleEngine>()`.
+
 flowchart LR
 
 subgraph Discovery

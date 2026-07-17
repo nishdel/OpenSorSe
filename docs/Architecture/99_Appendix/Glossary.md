@@ -1,6 +1,6 @@
 # Glossary
 
-> This document defines the common terminology used throughout the TidyMind architecture and documentation.
+> This document defines the common terminology used throughout the OpenSorSe architecture and documentation.
 
 ---
 
@@ -18,13 +18,13 @@ Unless explicitly stated otherwise, the definitions in this document should be c
 
 ## Application
 
-The complete TidyMind software system.
+The complete OpenSorSe software system.
 
 ---
 
 ## Document
 
-A file managed by TidyMind.
+A file managed by OpenSorSe.
 
 Examples include:
 
@@ -40,7 +40,7 @@ A document is the primary unit processed throughout the application.
 
 ## Document Library
 
-The collection of documents currently managed by TidyMind.
+The collection of documents currently managed by OpenSorSe.
 
 ---
 
@@ -145,7 +145,7 @@ Indexes support search but are not the authoritative source of information.
 
 ## Plugin
 
-An external extension that adds functionality to TidyMind through the supported Plugin API.
+An external extension that adds functionality to OpenSorSe through the supported Plugin API.
 
 ---
 

@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 014 |
 | Component | Dashboard |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -15,18 +15,18 @@
 
 The Dashboard is the application's home screen.
 
-It provides users with an overview of TidyMind, quick access to common actions, and a summary of recent activity.
+It provides users with an overview of OpenSorSe, quick access to common actions, and the latest completed scan summary for the current application session.
 
 ---
 
 # Why
 
-The Dashboard gives users a central place to begin using TidyMind without needing to navigate through multiple screens.
+The Dashboard gives users a central place to begin using OpenSorSe without needing to navigate through multiple screens.
 
 It should answer:
 
 - What can I do?
-- What happened recently?
+- What did the latest completed scan find?
 - What should I do next?
 
 ---
@@ -36,8 +36,7 @@ It should answer:
 The Dashboard shall:
 
 - Display application status.
-- Display recent scans.
-- Display recent organization history.
+- Display the latest completed in-memory scan summary when available.
 - Display quick actions.
 - Display basic statistics.
 - Navigate to other parts of the application.
@@ -60,7 +59,7 @@ The Dashboard must NOT:
 # Inputs
 
 - Application state.
-- Recent scan history.
+- Latest completed scan summary for the current application session.
 - Statistics.
 - User interactions.
 
@@ -80,7 +79,7 @@ The Dashboard provides:
 
 1. Load dashboard.
 2. Display application summary.
-3. Display recent activity.
+3. Display the latest completed scan summary or the no-scan-yet explanation.
 4. Display quick actions.
 5. Handle user interaction.
 6. Navigate to selected feature.
@@ -99,7 +98,7 @@ The Dashboard provides:
 The implementation is complete when:
 
 - Dashboard loads successfully.
-- Recent activity is displayed.
+- The latest completed scan summary is displayed when available.
 - Quick actions function correctly.
 - Statistics update correctly.
 - Navigation works.
@@ -146,6 +145,10 @@ The implementation is complete when:
 
 ---
 
+## Corrected v0.1 layout
+
+The implemented Dashboard replaces the illustrative draft layout above. It contains a status line, a no-completed-scan explanation when appropriate, and a **Latest completed scan** section with files scanned, folders discovered, exact duplicate files, and warnings. It has only Scan folder, View results, and Settings quick actions; View results is enabled only after a completed in-memory scan. It does not show Files organized, Storage saved, or unorganized-file metrics.
+
 # Future
 
 Not part of v0.1:
@@ -168,3 +171,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+Dashboard state is read-only and starts with a clear no-completed-scan explanation. After the existing shell receives a completed processing result, it replaces the Dashboard's in-memory latest-scan summary with files scanned, folders discovered, exact duplicate files, and warnings. That state belongs to the existing shell for the rest of the application session, so navigation does not reset it; it is not persistent history and closing the application discards it.
+
+The three quick actions navigate only to Scan, Results, and Settings; they do not invoke scanners, executors, or configuration services. View Results is unavailable until the current session has a completed result. Files organized, storage saved, and unorganized-file metrics are deliberately not shown because v0.1 is review-only. The view is hosted by the existing Main Window only when Dashboard is selected.

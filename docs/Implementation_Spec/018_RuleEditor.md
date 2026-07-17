@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 018 |
 | Component | Rule Editor |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -15,7 +15,7 @@
 
 The Rule Editor allows users to create, modify, enable, disable, and delete organization rules.
 
-It provides a simple interface for customizing how TidyMind organizes files.
+It provides a simple interface for customizing how OpenSorSe organizes files.
 
 ---
 
@@ -178,3 +178,13 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define rule persistence, an editable field-level draft model, or a save target. v0.1 edits immutable existing `FileRule` values in an ordered in-memory collection. `AddOrUpdate` creates or replaces a whole rule; validation covers the deterministic Rule Engine's supported action and condition shapes. A save operation emits a read-only snapshot event only, because no rule repository exists in the approved project set.
+
+The editor never evaluates a rule, resolves a path, persists a change, or invokes file execution. A detailed rule-builder form, priority visualization, templates, import/export, storage, and configuration integration remain deferred.
+
+When no in-memory rules exist, the v0.1 page explicitly says so and explains that rules are optional and cannot change files in this release. The selected-rule pane and its actions are hidden until a rule is selected. The shell does not display an inert Save control because v0.1 has no rule repository or shell save handler.

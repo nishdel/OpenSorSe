@@ -1,148 +1,42 @@
 # User Flow
 
-> This document describes the typical interaction between a user and TidyMind, from launching the application to organizing, searching, and managing files.
+> This document describes the validated v0.2 read-only user workflow.
 
 ---
 
-## Purpose
-
-The purpose of this document is to provide a high-level overview of how users interact with TidyMind.
-
-It describes the major user workflows without focusing on specific interface layouts or implementation details.
-
-Understanding the user flow helps ensure that the architecture remains centered around usability, predictability, and user control.
-
----
-
-# User Journey
-
-The following diagram illustrates a typical interaction with the application.
+## Primary workflow
 
 ```mermaid
 flowchart LR
-
-A[Launch Application]
-B[Configure Scan]
-C[Scan Files]
-D[Analyze Files]
-E[Review Results]
-F[Organize Files]
-G[Search & Explore]
-H[View Reports]
-I[Adjust Settings]
-
-A --> B
-B --> C
-C --> D
-D --> E
-E --> F
-F --> G
-G --> H
-H --> I
+    A["Launch OpenSorSe"] --> B["Select local folders"]
+    B --> C["Run read-only processing"]
+    C -->|Cancelled| D["Return to Scan with safe status"]
+    C -->|Completed| E["Review immutable results"]
+    E --> F["Filter, sort, page, and inspect details"]
+    E --> G["Review exact duplicate groups"]
+    G --> F
 ```
 
----
+## User actions available today
 
-# Typical Workflow
+| Action | Behavior |
+| --- | --- |
+| Scan | Select one or more local folders and start a read-only analysis pipeline. |
+| Cancel | Request cancellation of active processing; incomplete results are not presented as completed review data. |
+| Review results | Filter, sort, page, and inspect the in-memory output of a completed scan. |
+| Review duplicates | Inspect existing exact SHA-256 groups and return to their result rows. |
+| Configure | Update implemented application settings. |
+| Diagnose | Review aggregate diagnostic information. |
+| View history | Review available in-memory operation-history state without performing operations. |
 
-A typical user session consists of the following stages:
+## Safety boundary
 
-1. Launch the application.
-2. Select one or more folders to scan.
-3. Start the scanning process.
-4. Allow TidyMind to analyze discovered files.
-5. Review classifications, suggestions, and detected issues.
-6. Accept, modify, or reject recommendations.
-7. Search, browse, or filter organized files.
-8. Review reports and statistics.
-9. Configure preferences and automation rules as needed.
+Users cannot rename, move, delete, overwrite, open, reveal, execute, or undo files through the validated Desktop workflow. Planned operations are informational only.
 
-The user remains in control throughout the entire workflow.
+AI suggestions, OCR, semantic search, content readers, result persistence, reports, and automatic organization are not part of the current user flow.
 
----
+## Related documents
 
-# Primary User Actions
-
-Users interact with TidyMind through several core activities.
-
-| Action    | Description                                               |
-| --------- | --------------------------------------------------------- |
-| Scan      | Discover files within selected locations.                 |
-| Review    | Inspect AI-generated classifications and recommendations. |
-| Organize  | Apply file moves, renames, tags, or other actions.        |
-| Search    | Locate files using keywords, filters, or semantic search. |
-| Configure | Adjust settings, rules, AI providers, and preferences.    |
-| Monitor   | View progress, history, and reports.                      |
-
----
-
-# User Control
-
-TidyMind is designed to assist rather than automate without oversight.
-
-Users should always be able to:
-
-* Start and stop scans.
-* Review recommendations.
-* Accept or reject AI suggestions.
-* Configure automation rules.
-* Modify application settings.
-* Review processing history.
-* Undo supported operations.
-
-The system should provide recommendations while leaving final decisions to the user.
-
----
-
-# Feedback and Progress
-
-Long-running operations should provide clear feedback to the user.
-
-Examples include:
-
-* Scan progress
-* File processing status
-* AI analysis progress
-* Duplicate detection progress
-* Search progress
-* Background task status
-
-Providing timely feedback improves transparency and overall user experience.
-
----
-
-# Error Handling
-
-When errors occur, the application should:
-
-* Clearly explain what happened.
-* Identify the affected operation.
-* Suggest possible resolutions where appropriate.
-* Allow users to retry or continue when possible.
-* Prevent unnecessary interruption of unrelated tasks.
-
-Errors should be presented in a way that is understandable to both technical and non-technical users.
-
----
-
-# Design Considerations
-
-The user experience should emphasize:
-
-* Simplicity
-* Predictability
-* Transparency
-* Performance
-* Accessibility
-* User control
-
-The interface should guide users through complex operations without hiding important information or reducing user choice.
-
----
-
-# Related Documents
-
-* [Component Map](03_Component_Map.md)
-* [Data Flow](04_Data_Flow.md)
-* [GUI Overview](../08_GUI/00_Overview.md)
-* [Main Window](../08_GUI/01_Main_Window.md)
+- [System Overview](00_Overview.md)
+- [GUI Overview](../08_Gui/00_Overview.md)
+- [Release Status](../../RELEASE_STATUS.md)

@@ -1,6 +1,6 @@
 # Statistics
 
-> This document defines the Statistics component, which is responsible for generating numerical summaries and measurable insights about documents, processing activities, and application usage within TidyMind.
+> This document defines the Statistics component, which is responsible for generating numerical summaries and measurable insights about documents, processing activities, and application usage within OpenSorSe.
 
 ---
 

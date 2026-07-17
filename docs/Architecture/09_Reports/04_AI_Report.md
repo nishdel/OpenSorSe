@@ -1,6 +1,6 @@
 # AI Report
 
-> This document defines the AI Report component, which is responsible for summarizing Artificial Intelligence processing, generated enrichments, and AI-related activity within TidyMind.
+> This document defines the AI Report component, which is responsible for summarizing Artificial Intelligence processing, generated enrichments, and AI-related activity within OpenSorSe.
 
 ---
 

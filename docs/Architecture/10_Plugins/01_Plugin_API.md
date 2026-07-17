@@ -1,6 +1,6 @@
 # Plugin API
 
-> This document defines the Plugin API, which provides the official public interface through which third-party plugins interact with TidyMind.
+> This document defines the Plugin API, which provides the official public interface through which third-party plugins interact with OpenSorSe.
 
 ---
 
@@ -8,7 +8,7 @@
 
 The Plugin API defines the stable and supported extension interfaces available to plugin developers.
 
-Its purpose is to allow plugins to integrate with TidyMind through well-defined contracts while preserving the integrity, stability, and maintainability of the core application.
+Its purpose is to allow plugins to integrate with OpenSorSe through well-defined contracts while preserving the integrity, stability, and maintainability of the core application.
 
 The Plugin API is the only supported mechanism through which plugins interact with the application.
 

@@ -1,12 +1,12 @@
 # Architecture Decision Records (ADRs)
 
-> This document defines the purpose and structure of Architecture Decision Records (ADRs) used throughout the TidyMind project.
+> This document defines the purpose and structure of Architecture Decision Records (ADRs) used throughout the OpenSorSe project.
 
 ---
 
 # Purpose
 
-Architecture Decision Records document significant architectural decisions made during the design and evolution of TidyMind.
+Architecture Decision Records document significant architectural decisions made during the design and evolution of OpenSorSe.
 
 Their purpose is to preserve the reasoning behind important decisions, making it easier for contributors to understand the project's direction and avoid revisiting previously resolved discussions without new evidence.
 
@@ -89,7 +89,7 @@ Historical decisions remain valuable even after newer decisions replace them.
 
 # Example Topics
 
-Potential ADRs for TidyMind include:
+Potential ADRs for OpenSorSe include:
 
 * Adoption of MVVM.
 * Local AI as the primary processing model.

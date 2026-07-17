@@ -1,12 +1,12 @@
 # Security
 
-> This document defines the Security component, which is responsible for protecting the TidyMind application while enabling safe execution of third-party plugins.
+> This document defines the Security component, which is responsible for protecting the OpenSorSe application while enabling safe execution of third-party plugins.
 
 ---
 
 ## Purpose
 
-The Security component establishes the policies, validation mechanisms, and safeguards that govern plugin execution within TidyMind.
+The Security component establishes the policies, validation mechanisms, and safeguards that govern plugin execution within OpenSorSe.
 
 Its purpose is to protect the core application, user data, and document library while allowing plugins to extend application functionality through approved interfaces.
 

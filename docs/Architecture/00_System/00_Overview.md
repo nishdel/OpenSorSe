@@ -1,161 +1,75 @@
 # System Overview
 
-> This document provides a high-level overview of the TidyMind architecture. It introduces the project's purpose, the major architectural components, and the structure of the architecture documentation.
+> This document describes the current OpenSorSe implementation and identifies broader architecture material that remains future design intent.
 
 ---
 
-## Introduction
+## Current product boundary
 
-TidyMind is a local-first, AI-powered file organization and knowledge management application designed to help users organize, understand, and retrieve information from their digital files.
+OpenSorSe is a local-first desktop application for safely analyzing selected folders. The validated v0.2 release is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
-Rather than replacing the operating system's file manager, TidyMind works alongside it by providing intelligent analysis, semantic understanding, automated organization, and powerful search capabilities while ensuring that the user remains in complete control of their data.
+The Desktop workflow is intentionally read-only. It scans selected folders, enriches file information in memory, and presents review data without renaming, moving, deleting, overwriting, or otherwise modifying selected user files.
 
-The architecture has been designed with modularity, maintainability, and extensibility as primary goals. Each subsystem has a clearly defined responsibility and communicates with other subsystems through well-defined interfaces.
+The current release does not implement AI, OCR, semantic search, content readers, database-backed result storage, report generation, or plugins.
 
----
+## Implemented architecture
 
-## Purpose of the Architecture
-
-The purpose of this architecture documentation is to define how TidyMind is structured, how its components interact, and the responsibilities of each subsystem.
-
-This documentation serves as the primary technical reference for:
-
-* Project contributors
-* Future maintainers
-* AI-assisted development tools
-* Plugin developers
-
-It is intended to provide a clear understanding of the system before implementation details are considered.
-
----
-
-## Architectural Overview
-
-TidyMind is divided into a collection of independent but cooperating subsystems.
-
-Each subsystem focuses on a single area of responsibility while remaining loosely coupled to the rest of the application.
-
-The major architectural subsystems are:
-
-| Subsystem | Responsibility                                                                               |
-| --------- | -------------------------------------------------------------------------------------------- |
-| Core      | Provides shared application infrastructure and services used throughout the system.          |
-| Scanner   | Discovers files, folders, and collects filesystem metadata.                                  |
-| Readers   | Extracts readable content from supported file formats.                                       |
-| AI        | Performs document understanding, classification, summarization, and intelligent suggestions. |
-| Database  | Stores metadata, application settings, history, caches, and search information.              |
-| Search    | Enables keyword and semantic search across indexed files.                                    |
-| Rules     | Executes user-defined automation based on configurable conditions and actions.               |
-| GUI       | Provides the graphical interface through which users interact with the application.          |
-| Reports   | Generates statistics, summaries, and system reports.                                         |
-| Plugins   | Allows additional functionality to be integrated without modifying the core application.     |
-
-Each subsystem is documented in its own section of the architecture.
-
----
-
-## High-Level Component Diagram
+| Component | Current responsibility |
+| --- | --- |
+| `OpenSorSe.Core` | Configuration, logging, events, application state, lifecycle, error handling, dependency injection, and task infrastructure. |
+| `OpenSorSe.Scanner` | Read-only folder traversal, file discovery, metadata extraction, SHA-256 hashing, deterministic classification, and exact duplicate detection. |
+| `OpenSorSe.Rules` | Deterministic rule evaluation, planning, and lexical conflict resolution. |
+| `OpenSorSe.Executor` | Execution and undo components retained as infrastructure; they are not exposed by the current Desktop workflow. |
+| `OpenSorSe.Application` | Read-only processing orchestration, in-memory session management, application routing, and immutable results snapshots. |
+| `OpenSorSe.Desktop` | Avalonia MVVM shell, Dashboard, Scan, Results Explorer, duplicate review, Settings, Diagnostics, Operation History, and notifications. |
 
 ```mermaid
 flowchart LR
-
-Core
-
-Scanner
-
-Readers
-
-AI
-
-Database
-
-Search
-
-Rules
-
-GUI
-
-Reports
-
-Plugins
-
-Scanner --> Readers
-Readers --> AI
-AI --> Database
-Database --> Search
-Database --> Reports
-Rules --> Database
-GUI --> Core
-GUI --> Scanner
-GUI --> Search
-GUI --> Rules
-Plugins --> Core
-Plugins --> Scanner
-Plugins --> Readers
-Plugins --> AI
+    UI["Avalonia Desktop / MVVM"] --> Application["Application"]
+    Application --> Scanner["Scanner"]
+    Application --> Rules["Rules"]
+    Application --> Core["Core"]
+    Scanner --> Results["Immutable results snapshot"]
+    Rules --> Results
+    Results --> UI
 ```
 
----
+## Read-only processing flow
 
-## Design Philosophy
+1. The user selects one or more local folders.
+2. The Scanner discovers entries and reads filesystem metadata.
+3. The pipeline calculates hashes, applies deterministic classification, detects exact duplicates, and evaluates rules.
+4. The Application layer produces an in-memory result snapshot for a completed session.
+5. The Desktop application presents the Results Explorer and duplicate review.
 
-The architecture follows several guiding principles:
+The current Desktop workflow never invokes the execution or undo components. Result data is process-local and is discarded when the application closes.
 
-* **Modularity** — Each subsystem has a clearly defined responsibility.
-* **Separation of Concerns** — Components perform one primary function and avoid unnecessary dependencies.
-* **Local-First** — Core functionality should operate without requiring cloud services.
-* **Privacy** — User data remains under the user's control.
-* **Extensibility** — New functionality should be added with minimal impact on existing components.
-* **Maintainability** — The architecture should remain understandable and scalable as the project grows.
+## Architecture maturity
 
-These principles are described in greater detail in the **Design Principles** document.
+The architecture documentation also contains longer-term designs for Readers, AI, Database, Search, Reports, and Plugins. Those sections are future architectural intent and must not be read as implemented v0.2 functionality.
 
----
+Future work should preserve the current component boundaries and receive its own implementation proposal before changing the read-only safety model.
 
-## Architecture Documentation Structure
+## Documentation structure
 
-The architecture documentation is organized into the following sections:
+| Section | Status in current release |
+| --- | --- |
+| `00_System` | Current system guidance and future design context. |
+| `01_Core` | Implemented foundation. |
+| `02_Scanner` | Implemented read-only analysis pipeline. |
+| `03_Readers` | Future design intent. |
+| `04_AI` | Future design intent. |
+| `05_Database` | Future design intent; current results are not persisted. |
+| `06_Search` | Future design intent; current Results Explorer searches one in-memory scan only. |
+| `07-Rules` | Implemented deterministic evaluation and planning infrastructure; no Desktop execution workflow. |
+| `08_Gui` | Partially implemented; current pages are documented by their v0.1/v0.2 specifications. |
+| `09_Reports` | Future design intent. |
+| `10_Plugins` | Future design intent. |
 
-| Section     | Description                                                    |
-| ----------- | -------------------------------------------------------------- |
-| 00_System   | High-level system architecture and design.                     |
-| 01_Core     | Shared application infrastructure and services.                |
-| 02_Scanner  | File discovery and scanning pipeline.                          |
-| 03_Readers  | File content extraction for supported formats.                 |
-| 04_AI       | Artificial intelligence components and document understanding. |
-| 05_Database | Persistent storage, caching, and application data.             |
-| 06_Search   | Keyword, semantic search, filtering, and indexing.             |
-| 07_Rules    | Automation and rule execution engine.                          |
-| 08_GUI      | User interface architecture and application screens.           |
-| 09_Reports  | Reporting and analytics subsystem.                             |
-| 10_Plugins  | Plugin architecture and extension system.                      |
-| 99_Appendix | Supporting documentation, standards, and reference material.   |
+## Related documents
 
----
-
-## Reading Order
-
-For readers who are new to the project, the recommended reading order is:
-
-1. System Overview
-2. System Goals
-3. Design Principles
-4. Component Map
-5. Data Flow
-6. Event Flow
-7. User Flow
-8. Deployment
-
-After understanding the system architecture, readers can continue with the documentation for each individual subsystem.
-
----
-
-## Related Documents
-
-* [System Goals](01_System_Goals.md)
-* [Design Principles](02_Design_Principles.md)
-* [Component Map](03_Component_Map.md)
-* [Data Flow](04_Data_Flow.md)
-* [Event Flow](05_Event_Flow.md)
-* [User Flow](06_User_Flow.md)
-* [Deployment](07_Deployment.md)
+- [Release Status](../../RELEASE_STATUS.md)
+- [System Goals](01_System_Goals.md)
+- [Component Map](03_Component_Map.md)
+- [Data Flow](04_Data_Flow.md)
+- [Technology Stack](../99_Appendix/Technology_Stack.md)

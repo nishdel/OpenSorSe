@@ -1,6 +1,6 @@
 # Loading
 
-> This document defines the Loading component, which is responsible for validating, loading, and initializing plugins for use within TidyMind.
+> This document defines the Loading component, which is responsible for validating, loading, and initializing plugins for use within OpenSorSe.
 
 ---
 

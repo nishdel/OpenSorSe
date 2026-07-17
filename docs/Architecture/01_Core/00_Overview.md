@@ -1,12 +1,20 @@
 # Core Overview
 
-> This document provides an overview of the Core subsystem, which serves as the foundation of the TidyMind application. The Core provides shared infrastructure, common services, application lifecycle management, and communication mechanisms used throughout the system.
+> This document provides an overview of the Core subsystem, which serves as the foundation of the OpenSorSe application. The Core provides shared infrastructure, common services, application lifecycle management, and communication mechanisms used throughout the system.
+
+---
+
+## Implementation Status
+
+`OpenSorSe.Core` supplies the current domain models and shared abstractions used by the .NET 8 application. `OpenSorSe.Application` and the Desktop composition root provide the current lifecycle, dependency-injection, settings, diagnostics, and operation-history integration around those models.
+
+The wider dependency diagram and the detailed documents in this section describe a long-term architectural vocabulary. Readers, AI, Database, Search, Reports, and Plugins are not implemented v0.2 subsystems; see the [System Overview](../00_System/00_Overview.md) for the active component map.
 
 ---
 
 ## Purpose
 
-The Core subsystem provides the fundamental services required by every other subsystem within TidyMind.
+The Core subsystem provides the fundamental services required by every other subsystem within OpenSorSe.
 
 Rather than implementing application features, the Core establishes the infrastructure that enables the rest of the application to operate consistently and reliably.
 

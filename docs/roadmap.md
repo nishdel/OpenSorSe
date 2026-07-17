@@ -1,187 +1,73 @@
-# Roadmap
+# OpenSorSe Roadmap
 
-> This document outlines the long-term vision and planned evolution of the TidyMind project.
+> This roadmap distinguishes completed releases from future ideas. It is not a commitment to implement every future capability.
 
----
+## Current direction
 
-# Purpose
+OpenSorSe is a local-first, read-only desktop application for analyzing selected folders and reviewing the results safely. The project is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
-The Roadmap communicates the intended direction of TidyMind by highlighting planned capabilities, architectural goals, and future areas of development.
+The current application does not modify selected user files and does not provide AI, OCR, semantic search, or content-reader functionality.
 
-Its purpose is to help contributors understand project priorities and identify opportunities for contribution.
+## Completed releases
 
-The Roadmap is a planning document rather than a release schedule.
+### v0.1 — Read-only processing foundation
 
----
+Complete.
 
-# Vision
+- Folder scanning and recursive directory traversal.
+- Read-only metadata extraction and SHA-256 hashing.
+- Deterministic file classification and exact duplicate detection.
+- Rule evaluation, planning, and conflict-resolution infrastructure.
+- Dashboard, Scan workflow, Settings, Diagnostics, and Operation History surfaces.
+- Application orchestration, in-memory sessions, logging, error handling, and automated test coverage.
 
-TidyMind aims to become an intelligent, privacy-first knowledge management platform that helps users discover, understand, organize, and automate their digital documents.
+### v0.2 — Read-only results exploration
 
-The project emphasizes:
+Complete.
 
-* Local-first processing.
-* User control.
-* Artificial Intelligence as an assistant rather than a replacement.
-* Extensibility through plugins.
-* Cross-platform desktop support.
-* Long-term maintainability.
+- Immutable in-memory results snapshots.
+- Results Explorer with text filtering, categorical filters, deterministic sorting, and bounded paging.
+- Read-only result details.
+- Exact SHA-256 duplicate-group review and theoretical reclaimable-space presentation.
+- Safe group-to-results navigation and clear empty, loading, limitation, and error states.
 
----
+## v0.3 — Usability improvements and workflow enhancements
 
-# Guiding Principles
+Planned. The release will focus on improving the existing read-only workflow rather than expanding into unapproved file modification or AI capabilities.
 
-Future development should prioritize:
+Potential areas for proposal and prioritization include:
 
-* Architectural consistency.
-* User trust.
-* Performance.
-* Accessibility.
-* Extensibility.
-* Privacy.
+- User-interface and accessibility improvements.
+- Performance and responsiveness improvements for realistic result sets.
+- Better read-only search and duplicate-review workflows.
+- User-feedback and workflow clarity improvements.
 
-Features should strengthen the platform without compromising these principles.
+Specific features will be documented and approved before implementation.
 
----
+## Future release ideas
 
-# Planned Milestones
+The following are longer-term ideas, not current capabilities or committed release scope:
 
-## Phase 1 — Foundation
+- PDF, DOCX, and Excel content readers.
+- OCR.
+- Local or optional AI providers.
+- Rename suggestions and folder suggestions.
+- Semantic search.
+- Automatic tagging.
+- Plugin system.
 
-Objectives include:
+Any future feature that could modify user files requires a separate safety design covering explicit authorization, live preflight, preview, failure handling, and recovery expectations.
 
-* Core application framework.
-* Scanner subsystem.
-* Document readers.
-* Database.
-* Search.
-* Basic user interface.
+## Release principles
 
----
+- Preserve the current read-only safety boundary unless a dedicated release explicitly changes it.
+- Keep local-first privacy and transparent user control central to every proposal.
+- Treat the architecture documents for unimplemented subsystems as design intent, not evidence of a shipped feature.
+- Validate build, tests, and relevant UI behavior before declaring a release complete.
 
-## Phase 2 — Intelligence
+## Related documentation
 
-Objectives include:
-
-* AI summarization.
-* Document classification.
-* Semantic search.
-* Embeddings.
-* Duplicate detection.
-* AI-assisted organization.
-
----
-
-## Phase 3 — Automation
-
-Objectives include:
-
-* Rule engine.
-* User-defined automation.
-* Background processing.
-* Scheduled tasks.
-* Advanced workflows.
-
----
-
-## Phase 4 — Platform
-
-Objectives include:
-
-* Plugin ecosystem.
-* Stable Plugin API.
-* Additional integrations.
-* Community-developed extensions.
-* Theme support.
-* Expanded report generation.
-
----
-
-## Phase 5 — Ecosystem
-
-Objectives include:
-
-* Community growth.
-* Documentation improvements.
-* Contributor tooling.
-* Localization.
-* Accessibility enhancements.
-* Long-term support and maintenance.
-
----
-
-# Areas for Community Contribution
-
-Contributors may help with:
-
-* Document readers.
-* AI providers.
-* OCR integrations.
-* Search providers.
-* Report generators.
-* GUI improvements.
-* Themes.
-* Plugin development.
-* Documentation.
-* Testing.
-
----
-
-# Success Criteria
-
-The long-term success of TidyMind will be measured by:
-
-* A maintainable architecture.
-* A healthy contributor community.
-* Reliable local AI capabilities.
-* High-quality documentation.
-* A stable plugin ecosystem.
-* Positive user experience.
-
----
-
-# Project Philosophy
-
-The roadmap should evolve as the project matures.
-
-New ideas should be evaluated based on:
-
-* Architectural fit.
-* User value.
-* Long-term maintainability.
-* Community benefit.
-* Alignment with project goals.
-
-The project should remain adaptable while preserving its core principles.
-
----
-
-# Future Considerations
-
-Future roadmap revisions may include:
-
-* More detailed milestone planning.
-* Public issue tracking integration.
-* Community voting.
-* Experimental feature tracks.
-* Research initiatives.
-
-The roadmap should remain a living document that reflects the project's direction.
-
----
-
-# Related Documents
-
-* [Technology Stack](04_Technology_Stack.md)
-* [Architecture Decision Records](03_Architecture_Decision_Records.md)
-* [Contributing Guide](06_Contributing.md)
-
-
-graph TD
-
-A[Vision] --> B[Architecture]
-B --> C[Implementation Spec]
-C --> D[Continue Prompt]
-D --> E[Code Review]
-E --> F[Test]
-F --> G[Git Commit]
+- [Release Status](RELEASE_STATUS.md)
+- [Project Philosophy](project_philosophy.md)
+- [System Overview](Architecture/00_System/00_Overview.md)
+- [Technology Stack](Architecture/99_Appendix/Technology_Stack.md)

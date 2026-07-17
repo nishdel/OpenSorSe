@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 022 |
 | Component | About View |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,13 +13,13 @@
 
 # Purpose
 
-The About View displays information about TidyMind, including the application version, licensing, authorship, acknowledgements, and useful project links.
+The About View displays information about OpenSorSe, including the application version, licensing, authorship, acknowledgements, and useful project links.
 
 ---
 
 # Why
 
-Users should be able to easily identify the version of TidyMind they are using, understand its licensing, and find official project resources.
+Users should be able to easily identify the version of OpenSorSe they are using, understand its licensing, and find official project resources.
 
 For an open-source project, this view also provides a clear entry point for contributors.
 
@@ -102,10 +102,10 @@ The implementation is complete when:
 # Layout
 
 +------------------------------------------------------------+
-| About TidyMind                                             |
+| About OpenSorSe                                             |
 +------------------------------------------------------------+
 
-                TidyMind
+                OpenSorSe
 
 Version
 
@@ -121,7 +121,7 @@ MIT License
 
 Developed by
 
-TidyMind Labs
+OpenSorSe Labs
 
 ------------------------------------------------------------
 
@@ -166,3 +166,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define a metadata provider, version source, repository URI, documentation URI, or link-launching contract. v0.1 declares application version `0.1.0` in the Desktop project and presents static matching metadata. Repository and documentation links are represented as vetted HTTPS `Uri` values and emitted as external-link requests; the view never launches a process or requires internet access.
+
+The implementation specification declares the MIT license, which is displayed as supplied. A packaged license file, contributor list, changelog, release notes, link-opening host policy, and actual network access remain deferred.

@@ -8,7 +8,7 @@
 
 The Model Providers component abstracts communication with Artificial Intelligence models.
 
-It provides a consistent interface for the AI subsystem, allowing TidyMind to support multiple local and cloud-based providers without affecting higher-level application components.
+It provides a consistent interface for the AI subsystem, allowing OpenSorSe to support multiple local and cloud-based providers without affecting higher-level application components.
 
 The rest of the application should remain independent of provider-specific APIs and implementation details.
 

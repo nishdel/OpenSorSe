@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 016 |
 | Component | Scan Progress |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -180,3 +180,11 @@ Depends on:
 Required by:
 
 - 017 - Results View
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define progress percentages, a scanner-to-view lifetime contract, or automatic navigation. The v0.1 view model consumes the existing immutable `OpenSorSe.Scanner.Models.ScanProgress` snapshots directly and uses an indeterminate progress indicator because scanner discovery has no reliable total-work estimate. It exposes `Start`, `ApplyProgress`, and terminal `Complete(ScanStatus)` presentation methods plus a cancellation event. It never calls a scanner or task manager.
+
+The Desktop shell owns navigation and scan lifetime through `IApplicationController`. Completion changes presentation stage and, for a completed read-only pipeline, loads Results, updates the Dashboard's in-memory latest-scan summary, and navigates to Results without discarding results. Pause/resume, estimates, rates, previews, and concurrent scans remain deferred.

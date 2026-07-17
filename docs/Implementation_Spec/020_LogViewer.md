@@ -3,8 +3,8 @@
 | Property | Value |
 |----------|-------|
 | Spec ID | 020 |
-| Component | Log Viewer |
-| Project | TidyMind.UI |
+| Component | Diagnostics |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,28 +13,27 @@
 
 # Purpose
 
-The Log Viewer displays application logs, warnings, errors, and completed operations in a user-friendly interface.
+Diagnostics displays the health of OpenSorSe's own application logging in a user-friendly interface.
 
-It provides visibility into application activity for troubleshooting and auditing.
+It provides aggregate troubleshooting information without exposing log-entry text or operation history.
 
 ---
 
 # Why
 
-Users and developers need an easy way to understand what TidyMind has done, especially when diagnosing problems or reviewing completed operations.
+Users need an easy way to understand whether OpenSorSe's own diagnostic logging is healthy without exposing internal payloads or affecting user files.
 
 ---
 
 # Responsibilities
 
-The Log Viewer shall:
+Diagnostics shall:
 
-- Display log entries.
-- Display warnings and errors.
-- Display operation history.
-- Allow users to filter log entries.
-- Allow users to clear the displayed logs.
-- Allow users to export logs.
+- Display logging status.
+- Display the aggregate number of recorded events.
+- Display the aggregate number of log write failures.
+- Explain each metric in plain language.
+- Refresh the aggregate counters.
 
 ---
 
@@ -53,7 +52,7 @@ The Log Viewer must NOT:
 
 # Inputs
 
-- Log entries.
+- Aggregate logging statistics.
 - User interaction.
 
 ---
@@ -62,26 +61,22 @@ The Log Viewer must NOT:
 
 The component provides:
 
-- Filter requests.
-- Export requests.
-- Clear log requests.
+- Refresh request.
 
 ---
 
 # Workflow
 
-1. Load log entries.
-2. Display logs.
-3. Apply filters when requested.
-4. Export logs if requested.
-5. Refresh the view.
+1. Read aggregate counters.
+2. Display logging health and explanations.
+3. Refresh the counters when requested.
 
 ---
 
 # Assumptions
 
 - Logging Service is available.
-- Log storage is accessible.
+- Individual log storage does not need to be accessible because payloads are not read.
 
 ---
 
@@ -89,10 +84,9 @@ The component provides:
 
 The implementation is complete when:
 
-- Logs are displayed correctly.
-- Errors and warnings are distinguishable.
-- Filtering works.
-- Logs can be exported.
+- Aggregate logging health is displayed correctly.
+- The no-events state is understandable.
+- Refresh updates the aggregate counters.
 - UI tests pass.
 
 ---
@@ -135,6 +129,10 @@ Status
 
 ---
 
+## Corrected v0.1 layout
+
+The implemented Diagnostics page replaces the illustrative draft log-viewer layout above. It shows a plain-language Logging status, Recorded events, and Log write failures with explanatory text, a no-events empty state, and one Refresh diagnostics button. It has no severity selector, raw log rows, export control, or clear-display control.
+
 # Future
 
 Not part of v0.1:
@@ -156,3 +154,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+Specification 011 intentionally does not retain or expose individual log entry payloads, and the draft does not define a safe entry-query, export, or deletion contract. v0.1 therefore presents this destination as **Diagnostics**: a privacy-safe aggregate view over `ILoggingService.GetStatistics()`. It uses plain-language logging status, recorded-event count, and log-write-failure count, with an explanation for each. Refresh reads the current counters and has a meaningful effect.
+
+There is no severity selector, raw payload display, export, or clear-display action because those controls would not provide a useful v0.1 diagnostic workflow. An empty state explains that no diagnostic events have been recorded in the current application session. The view cannot read log files, display log text, export logs, delete logs, access operation history, or mutate logging configuration. Those operations are deferred until a reviewed privacy, retention, access-control, and export contract exists.

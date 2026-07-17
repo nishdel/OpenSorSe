@@ -1,262 +1,96 @@
-<img width="1254" height="1254" alt="1000166839" src="https://github.com/user-attachments/assets/52c9a11b-76e7-421a-9576-e77566ddfe45" />
-# 🧠 TidyMind
+# OpenSorSe
 
-> **A privacy-first, AI-powered desktop application that intelligently
-> understands, organizes, renames, categorizes, and searches your files
-> using local Large Language Models.**
+> Open Sort & Search — a local-first, read-only desktop tool for analyzing selected folders safely.
 
-> **Status:** 🚧 Early Development
+## Project status
 
-------------------------------------------------------------------------
+OpenSorSe v0.1 Foundation and v0.2 Results Exploration are complete on the validated `coding/v0.2` branch.
 
-## 📖 Overview
+- .NET restore and build succeed.
+- The automated suite contains 233 passing tests.
+- Manual UI validation has been completed.
+- The Desktop workflow remains read-only with respect to selected user files.
 
-TidyMind is an open-source desktop application designed to help users
-regain control of their digital files.
+OpenSorSe does not rename, move, delete, overwrite, or otherwise modify selected user files. It does not run AI, OCR, semantic search, or content readers in the current release.
 
-Unlike traditional file organizers that rely on filenames or extensions
-alone, TidyMind uses local AI models to understand the actual content of
-documents, images, and other files. It can suggest meaningful filenames,
-build logical folder structures, detect duplicates, summarize documents,
-and provide semantic search---all while keeping your data on your own
-computer.
+## What the application does today
 
-**Privacy is the default.** No cloud services are required.
+| Area | Available in v0.2 |
+| --- | --- |
+| Folder analysis | Select local folders, traverse recursively, report progress, continue after recoverable issues, and support cancellation. |
+| File analysis | Read filesystem metadata, calculate SHA-256 hashes, apply deterministic classification, and detect exact duplicates. |
+| Results review | Explore one completed in-memory scan with filtering, sorting, bounded paging, and read-only file details. |
+| Duplicate review | Inspect exact SHA-256 duplicate groups and a conservative theoretical reclaimable-space estimate without exposing hashes or recommending an action. |
+| Application workflow | Use the Dashboard, Scan, Results, Rules, Settings, Diagnostics, and Operation History surfaces. |
+| Safety | Keep scan results process-local and avoid execution, shell-launch, persistence of results, or file-modification controls. |
 
-------------------------------------------------------------------------
+Planned operations and operation-history information are presentation-only in the Desktop application; they are not executed from the current workflow.
 
-## ✨ Core Features
+## Technology stack
 
-### 🧠 AI Document Understanding
+- .NET 8 target framework and C#.
+- Avalonia UI desktop application.
+- MVVM with CommunityToolkit.Mvvm.
+- Microsoft dependency injection and logging abstractions.
+- xUnit automated tests.
 
--   Read PDFs
--   Read Microsoft Office documents
--   Read text files
--   OCR for scanned PDFs and images
--   Generate summaries
--   Detect categories
--   Extract metadata
--   Detect important dates
--   Detect companies, people and locations
+The repository currently pins the .NET SDK in [global.json](global.json). See the [technology stack document](docs/Architecture/99_Appendix/Technology_Stack.md) for current and future technology boundaries.
 
-### 📂 Intelligent Organization
+## Build from source
 
--   Recursive folder scanning
--   Batch processing
--   Smart folder suggestions
--   Configurable include/exclude filters
--   Preview every operation
--   Automatic duplicate detection
--   Similar document grouping
+There is no installer or published package in this repository. To build from source, install the SDK version specified in [global.json](global.json), then run:
 
-### ✏️ Smart File Renaming
-
-Rename files using their contents instead of cryptic filenames.
-
-**Example**
-
-Before:
-
-``` text
-Scan00045.pdf
+```powershell
+dotnet restore .\OpenSorSe.sln
+dotnet build .\OpenSorSe.sln --configuration Debug --no-restore
+dotnet test .\OpenSorSe.sln --configuration Debug --no-build
+dotnet run --project .\src\OpenSorSe.Desktop\OpenSorSe.Desktop.csproj
 ```
 
-After:
+For a Release build:
 
-``` text
-2025 Vehicle Insurance - Allianz.pdf
+```powershell
+dotnet build .\OpenSorSe.sln --configuration Release
 ```
 
-Custom naming templates are fully supported.
+## Project structure
 
-------------------------------------------------------------------------
+```text
+src/
+  OpenSorSe.Core/          Shared infrastructure, configuration, events, logging, state, and tasks
+  OpenSorSe.Scanner/       Read-only scan, metadata, hashing, classification, and duplicate detection
+  OpenSorSe.Rules/         Deterministic rule evaluation, planning, and conflict resolution
+  OpenSorSe.Executor/      Execution and undo components; not exposed by the current Desktop workflow
+  OpenSorSe.Application/   Read-only processing orchestration, sessions, and result snapshots
+  OpenSorSe.Desktop/       Avalonia UI and MVVM presentation layer
+tests/                     Automated unit and integration tests for each implemented project
+docs/                      Architecture, specifications, release status, and roadmap documentation
+```
 
-## 🔒 Privacy First
+## Release roadmap
 
--   Local AI inference
--   No telemetry
--   No tracking
--   No subscriptions
--   Your files never leave your computer
+| Release | Status | Scope |
+| --- | --- | --- |
+| v0.1 Foundation | Complete | Scanning, metadata, hashing, deterministic rules, configuration, diagnostics, and Dashboard foundation. |
+| v0.2 Results Exploration | Complete | Results Explorer, filtering, sorting, paging, details, and exact-duplicate review. |
+| v0.3 | Planned | Usability improvements and workflow enhancements, scoped through future proposals. |
+| Future releases | Ideas only | Content readers, OCR, AI providers, rename or folder suggestions, semantic search, automatic tagging, and plugins. |
 
-------------------------------------------------------------------------
+See the [roadmap](docs/roadmap.md) and [release status](docs/RELEASE_STATUS.md) for details.
 
-## 🤖 AI Providers
+## Manual validation checklist
 
-### Local
+1. Launch the desktop application and verify that the main window opens.
+2. Scan a small, non-critical local folder and confirm progress, results, and warnings are understandable.
+3. Filter, sort, page, and inspect completed results without opening or changing a file.
+4. Use a controlled duplicate fixture to review exact duplicate groups and return to their filtered result rows.
+5. Cancel a second scan and confirm the application remains responsive.
+6. Compare a before/after manifest of the test folder and confirm that no selected user file changed.
 
--   Ollama
--   llama.cpp
--   LM Studio
--   OpenAI-compatible local servers
+## Contributing
 
-### Cloud (Planned)
+Keep contributions focused, preserve the read-only safety boundary, update affected documentation, and run the build and test commands above. The current release does not authorize file-modification, AI, OCR, or semantic-search features without a dedicated proposal.
 
--   OpenAI
--   Anthropic
--   Google Gemini
--   Azure OpenAI
--   OpenRouter
--   Custom OpenAI-compatible APIs
+## License
 
-------------------------------------------------------------------------
-
-## 📄 Supported File Types
-
-  Category            Formats
-  ------------------- ----------------------------------------------------
-  Documents           PDF, DOC, DOCX, ODT, TXT, RTF, Markdown, HTML, XML
-  Spreadsheets        XLS, XLSX, CSV, ODS
-  Presentations       PPT, PPTX, ODP
-  Images              PNG, JPG, JPEG, TIFF, WEBP, HEIC
-  Archives            ZIP, 7Z, TAR, GZ
-  Audio *(planned)*   MP3, WAV, FLAC, M4A
-  Video *(planned)*   MP4, MKV, AVI, MOV
-
-Unsupported formats are skipped gracefully and reported.
-
-------------------------------------------------------------------------
-
-## 🔍 Semantic Search
-
-Search naturally instead of remembering filenames.
-
-Examples:
-
--   Find my passport
--   Show invoices from 2023
--   Find documents mentioning Mercedes
--   Show climbing photos
--   Find receipts from Italy
-
-------------------------------------------------------------------------
-
-## 🧩 AI Assistant (Planned)
-
-Examples:
-
--   Where is my passport?
--   Organize my Downloads folder.
--   Summarize my tax documents.
--   Find duplicate files.
--   Explain why this file was classified as Insurance.
-
-------------------------------------------------------------------------
-
-## 🛡️ Safety Features
-
--   Preview mode
--   Dry-run mode
--   Undo support
--   Automatic backups
--   Transaction-based operations
--   Rollback on failure
--   Collision detection
--   Detailed logging
--   Resume interrupted scans
-
-------------------------------------------------------------------------
-
-## ⚡ Performance
-
--   Multi-threaded scanning
--   GPU acceleration where available
--   AI result caching
--   Parallel OCR
--   Incremental rescans
--   Large collections (100,000+ files)
-
-------------------------------------------------------------------------
-
-## 🔌 Plugin Architecture
-
-Planned plugin support for:
-
--   AI providers
--   OCR engines
--   File readers
--   Search providers
--   Exporters
--   Importers
--   Custom actions
-
-------------------------------------------------------------------------
-
-## 🏗️ Technology Stack
-
--   Python
--   PySide6
--   Ollama
--   SQLite
--   PyMuPDF
--   python-docx
--   openpyxl
--   OCR Engine
--   GitHub Actions
-
-------------------------------------------------------------------------
-
-## 🗺️ Roadmap
-
-### Version 0.1
-
--   [ ] Folder scanning
--   [ ] PDF support
--   [ ] DOCX support
--   [ ] Excel support
--   [ ] Local AI integration
--   [ ] Rename suggestions
--   [ ] Preview window
-
-### Version 0.2
-
--   [ ] Folder suggestions
--   [ ] Bulk organization
--   [ ] Duplicate detection
--   [ ] OCR support
-
-### Version 0.3
-
--   [ ] AI learns from user decisions
--   [ ] Automatic tagging
--   [ ] Semantic search
-
-### Version 1.0
-
--   [ ] Plugin system
--   [ ] Cross-platform support
--   [ ] Multi-language support
--   [ ] Stable release
-
-<img width="856" height="406" alt="image" src="https://github.com/user-attachments/assets/9f21cac1-48ef-4996-8e86-648ea79fbeb6" />
-
-
-------------------------------------------------------------------------
-
-## 🎯 Long-Term Vision
-
-TidyMind aims to become more than a document organizer.
-
-The long-term vision is a privacy-first AI File Manager that understands
-relationships between documents, photos, videos, projects, companies and
-people, allowing users to search and organize their digital life using
-natural language while remaining fully in control of their data.
-
-------------------------------------------------------------------------
-
-## ❤️ Contributing
-
-Contributions of every size are welcome.
-
-Whether you're interested in AI, OCR, desktop development, UI/UX,
-testing, accessibility, indexing, documentation or performance
-optimisation, we'd love your help build TidyMind.
-
-------------------------------------------------------------------------
-
-## 📜 License
-
-**TBD**
-
-MIT or GPLv3 are currently being considered.
-A license has not yet been selected. Until one is added, all rights are reserved by default. An open-source license will be chosen before the first stable release.
+OpenSorSe is licensed under the [MIT License](LICENSE).

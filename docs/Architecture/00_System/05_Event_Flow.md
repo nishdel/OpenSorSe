@@ -1,6 +1,6 @@
 # Event Flow
 
-> This document describes how components communicate within TidyMind using an event-driven architecture.
+> This document describes how components communicate within OpenSorSe using an event-driven architecture.
 
 ---
 
@@ -16,7 +16,7 @@ This approach improves modularity, scalability, and maintainability.
 
 # Event-Driven Architecture
 
-TidyMind follows an event-driven architecture for communication between major subsystems.
+OpenSorSe follows an event-driven architecture for communication between major subsystems.
 
 When a component completes an operation or detects a significant change, it publishes an event.
 

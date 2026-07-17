@@ -1,22 +1,26 @@
 # Project Philosophy
 
-> This document defines the guiding principles and long-term philosophy of the TidyMind project.
+> This document defines the guiding principles and long-term philosophy of the OpenSorSe project.
 
 ---
 
 # Purpose
 
-The Project Philosophy describes the values that guide the design, development, and evolution of TidyMind.
+The Project Philosophy describes the values that guide the design, development, and evolution of OpenSorSe.
 
 Its purpose is to provide a shared foundation for contributors, maintainers, and users when making architectural, technical, and product decisions.
 
 When multiple solutions are technically valid, these principles should help determine which direction best aligns with the project's vision.
 
+## Current Release Boundary
+
+The validated v0.2 release is a local-first, read-only file analysis application. It does not modify selected user files or implement AI, OCR, semantic search, or automatic organization. References to intelligent assistance and automation below describe possible future direction, not shipped functionality.
+
 ---
 
 # Vision
 
-TidyMind exists to help people better understand, organize, discover, and automate their digital knowledge.
+OpenSorSe exists to help people better understand, organize, discover, and automate their digital knowledge.
 
 The project is built on the belief that Artificial Intelligence should enhance human decision-making rather than replace it.
 
@@ -106,7 +110,7 @@ Architectural knowledge should be preserved, maintained, and shared alongside th
 
 ## Community
 
-TidyMind is intended to grow through collaboration.
+OpenSorSe is intended to grow through collaboration.
 
 Contributors should be welcomed, respected, and encouraged to improve the project through thoughtful discussion and constructive feedback.
 
@@ -129,7 +133,7 @@ If the answer to most of these questions is "yes," the proposal is likely aligne
 
 # Long-Term Goal
 
-The long-term goal of TidyMind is not simply to organize files.
+The long-term goal of OpenSorSe is not simply to organize files.
 
 It is to build a trustworthy, extensible, and intelligent knowledge platform that helps people make better use of the information they already own.
 
@@ -139,7 +143,7 @@ The project should evolve carefully while preserving the principles that define 
 
 # Closing Statement
 
-TidyMind is built on a simple belief:
+OpenSorSe is built on a simple belief:
 
 Technology should reduce complexity, not create it.
 
@@ -153,8 +157,7 @@ Every contribution should move the project one step closer to that vision.
 
 # Related Documents
 
-* [Glossary](00_Glossary.md)
-* [Coding Standards](01_Coding_Standards.md)
-* [Architecture Decision Records](03_Architecture_Decision_Records.md)
-* [Roadmap](05_Roadmap.md)
-* [Contributing Guide](06_Contributing.md)
+* [Release Status](RELEASE_STATUS.md)
+* [Roadmap](roadmap.md)
+* [System Overview](Architecture/00_System/00_Overview.md)
+* [Technology Stack](Architecture/99_Appendix/Technology_Stack.md)

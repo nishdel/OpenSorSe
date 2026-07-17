@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 015 |
 | Component | Folder Selection |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,7 +13,7 @@
 
 # Purpose
 
-The Folder Selection view allows users to choose one or more folders for TidyMind to analyze.
+The Folder Selection view allows users to choose one or more folders for OpenSorSe to analyze.
 
 It serves as the starting point of every scan.
 
@@ -21,7 +21,7 @@ It serves as the starting point of every scan.
 
 # Why
 
-Before TidyMind can organize files, it needs to know which locations the user wants to process.
+Before OpenSorSe can organize files, it needs to know which locations the user wants to process.
 
 The Folder Selection view provides a simple, safe, and intuitive way to define scan targets.
 
@@ -180,3 +180,22 @@ APP --> Classifier["004 File Classifier"]
 APP --> Rules["006 Rule Engine"]
 APP --> Planner["007 Move Planner"]
 APP --> Executor["009 Move Executor"]
+
+---
+
+# Autonomous v0.1 Decisions
+
+## Contract completion
+
+The draft did not define a folder-picker integration, duplicate handling, path normalization, recent-folder retention, or scan-request payload. v0.1 uses manually entered absolute local paths, lexical normalization with `Path.GetFullPath`, platform-aware duplicate comparison, and `Directory.Exists` only to validate a chosen scan root. The Desktop view also offers Avalonia's native folder picker when the platform storage provider supports it; manual absolute-path entry remains the fallback.
+
+## Public UI contract
+
+- `ScanRequest(IReadOnlyList<string> FolderPaths)` is an immutable request emitted after all selected roots are valid.
+- `FolderSelectionViewModel` owns selected roots, five process-lifetime recent roots, validation status, and add/remove/request commands.
+- Roots retain insertion order; identical normalized paths are rejected using case-insensitive comparison on Windows and ordinal comparison elsewhere.
+- `ScanRequested` is emitted by the page. The Desktop shell subscribes to it and forwards the request to `IApplicationController`; the page itself still does not invoke scanner services, create tasks, or navigate.
+
+## Safety and deferred behavior
+
+No folder contents are enumerated, read, modified, or sent externally by this page. The Desktop view provides a native folder picker where its platform storage provider supports one, while manual absolute paths remain available. Network locations, persistence of recent folders, drag and drop, profiles, and exclusions are deferred.

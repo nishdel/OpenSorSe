@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 013 |
 | Component | Main Window |
-| Project | TidyMind.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,7 +13,7 @@
 
 # Purpose
 
-The Main Window serves as the primary user interface for TidyMind.
+The Main Window serves as the primary user interface for OpenSorSe.
 
 It provides access to all application features and hosts the major UI components.
 
@@ -128,11 +128,16 @@ Required by:
 - 018 - Rule Editor
 - 019 - Settings
 
+---
+
+# Autonomous v0.1 Decisions
+
+The existing `OpenSorSe.Desktop` project is the implementation project; no separate UI project is introduced. The shell presents a title region, persistent navigation list, content host, and status bar. The unused `Application` menu placeholder is intentionally absent so no visible control suggests an unavailable action. Navigation is an immutable ordered enum list, defaults to Dashboard, and includes a Diagnostics destination. Selecting an unsupported destination throws before state changes.
+
+The shell hosts the implemented v0.1 pages and owns presentation-level navigation. Application startup and shutdown remain owned by the existing `App` and `IApplicationHost` composition path. The shell forwards folder-selection requests to `IApplicationController`, presents progress and cancellation, and displays read-only results; it never invokes filesystem execution.
+
 ## Layout
 
-+------------------------------------------------------+
-| Menu Bar                                             |
-+------------------------------------------------------+
 | Toolbar                                              |
 +----------------------+-------------------------------+
 | Navigation           | Main Content                  |

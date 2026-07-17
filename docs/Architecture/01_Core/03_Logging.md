@@ -1,6 +1,6 @@
 # Logging
 
-> This document defines the logging architecture used throughout TidyMind.
+> This document defines the logging architecture used throughout OpenSorSe.
 
 ---
 

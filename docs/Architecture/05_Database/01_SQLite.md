@@ -1,12 +1,12 @@
 # SQLite
 
-> This document defines the default database engine used by TidyMind and its role within the overall database architecture.
+> This document defines the default database engine used by OpenSorSe and its role within the overall database architecture.
 
 ---
 
 ## Purpose
 
-TidyMind uses SQLite as its default embedded database engine for persistent storage.
+OpenSorSe uses SQLite as its default embedded database engine for persistent storage.
 
 SQLite provides a lightweight, serverless, and cross-platform relational database that is well suited to desktop applications while requiring no external database server.
 
@@ -89,7 +89,7 @@ The selected database engine should provide:
 * SQL support.
 * Minimal deployment complexity.
 
-These characteristics make SQLite an appropriate default choice for TidyMind.
+These characteristics make SQLite an appropriate default choice for OpenSorSe.
 
 ---
 

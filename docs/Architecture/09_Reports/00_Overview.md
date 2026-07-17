@@ -1,6 +1,12 @@
 # Reports Overview
 
-> This document provides an overview of the Reports subsystem, which is responsible for generating analytical reports, statistics, and exportable insights from information managed by TidyMind.
+> This document provides an overview of the Reports subsystem, which is responsible for generating analytical reports, statistics, and exportable insights from information managed by OpenSorSe.
+
+---
+
+## Implementation Status
+
+The Reports subsystem is future architecture only. The validated v0.2 release does not generate analytical reports, exports, trends, or AI outcome reports. The design below is not a shipped feature set or release commitment.
 
 ---
 

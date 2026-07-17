@@ -1,6 +1,6 @@
 # Error Handling
 
-> This document defines the error handling architecture used throughout TidyMind.
+> This document defines the error handling architecture used throughout OpenSorSe.
 
 ---
 
@@ -10,7 +10,7 @@ The Error Handling component establishes a consistent approach for detecting, re
 
 Its purpose is to ensure that failures are handled predictably, users receive meaningful feedback, and the application remains as stable and reliable as possible.
 
-Error handling is a cross-cutting concern that applies to every subsystem within TidyMind.
+Error handling is a cross-cutting concern that applies to every subsystem within OpenSorSe.
 
 ---
 
@@ -149,7 +149,7 @@ The Error Handling architecture follows these principles:
 * Maintain consistent behavior.
 * Provide meaningful diagnostics.
 
-These principles apply to every subsystem within TidyMind.
+These principles apply to every subsystem within OpenSorSe.
 
 ---
 

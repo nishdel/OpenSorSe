@@ -10,6 +10,10 @@ The Text Reader extracts textual information from supported text-based file form
 
 Its primary responsibility is to read textual content accurately while preserving document structure where practical.
 
+## Implementation Status
+
+This document describes future reader architecture. No text-content reader is implemented in the validated v0.2 release. References to Python below identify a possible future source-code file type, not the implementation technology of OpenSorSe.
+
 The Text Reader does not interpret the meaning of the extracted text.
 
 ---

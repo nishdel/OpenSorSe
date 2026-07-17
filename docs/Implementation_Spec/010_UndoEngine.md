@@ -99,7 +99,7 @@ The implementation is complete when:
 - Previously moved files are restored.
 - Undo operations are recorded.
 - Recoverable errors do not stop processing.
-- Files not managed by TidyMind remain untouched.
+- Files not managed by OpenSorSe remain untouched.
 - Unit tests pass.
 
 ---
@@ -125,6 +125,14 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# v0.1 Contract
+
+The Undo Engine consumes explicit `UndoRecord` values only; it does not load or persist history. It processes records in caller-supplied order, supports Move and Rename restoration through non-overwriting moves, and supports Copy undo by deleting only the explicit regular non-reparse `ResultPath`. Copy undo is path-based best effort because undo records carry no fingerprint.
+
+All records are validated before mutation: IDs are ordinal-unique, paths are rooted and normalized, paths differ, timestamps are UTC, and kinds are supported. The engine never creates directories, overwrites paths, reverses caller order, performs redo, accesses history/database storage, or infers alternative paths. Cancellation retains completed outcomes and stops later records. Per-record issues are user-safe and do not expose exception details.
 
 
 flowchart LR

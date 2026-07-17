@@ -8,7 +8,7 @@
 
 The Export component provides mechanisms for converting reports into standardized output formats.
 
-Its primary purpose is to enable users to save, share, archive, and distribute report information independently of the TidyMind application.
+Its primary purpose is to enable users to save, share, archive, and distribute report information independently of the OpenSorSe application.
 
 The Export component formats existing reports but does not generate report content.
 
@@ -119,7 +119,7 @@ Exported reports should be:
 * Readable.
 * Independent of the application.
 
-Users should be able to access exported reports without requiring TidyMind.
+Users should be able to access exported reports without requiring OpenSorSe.
 
 ---
 

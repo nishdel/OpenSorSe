@@ -1,12 +1,12 @@
 # Discovery
 
-> This document defines the Discovery component, which is responsible for locating and identifying plugins that are available to the TidyMind application.
+> This document defines the Discovery component, which is responsible for locating and identifying plugins that are available to the OpenSorSe application.
 
 ---
 
 ## Purpose
 
-The Discovery component locates plugins that may be available for use by TidyMind.
+The Discovery component locates plugins that may be available for use by OpenSorSe.
 
 Its primary purpose is to identify plugin packages, collect their metadata, and provide a list of discoverable plugins to the loading subsystem without executing plugin code.
 

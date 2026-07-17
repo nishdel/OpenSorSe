@@ -1,6 +1,6 @@
 # Metadata
 
-> This document defines the Metadata component, which is responsible for persistently storing structured information that describes documents managed by TidyMind.
+> This document defines the Metadata component, which is responsible for persistently storing structured information that describes documents managed by OpenSorSe.
 
 ---
 

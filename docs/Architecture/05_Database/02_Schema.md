@@ -1,12 +1,12 @@
 # Schema
 
-> This document defines the logical database schema used by TidyMind for organizing and relating persistent application data.
+> This document defines the logical database schema used by OpenSorSe for organizing and relating persistent application data.
 
 ---
 
 ## Purpose
 
-The Database Schema defines how persistent information is logically organized within TidyMind.
+The Database Schema defines how persistent information is logically organized within OpenSorSe.
 
 It establishes the relationships between application data while ensuring consistency, maintainability, and efficient retrieval.
 

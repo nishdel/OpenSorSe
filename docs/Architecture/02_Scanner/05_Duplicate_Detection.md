@@ -1,6 +1,6 @@
 # Duplicate Detection
 
-> This document defines the Duplicate Detection component, which is responsible for identifying duplicate files within the TidyMind processing pipeline.
+> This document defines the Duplicate Detection component, which is responsible for identifying duplicate files within the OpenSorSe processing pipeline.
 
 ---
 

@@ -1,12 +1,18 @@
 # Database Overview
 
-> This document provides an overview of the Database subsystem, which is responsible for persistently storing and managing all application data within TidyMind.
+> This document provides an overview of the Database subsystem, which is responsible for persistently storing and managing all application data within OpenSorSe.
+
+---
+
+## Implementation Status
+
+The Database subsystem is future architecture only. The validated v0.2 release has no database, migrations, search index, or persisted results store; its settings and operation history are application-session concerns rather than a database-backed product capability. The design below is not a shipped feature set or release commitment.
 
 ---
 
 ## Purpose
 
-The Database subsystem provides persistent storage for all information managed by TidyMind.
+The Database subsystem provides persistent storage for all information managed by OpenSorSe.
 
 It serves as the application's single source of truth, maintaining document metadata, extracted content, AI enrichments, search indexes, application settings, historical information, and other persistent data required by the system.
 
@@ -60,7 +66,7 @@ These responsibilities belong to other architectural subsystems.
 
 # Architectural Overview
 
-The Database subsystem acts as the persistent knowledge layer for TidyMind.
+The Database subsystem acts as the persistent knowledge layer for OpenSorSe.
 
 ```mermaid
 flowchart TB

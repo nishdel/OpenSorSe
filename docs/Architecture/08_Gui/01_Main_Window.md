@@ -1,12 +1,12 @@
 # Main Window
 
-> This document defines the Main Window component, which serves as the primary application shell for TidyMind.
+> This document defines the Main Window component, which serves as the primary application shell for OpenSorSe.
 
 ---
 
 ## Purpose
 
-The Main Window provides the primary application shell through which users access all major functionality within TidyMind.
+The Main Window provides the primary application shell through which users access all major functionality within OpenSorSe.
 
 Its purpose is to host navigation, present application pages, manage the overall window layout, and provide a consistent user experience across the application.
 

@@ -1,6 +1,6 @@
 # Progress Tracking
 
-> This document defines the Progress Tracking component, which is responsible for monitoring and reporting the progress of scanning operations within TidyMind.
+> This document defines the Progress Tracking component, which is responsible for monitoring and reporting the progress of scanning operations within OpenSorSe.
 
 ---
 

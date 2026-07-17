@@ -1,12 +1,12 @@
 # File Discovery
 
-> This document defines the File Discovery component, which is responsible for identifying files that are eligible for processing within the TidyMind pipeline.
+> This document defines the File Discovery component, which is responsible for identifying files that are eligible for processing within the OpenSorSe pipeline.
 
 ---
 
 ## Purpose
 
-The File Discovery component identifies files encountered during directory traversal and determines whether they should enter the TidyMind processing pipeline.
+The File Discovery component identifies files encountered during directory traversal and determines whether they should enter the OpenSorSe processing pipeline.
 
 It acts as the bridge between filesystem traversal and document processing by filtering, validating, and forwarding eligible files to the next stage of the Scanner subsystem.
 
