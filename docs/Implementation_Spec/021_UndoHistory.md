@@ -171,3 +171,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+No history repository, session model, or database contract exists. v0.1 accepts explicit ordered `UndoHistorySession` values from a later controller. A session wraps caller-supplied ordered `UndoRecord` values and a UTC completion time; this page does not discover, persist, or alter them.
+
+Undo requires a two-step UI confirmation. Confirmation emits a read-only ordered snapshot of the selected records for a later controller to send to `IUndoEngine`; it never calls the engine itself. Undo results may be presented after external execution. Persistent history, selective undo, redo, sessions inferred from files, and automatic ordering reversal remain deferred.

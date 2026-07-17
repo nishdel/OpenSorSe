@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TidyMind.Desktop.ViewModels"
+             x:Class="TidyMind.Desktop.Views.LogViewerView"
+             x:DataType="vm:LogViewerViewModel">
+    <StackPanel Spacing="12">
+        <TextBlock Text="Logging" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Text="v0.1 displays aggregate logging health only; it never reads, exports, or deletes log-entry payloads." TextWrapping="Wrap" />
+        <ComboBox ItemsSource="{Binding AvailableLevels}" SelectedItem="{Binding SelectedLevel, Mode=TwoWay}" />
+        <TextBlock Text="{Binding FilteredEntryCount, StringFormat='Entries: {0}'}" />
+        <TextBlock Text="{Binding Statistics.FileWriteFailures, StringFormat='Local sink failures: {0}'}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+            <Button Content="Clear display" Command="{Binding ClearDisplayCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

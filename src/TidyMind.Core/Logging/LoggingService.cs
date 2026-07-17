@@ -9,20 +9,32 @@ namespace TidyMind.Core.Logging;
 public sealed class LoggingService : ILoggingService
 {
     private readonly object _syncRoot = new();
+    private readonly LoggingStatisticsCounter _statistics = new();
     private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
     private bool _isDisposed;
 
     /// <inheritdoc />
     public void Initialize(LogLevel minimumLevel)
     {
+        Initialize(LoggingOptions.Default with { MinimumLevel = minimumLevel });
+    }
+
+    /// <inheritdoc />
+    public void Initialize(LoggingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.Validate();
+
         lock (_syncRoot)
         {
             ThrowIfDisposed();
             var previousFactory = _loggerFactory;
+            var localFileProvider = new LocalFileLoggerProvider(options, _statistics);
             _loggerFactory = LoggerFactory.Create(builder =>
             {
-                builder.SetMinimumLevel(minimumLevel);
+                builder.SetMinimumLevel(options.MinimumLevel);
                 builder.AddDebug();
+                builder.AddProvider(localFileProvider);
             });
 
             if (previousFactory is not NullLoggerFactory)
@@ -41,6 +53,16 @@ public sealed class LoggingService : ILoggingService
         {
             ThrowIfDisposed();
             return _loggerFactory.CreateLogger(categoryName);
+        }
+    }
+
+    /// <inheritdoc />
+    public LoggingStatistics GetStatistics()
+    {
+        lock (_syncRoot)
+        {
+            ThrowIfDisposed();
+            return _statistics.Snapshot();
         }
     }
 

@@ -156,3 +156,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+Specification 011 intentionally does not retain or expose individual log entry payloads, and the draft does not define a safe entry-query, export, or deletion contract. v0.1 therefore provides a privacy-safe aggregate logging-health view over `ILoggingService.GetStatistics()`. An optional severity filter selects an aggregate counter only. Refresh reads counters; clear clears the presented snapshot only.
+
+The viewer cannot read log files, display log text, export logs, delete logs, access operation history, or mutate logging configuration. Those operations are deferred until a reviewed privacy, retention, access-control, and export contract exists.

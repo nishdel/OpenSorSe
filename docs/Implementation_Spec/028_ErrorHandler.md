@@ -111,3 +111,11 @@ D --> E[Coding Standards]
 E --> F[Development]
 
 F --> G[v0.1 Release]
+
+---
+
+# Autonomous v0.1 Decisions
+
+The Phase 2 Core foundation already provides `IErrorHandler`, `ApplicationError`, severity classification, and `ErrorHandler`; no replacement is introduced. v0.1 callers report user-safe `ApplicationError` values with optional diagnostic exceptions. The handler maps declared severities to centralized logging and raises `ErrorReported` for UI adapters without directly depending on notification UI.
+
+The error handler does not retry, decide business recovery, suppress caller exceptions, persist diagnostic history, expose raw exception data to users, or invoke destructive operations. Notification-center adaptation remains a later application-controller concern.

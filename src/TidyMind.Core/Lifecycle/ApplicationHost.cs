@@ -41,7 +41,12 @@ public sealed class ApplicationHost : IApplicationHost
         try
         {
             await _configurationService.InitializeAsync(cancellationToken).ConfigureAwait(false);
-            _loggingService.Initialize(_configurationService.Current.Logging.MinimumLevel);
+            var loggingSettings = _configurationService.Current.Logging;
+            _loggingService.Initialize(new LoggingOptions(
+                loggingSettings.MinimumLevel,
+                loggingSettings.FileLoggingEnabled,
+                loggingSettings.LogDirectoryPath,
+                loggingSettings.RetainedFileCount));
             _loggingService.CreateLogger(nameof(ApplicationHost)).LogInformation("TidyMind Core is initializing.");
 
             if (!_applicationState.TryTransitionTo(ApplicationLifecycleState.Running))

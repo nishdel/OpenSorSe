@@ -183,3 +183,11 @@ Depends on:
 Required by:
 
 - 009 - Move Executor
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft references an undefined `MovePlan` and does not define a result aggregate. v0.1 consumes existing `ConflictResolutionResult` plus an explicitly supplied ordered `FileEntry` collection. It presents accepted `PlannedOperation` values, conflict messages, deterministic summary totals, duplicate group identifiers already attached to files, and immutable classifications already attached to files.
+
+The view model exposes approval, cancellation, and back events only. Approval emits a read-only snapshot of the accepted operations for a later controller; it does not invoke the executor. Loading copies collection membership but never modifies `FileEntry` or `PlannedOperation` records. Search, sorting, filtering, previews, manual plan editing, AI explanations, execution orchestration, and navigation policy are deferred.

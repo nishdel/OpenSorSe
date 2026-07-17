@@ -156,3 +156,11 @@ C["User Interface (013-023)"]
 A --> D["TidyMind v0.1"]
 B --> D
 C --> D
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define notification models, queue bounds, timeouts, event contracts, or a notification source. v0.1 provides a local in-memory presentation queue with immutable requests/messages, sequential process-local identifiers, manual dismissal, and automatic expiry. Information and success notifications default to five seconds; warnings and errors require manual dismissal to avoid concealing actionable feedback.
+
+The component accepts explicit UI requests only and does not subscribe to the Event Bus or error handler before their later contracts are finalized. It uses a captured UI synchronization context for timer-driven expiry. History, actions, desktop notifications, progress notifications, event subscriptions, persistence, and cross-process delivery remain deferred.

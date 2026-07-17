@@ -180,3 +180,11 @@ Depends on:
 Required by:
 
 - 017 - Results View
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define progress percentages, a scanner-to-view lifetime contract, or automatic navigation. The v0.1 view model consumes the existing immutable `TidyMind.Scanner.Models.ScanProgress` snapshots directly and uses an indeterminate progress indicator because scanner discovery has no reliable total-work estimate. It exposes `Start`, `ApplyProgress`, and terminal `Complete(ScanStatus)` presentation methods plus a cancellation event. It never calls a scanner or task manager.
+
+The shell or future orchestrator owns navigation and scan lifetime. Completion changes presentation stage but does not close a window or discard results. Pause/resume, estimates, rates, previews, errors, and concurrent scans remain deferred.

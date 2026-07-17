@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:TidyMind.Desktop.ViewModels"
+        xmlns:views="using:TidyMind.Desktop.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
         x:Class="TidyMind.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
@@ -15,8 +16,77 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <TextBlock Text="TidyMind"
-               HorizontalAlignment="Center"
-               VerticalAlignment="Center" />
+    <Grid RowDefinitions="Auto,Auto,*,Auto"
+          ColumnDefinitions="220,*">
+        <Menu Grid.Row="0"
+              Grid.ColumnSpan="2">
+            <MenuItem Header="Application" />
+        </Menu>
+
+        <Border Grid.Row="1"
+                Grid.ColumnSpan="2"
+                Padding="12"
+                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock Text="TidyMind" FontSize="20" FontWeight="SemiBold" />
+        </Border>
+
+        <Border Grid.Row="2"
+                Grid.Column="0"
+                Padding="8"
+                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                BorderThickness="0,0,1,0">
+            <ListBox ItemsSource="{Binding Destinations}"
+                     SelectedItem="{Binding SelectedDestination, Mode=TwoWay}" />
+        </Border>
+
+        <Border Grid.Row="2"
+                Grid.Column="1"
+                Padding="24">
+            <Grid>
+                <Grid IsVisible="{Binding IsDashboardSelected}">
+                    <views:DashboardView DataContext="{Binding Dashboard}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsScanSelected}">
+                    <views:FolderSelectionView DataContext="{Binding FolderSelection}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsResultsSelected}">
+                    <views:ResultsView DataContext="{Binding Results}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsRulesSelected}">
+                    <views:RuleEditorView DataContext="{Binding RuleEditor}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsSettingsSelected}">
+                    <views:SettingsView DataContext="{Binding Settings}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsLogsSelected}">
+                    <views:LogViewerView DataContext="{Binding LogViewer}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsHistorySelected}">
+                    <views:UndoHistoryView DataContext="{Binding UndoHistory}" />
+                </Grid>
+                <Grid IsVisible="{Binding IsAboutSelected}">
+                    <views:AboutView DataContext="{Binding About}" />
+                </Grid>
+                <views:NotificationCenterView DataContext="{Binding Notifications}"
+                                              VerticalAlignment="Top"
+                                              HorizontalAlignment="Right"
+                                              Width="360" />
+                <StackPanel IsVisible="{Binding IsFeaturePageSelected}"
+                            Spacing="8">
+                    <TextBlock Text="{Binding CurrentPageTitle}" FontSize="24" FontWeight="SemiBold" />
+                    <TextBlock Text="This application shell hosts the selected feature page." TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3"
+                Grid.ColumnSpan="2"
+                Padding="8"
+                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                BorderThickness="0,1,0,0">
+            <TextBlock Text="{Binding StatusText}" />
+        </Border>
+    </Grid>
 
 </Window>

@@ -168,3 +168,9 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+Dashboard state is read-only and starts with empty current-session statistics because persistent scan history and reports are later specifications. The three quick actions navigate only to Scan, Results, and Settings; they do not invoke scanners, executors, or configuration services. The view is hosted by the existing Main Window only when Dashboard is selected.

@@ -121,3 +121,11 @@ Required by:
 
 - 020 - Log Viewer
 - 021 - Undo History
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define session models, concurrency, failure behavior, closure semantics, or persistence. v0.1 adds process-lifetime immutable `ProcessingSession` snapshots. Each run creates a GUID-derived `session:` identifier, records UTC lifecycle timestamps, and exposes creation-order snapshots. The manager consumes the completed Specification 024 orchestrator directly; it does not create tasks, scan itself, persist data, or execute planned actions.
+
+Unexpected orchestrator exceptions produce a user-safe failed session rather than discarding the record. Cancellation produces a terminal cancelled session with any reached processing result when supplied. Closing changes only in-memory terminal session state. Session persistence, resume, multi-user ownership, history integration, and session comparison remain deferred.

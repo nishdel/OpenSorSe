@@ -129,3 +129,11 @@ Required by:
 - 015 Folder Selection
 - 016 Scan Progress
 - 017 Results View
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft places orchestration in an unspecified Application project and omits rules input, result composition, stage progression, and cancellation-result semantics. v0.1 adds `TidyMind.Application`, accepts an explicit `ProcessingRequest` containing the established Scanner request and ordered rules (empty is valid), and returns all reached immutable stage results in `ProcessingResult`.
+
+Stages run sequentially in this exact order: scanner, metadata, hashing, classification, duplicate detection, rule evaluation, planning, then lexical conflict resolution. A scanner-level cancelled result returns a partial cancelled processing result. Cancellation thrown by later stages remains standard `OperationCanceledException` because those stages cannot return their own partial results. No executor is invoked; actions remain planned and conflict-resolved only.

@@ -28,9 +28,9 @@ public sealed class JsonConfigurationService : IConfigurationService
         string settingsFilePath,
         Func<string, string?>? environmentVariableReader = null)
     {
-        if (string.IsNullOrWhiteSpace(settingsFilePath))
+        if (string.IsNullOrWhiteSpace(settingsFilePath) || !Path.IsPathRooted(settingsFilePath))
         {
-            throw new ArgumentException("A settings file path is required.", nameof(settingsFilePath));
+            throw new ArgumentException("An absolute settings file path is required.", nameof(settingsFilePath));
         }
 
         _settingsFilePath = settingsFilePath;
@@ -43,15 +43,23 @@ public sealed class JsonConfigurationService : IConfigurationService
     /// <inheritdoc />
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var settings = new ApplicationSettings();
 
         if (File.Exists(_settingsFilePath))
         {
-            await using var stream = File.OpenRead(_settingsFilePath);
-            settings = await JsonSerializer.DeserializeAsync<ApplicationSettings>(
-                stream,
-                SerializerOptions,
-                cancellationToken).ConfigureAwait(false) ?? new ApplicationSettings();
+            try
+            {
+                await using var stream = File.OpenRead(_settingsFilePath);
+                settings = await JsonSerializer.DeserializeAsync<ApplicationSettings>(
+                    stream,
+                    SerializerOptions,
+                    cancellationToken).ConfigureAwait(false) ?? new ApplicationSettings();
+            }
+            catch (JsonException exception)
+            {
+                throw new ConfigurationValidationException("The configuration file contains invalid JSON.", exception);
+            }
         }
 
         Current = ApplyEnvironmentOverrides(settings);
@@ -61,6 +69,21 @@ public sealed class JsonConfigurationService : IConfigurationService
     /// <inheritdoc />
     public async Task SaveAsync(CancellationToken cancellationToken)
     {
+        await SaveCoreAsync(Current, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        settings.Validate();
+        await SaveCoreAsync(settings, cancellationToken).ConfigureAwait(false);
+        Current = settings;
+    }
+
+    private async Task SaveCoreAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         var directoryPath = Path.GetDirectoryName(_settingsFilePath);
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
@@ -76,7 +99,7 @@ public sealed class JsonConfigurationService : IConfigurationService
             {
                 await JsonSerializer.SerializeAsync(
                     stream,
-                    Current,
+                    settings,
                     SerializerOptions,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -108,7 +131,13 @@ public sealed class JsonConfigurationService : IConfigurationService
 
         return new ApplicationSettings
         {
-            Logging = new LoggingSettings { MinimumLevel = minimumLevel },
+            Logging = new LoggingSettings
+            {
+                MinimumLevel = minimumLevel,
+                FileLoggingEnabled = settings.Logging.FileLoggingEnabled,
+                LogDirectoryPath = settings.Logging.LogDirectoryPath,
+                RetainedFileCount = settings.Logging.RetainedFileCount,
+            },
         };
     }
 }

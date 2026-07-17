@@ -9,13 +9,14 @@ using TidyMind.Desktop.Views;
 using TidyMind.Scanner;
 using TidyMind.Rules;
 using TidyMind.Executor;
+using TidyMind.Application;
 
 namespace TidyMind.Desktop;
 
 /// <summary>
 /// Provides the Avalonia application entry point and desktop lifetime configuration.
 /// </summary>
-public partial class App : Application
+public partial class App : Avalonia.Application
 {
     private ServiceProvider? _serviceProvider;
     private IApplicationHost? _applicationHost;
@@ -63,6 +64,9 @@ public partial class App : Application
         services.AddSingleton<IConflictResolver, ConflictResolver>();
         services.AddSingleton<IActionExecutor, ActionExecutor>();
         services.AddSingleton<IUndoEngine, UndoEngine>();
+        services.AddSingleton<IProcessingOrchestrator, ProcessingOrchestrator>();
+        services.AddSingleton<IProcessingSessionManager, ProcessingSessionManager>();
+        services.AddSingleton<IApplicationController, ApplicationController>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions

@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TidyMind.Desktop.ViewModels"
+             x:Class="TidyMind.Desktop.Views.UndoHistoryView"
+             x:DataType="vm:UndoHistoryViewModel">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <TextBlock Text="Undo History" FontSize="24" FontWeight="SemiBold" />
+        <StackPanel Grid.Row="1" Spacing="8">
+            <TextBlock Text="Sessions supplied for the current application process" TextWrapping="Wrap" />
+            <ListBox ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession, Mode=TwoWay}" />
+            <TextBlock Text="{Binding SelectedSession.SessionId}" />
+            <TextBlock Text="{Binding SelectedSession.Records.Count, StringFormat='Undo records: {0}'}" />
+            <TextBlock Text="Confirm the undo request before it is sent to a later controller."
+                       IsVisible="{Binding IsUndoConfirmationPending}" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+            <Button Content="Undo" Command="{Binding RequestUndoCommand}" />
+            <Button Content="Confirm undo" Command="{Binding ConfirmUndoCommand}" />
+            <Button Content="Cancel confirmation" Command="{Binding CancelUndoCommand}" />
+            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>

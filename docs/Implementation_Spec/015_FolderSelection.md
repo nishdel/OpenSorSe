@@ -180,3 +180,22 @@ APP --> Classifier["004 File Classifier"]
 APP --> Rules["006 Rule Engine"]
 APP --> Planner["007 Move Planner"]
 APP --> Executor["009 Move Executor"]
+
+---
+
+# Autonomous v0.1 Decisions
+
+## Contract completion
+
+The draft did not define a folder-picker integration, duplicate handling, path normalization, recent-folder retention, or scan-request payload. v0.1 uses manually entered absolute local paths, lexical normalization with `Path.GetFullPath`, platform-aware duplicate comparison, and `Directory.Exists` only to validate a chosen scan root. A native folder picker is deferred because its platform and test contract are unspecified.
+
+## Public UI contract
+
+- `ScanRequest(IReadOnlyList<string> FolderPaths)` is an immutable request emitted after all selected roots are valid.
+- `FolderSelectionViewModel` owns selected roots, five process-lifetime recent roots, validation status, and add/remove/request commands.
+- Roots retain insertion order; identical normalized paths are rejected using case-insensitive comparison on Windows and ordinal comparison elsewhere.
+- `ScanRequested` is an event only. It does not invoke the scanner, create a background task, persist history, or navigate automatically.
+
+## Safety and deferred behavior
+
+No folder contents are enumerated, read, modified, or sent externally. Network locations, persistence of recent folders, picker dialogs, drag and drop, profiles, exclusions, and orchestration are deferred.

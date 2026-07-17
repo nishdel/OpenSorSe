@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TidyMind.Desktop.ViewModels"
+             x:Class="TidyMind.Desktop.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <TextBlock Text="Dashboard" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding StatusText}" />
+            <StackPanel Spacing="4">
+                <TextBlock Text="Statistics" FontSize="18" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Statistics.FilesScanned, StringFormat='Files scanned: {0}'}" />
+                <TextBlock Text="{Binding Statistics.FilesOrganized, StringFormat='Files organized: {0}'}" />
+                <TextBlock Text="{Binding Statistics.DuplicateFiles, StringFormat='Duplicate files: {0}'}" />
+                <TextBlock Text="{Binding Statistics.StorageSavedBytes, StringFormat='Storage saved: {0} bytes'}" />
+            </StackPanel>
+            <StackPanel Spacing="8">
+                <TextBlock Text="Quick actions" FontSize="18" FontWeight="SemiBold" />
+                <Button Command="{Binding ScanFolderCommand}" Content="Scan folder" />
+                <Button Command="{Binding ViewResultsCommand}" Content="View results" />
+                <Button Command="{Binding OpenSettingsCommand}" Content="Settings" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

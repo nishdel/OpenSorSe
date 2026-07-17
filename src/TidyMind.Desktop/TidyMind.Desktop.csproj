@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <Version>0.1.0</Version>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
@@ -28,5 +29,6 @@
     <ProjectReference Include="..\TidyMind.Scanner\TidyMind.Scanner.csproj" />
     <ProjectReference Include="..\TidyMind.Rules\TidyMind.Rules.csproj" />
     <ProjectReference Include="..\TidyMind.Executor\TidyMind.Executor.csproj" />
+    <ProjectReference Include="..\TidyMind.Application\TidyMind.Application.csproj" />
   </ItemGroup>
 </Project>

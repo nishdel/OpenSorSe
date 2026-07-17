@@ -13,4 +13,14 @@ public sealed class ConfigurationValidationException : Exception
         : base(message)
     {
     }
+
+    /// <summary>
+    /// Initializes a configuration validation exception with a non-user-facing underlying failure.
+    /// </summary>
+    /// <param name="message">The user-safe validation message.</param>
+    /// <param name="innerException">The underlying configuration failure.</param>
+    public ConfigurationValidationException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }

@@ -166,3 +166,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define a metadata provider, version source, repository URI, documentation URI, or link-launching contract. v0.1 declares application version `0.1.0` in the Desktop project and presents static matching metadata. Repository and documentation links are represented as vetted HTTPS `Uri` values and emitted as external-link requests; the view never launches a process or requires internet access.
+
+The implementation specification declares the MIT license, which is displayed as supplied. A packaged license file, contributor list, changelog, release notes, link-opening host policy, and actual network access remain deferred.

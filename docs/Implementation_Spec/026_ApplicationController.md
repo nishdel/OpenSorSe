@@ -89,3 +89,11 @@ Depends on:
 Required by:
 
 - All UI Views
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define UI command models, navigation abstractions, controller result types, or destructive-execution authority. v0.1 introduces a narrow UI-agnostic controller that accepts only an explicit `ProcessingRequest`, delegates to the session manager, and returns its terminal result. UI navigation remains presentation-owned; no Desktop types depend on the Application project through the controller.
+
+The controller does not trigger execution, undo, persistence, events, dialogs, or background task management. Future controller methods that would authorize file operations require an explicit user-confirmation and execution safety contract.

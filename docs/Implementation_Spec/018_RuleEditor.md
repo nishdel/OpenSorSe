@@ -178,3 +178,11 @@ Depends on:
 Required by:
 
 - None
+
+---
+
+# Autonomous v0.1 Decisions
+
+The draft does not define rule persistence, an editable field-level draft model, or a save target. v0.1 edits immutable existing `FileRule` values in an ordered in-memory collection. `AddOrUpdate` creates or replaces a whole rule; validation covers the deterministic Rule Engine's supported action and condition shapes. A save operation emits a read-only snapshot event only, because no rule repository exists in the approved project set.
+
+The editor never evaluates a rule, resolves a path, persists a change, or invokes file execution. A detailed rule-builder form, priority visualization, templates, import/export, storage, and configuration integration remain deferred.
