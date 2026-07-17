@@ -7,17 +7,26 @@
         <StackPanel Spacing="16">
             <TextBlock Text="Dashboard" FontSize="24" FontWeight="SemiBold" />
             <TextBlock Text="{Binding StatusText}" />
+            <Border IsVisible="{Binding IsAwaitingFirstScan}"
+                    Padding="12"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="1">
+                <TextBlock Text="Choose a folder and complete a scan to see its latest results here. OpenSorSe does not organize or modify files in v0.1."
+                           TextWrapping="Wrap" />
+            </Border>
             <StackPanel Spacing="4">
-                <TextBlock Text="Statistics" FontSize="18" FontWeight="SemiBold" />
+                <TextBlock Text="Latest completed scan" FontSize="18" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Statistics.FilesScanned, StringFormat='Files scanned: {0}'}" />
-                <TextBlock Text="{Binding Statistics.FilesOrganized, StringFormat='Files organized: {0}'}" />
-                <TextBlock Text="{Binding Statistics.DuplicateFiles, StringFormat='Duplicate files: {0}'}" />
-                <TextBlock Text="{Binding Statistics.StorageSavedBytes, StringFormat='Storage saved: {0} bytes'}" />
+                <TextBlock Text="{Binding Statistics.FoldersDiscovered, StringFormat='Folders discovered: {0}'}" />
+                <TextBlock Text="{Binding Statistics.ExactDuplicates, StringFormat='Exact duplicate files: {0}'}" />
+                <TextBlock Text="{Binding Statistics.Warnings, StringFormat='Warnings: {0}'}" />
             </StackPanel>
             <StackPanel Spacing="8">
                 <TextBlock Text="Quick actions" FontSize="18" FontWeight="SemiBold" />
                 <Button Command="{Binding ScanFolderCommand}" Content="Scan folder" />
-                <Button Command="{Binding ViewResultsCommand}" Content="View results" />
+                <Button Command="{Binding ViewResultsCommand}"
+                        Content="View results"
+                        ToolTip.Tip="Available after a scan completes in this application session." />
                 <Button Command="{Binding OpenSettingsCommand}" Content="Settings" />
             </StackPanel>
         </StackPanel>

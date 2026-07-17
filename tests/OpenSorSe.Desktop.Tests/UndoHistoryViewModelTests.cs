@@ -24,7 +24,7 @@ public sealed class UndoHistoryViewModelTests
 
         Assert.Equal([firstSession, secondSession], viewModel.Sessions);
         Assert.Equal([first, second], viewModel.Sessions[0].Records);
-        Assert.Equal("2 undo session(s) available.", viewModel.StatusText);
+        Assert.Equal("2 operation-history session(s) available.", viewModel.StatusText);
     }
 
     /// <summary>
@@ -84,6 +84,21 @@ public sealed class UndoHistoryViewModelTests
         Assert.Same(result, viewModel.LastUndoResult);
         Assert.Equal([session], viewModel.Sessions);
         Assert.Equal("Undo was cancelled.", viewModel.StatusText);
+    }
+
+    /// <summary>
+    /// Verifies v0.1 does not fabricate scan history when no file operation session has been supplied.
+    /// </summary>
+    [Fact]
+    public void Constructor_ExplainsReviewOnlyEmptyOperationHistory()
+    {
+        var viewModel = new UndoHistoryViewModel();
+
+        Assert.True(viewModel.IsEmpty);
+        Assert.False(viewModel.HasSessions);
+        Assert.Contains("review-only", viewModel.EmptyStateMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("completed scans are not stored", viewModel.EmptyStateMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.False(viewModel.RequestUndoCommand.CanExecute(null));
     }
 
     private static UndoHistorySession CreateSession(string identifier, IReadOnlyList<UndoRecord> records) =>

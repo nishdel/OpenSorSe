@@ -13,7 +13,7 @@ public sealed class UndoHistoryViewModel : ViewModelBase
     private UndoExecutionResult? _lastUndoResult;
     private bool _isUndoConfirmationPending;
     private UndoHistorySession? _selectedSession;
-    private string _statusText = "No undo sessions are available.";
+    private string _statusText = "No file operations have been performed in this application session.";
 
     /// <summary>
     /// Initializes non-executing undo-review commands.
@@ -35,6 +35,21 @@ public sealed class UndoHistoryViewModel : ViewModelBase
     /// Gets caller-supplied undo sessions in caller-supplied order.
     /// </summary>
     public ReadOnlyObservableCollection<UndoHistorySession> Sessions { get; }
+
+    /// <summary>
+    /// Gets whether supplied operation-history sessions are available for review.
+    /// </summary>
+    public bool HasSessions => _sessions.Count > 0;
+
+    /// <summary>
+    /// Gets whether v0.1 should show its review-only operation-history explanation.
+    /// </summary>
+    public bool IsEmpty => !HasSessions;
+
+    /// <summary>
+    /// Gets the v0.1 explanation shown when no operation history exists.
+    /// </summary>
+    public string EmptyStateMessage => "OpenSorSe v0.1 is review-only. No file operations have been performed, and completed scans are not stored as persistent operation history.";
 
     /// <summary>
     /// Gets or sets the session currently selected for review.
@@ -127,7 +142,9 @@ public sealed class UndoHistoryViewModel : ViewModelBase
         SelectedSession = null;
         LastUndoResult = null;
         IsUndoConfirmationPending = false;
-        StatusText = _sessions.Count == 0 ? "No undo sessions are available." : $"{_sessions.Count} undo session(s) available.";
+        StatusText = _sessions.Count == 0 ? EmptyStateMessage : $"{_sessions.Count} operation-history session(s) available.";
+        OnPropertyChanged(nameof(HasSessions));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     /// <summary>

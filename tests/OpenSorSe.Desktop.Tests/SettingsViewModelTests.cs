@@ -64,6 +64,20 @@ public sealed class SettingsViewModelTests
         Assert.Equal(0, configuration.ReplacementSaveCount);
     }
 
+    /// <summary>
+    /// Verifies the daily diagnostic-log retention setting has permanent user-facing context and validation guidance.
+    /// </summary>
+    [Fact]
+    public void Constructor_ExposesDailyDiagnosticLogRetentionContext()
+    {
+        var viewModel = new SettingsViewModel(new TestConfigurationService());
+
+        Assert.Equal("Daily diagnostic log files to retain", viewModel.DailyLogRetentionLabel);
+        Assert.Contains("OpenSorSe application diagnostic log files", viewModel.DailyLogRetentionDescription, StringComparison.Ordinal);
+        Assert.Contains("does not affect scanned user files", viewModel.DailyLogRetentionDescription, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Enter a whole number of at least 1.", viewModel.DailyLogRetentionValidation);
+    }
+
     private sealed class TestConfigurationService : IConfigurationService
     {
         public ApplicationSettings Current { get; private set; } = new();

@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 022 |
 | Component | About View |
-| Project | OpenSorSe.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |

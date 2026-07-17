@@ -11,6 +11,7 @@ public sealed class ScanProgressViewModel : ViewModelBase
     private TimeSpan _elapsed;
     private long _filesFound;
     private long _foldersScanned;
+    private string? _stageText;
     private ScanProgressStage _stage = ScanProgressStage.Idle;
 
     /// <summary>
@@ -80,10 +81,10 @@ public sealed class ScanProgressViewModel : ViewModelBase
     /// </summary>
     public string StatusText => Stage switch
     {
-        ScanProgressStage.Idle => "Ready",
-        ScanProgressStage.Scanning => "Scanning...",
-        ScanProgressStage.Completed => "Scan completed.",
-        ScanProgressStage.Cancelled => "Scan cancelled.",
+        ScanProgressStage.Idle => _stageText ?? "Ready",
+        ScanProgressStage.Scanning => _stageText ?? "Scanning...",
+        ScanProgressStage.Completed => _stageText ?? "Scan completed.",
+        ScanProgressStage.Cancelled => _stageText ?? "Scan cancelled.",
         _ => throw new InvalidOperationException("The scan progress stage is unsupported."),
     };
 
@@ -96,6 +97,7 @@ public sealed class ScanProgressViewModel : ViewModelBase
         Elapsed = TimeSpan.Zero;
         FilesFound = 0;
         FoldersScanned = 0;
+        _stageText = null;
         Stage = ScanProgressStage.Scanning;
     }
 
@@ -118,6 +120,7 @@ public sealed class ScanProgressViewModel : ViewModelBase
     /// <param name="status">The scanner's terminal status.</param>
     public void Complete(ScanStatus status)
     {
+        _stageText = null;
         Stage = status switch
         {
             ScanStatus.Completed => ScanProgressStage.Completed,
@@ -135,5 +138,16 @@ public sealed class ScanProgressViewModel : ViewModelBase
         {
             CancelRequested?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>
+    /// Updates the user-facing stage text while a processing operation is active.
+    /// </summary>
+    /// <param name="stageText">The user-safe description of the current processing stage.</param>
+    public void SetStageText(string stageText)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stageText);
+        _stageText = stageText;
+        OnPropertyChanged(nameof(StatusText));
     }
 }

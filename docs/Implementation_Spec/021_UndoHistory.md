@@ -3,8 +3,8 @@
 | Property | Value |
 |----------|-------|
 | Spec ID | 021 |
-| Component | Undo History |
-| Project | OpenSorSe.UI |
+| Component | Operation History |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -13,30 +13,25 @@
 
 # Purpose
 
-The Undo History view displays previous organization operations and allows users to review and restore eligible operations.
+The Operation History view explains the current operation-history state.
 
-It provides a safe and transparent way to reverse changes made by OpenSorSe.
+In v0.1, it normally explains that no operation history exists because scans are read-only and no file operations are performed.
 
 ---
 
 # Why
 
-Users should always be able to see what OpenSorSe has changed and restore previous organization operations if necessary.
-
-This builds trust in the application and reduces the risk of accidental file organization.
+Users should understand why a completed scan does not appear as file-operation history and be confident that v0.1 did not change files.
 
 ---
 
 # Responsibilities
 
-The Undo History view shall:
+The Operation History view shall:
 
-- Display previous organization sessions.
-- Display the operations contained within a session.
-- Display execution timestamps.
-- Display undo availability.
-- Allow users to start an undo operation.
-- Display undo results.
+- Display a clear v0.1 review-only empty state when no supplied session exists.
+- Display explicitly supplied operation sessions if a later workflow provides them.
+- Never fabricate sessions from completed scans.
 
 ---
 
@@ -56,8 +51,7 @@ The Undo History view must NOT:
 
 # Inputs
 
-- Undo history.
-- Execution history.
+- Explicit operation-history sessions, when supplied by a later workflow.
 - User interaction.
 
 ---
@@ -66,27 +60,21 @@ The Undo History view must NOT:
 
 The component provides:
 
-- Undo requests.
-- Navigation events.
+- Read-only operation-history presentation state.
 
 ---
 
 # Workflow
 
-1. Load undo history.
-2. Display previous organization sessions.
-3. User selects a session.
-4. Display session details.
-5. User confirms undo.
-6. Submit undo request.
-7. Display undo results.
+1. Load the page.
+2. Explain the review-only empty state when no session is supplied.
+3. Display explicitly supplied session details when they exist.
 
 ---
 
 # Assumptions
 
-- Undo history exists.
-- Undo Engine is available.
+- No persistent history is required for v0.1.
 
 ---
 
@@ -94,10 +82,8 @@ The component provides:
 
 The implementation is complete when:
 
-- Previous sessions are displayed.
-- Session details are available.
-- Eligible sessions can be restored.
-- Confirmation is required before undo.
+- The empty state explains why scans do not create history.
+- No undo or file-operation control is exposed in v0.1.
 - UI tests pass.
 
 ---
@@ -148,6 +134,10 @@ Status
 
 ---
 
+## Corrected v0.1 layout
+
+The implemented Operation History page replaces the illustrative draft layout above. Its normal empty state says that OpenSorSe v0.1 is review-only, no file operations have been performed, and completed scans are not stored as persistent history. If a later workflow supplies operation-history sessions, they can be listed for review; no undo, confirmation, or filesystem-operation control is displayed by the v0.1 Desktop view.
+
 # Future
 
 Not part of v0.1:
@@ -178,4 +168,4 @@ Required by:
 
 No history repository, session model, or database contract exists. v0.1 accepts explicit ordered `UndoHistorySession` values from a later controller. A session wraps caller-supplied ordered `UndoRecord` values and a UTC completion time; this page does not discover, persist, or alter them.
 
-Undo requires a two-step UI confirmation. Confirmation emits a read-only ordered snapshot of the selected records for a later controller to send to `IUndoEngine`; it never calls the engine itself. Undo results may be presented after external execution. Persistent history, selective undo, redo, sessions inferred from files, and automatic ordering reversal remain deferred.
+The v0.1 Desktop heading is **Operation history**. Because v0.1 performs no file operations, a completed scan never creates an operation-history record. Its normal empty state explains that OpenSorSe is review-only, no file operations have been performed, and completed scans are not stored as persistent history. The Desktop view does not expose inert undo or confirmation controls. Persistent history, execution/undo orchestration, selective undo, redo, sessions inferred from files, and automatic ordering reversal remain deferred.

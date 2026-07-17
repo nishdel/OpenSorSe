@@ -1,3 +1,4 @@
+using OpenSorSe.Application.Models;
 using OpenSorSe.Desktop.ViewModels;
 using OpenSorSe.Rules.Models;
 using OpenSorSe.Scanner.Models;
@@ -5,92 +6,167 @@ using OpenSorSe.Scanner.Models;
 namespace OpenSorSe.Desktop.Tests;
 
 /// <summary>
-/// Verifies deterministic, read-only results-review behavior.
+/// Verifies bounded, read-only snapshot exploration and exact-duplicate review behavior.
 /// </summary>
 public sealed class ResultsViewModelTests
 {
     /// <summary>
-    /// Verifies loading preserves supplied entries and exposes accepted operations and warnings.
+    /// Verifies loading keeps review data in the immutable snapshot and publishes only one bounded page.
     /// </summary>
     [Fact]
-    public void Load_PresentsImmutableInputsAndSummary()
+    public async Task LoadSnapshotAsync_PresentsSummaryWarningsAndBoundedRows()
     {
-        var first = new FileEntry("C:\\first.txt", Duplicate: new DuplicateClassification(DuplicateStatus.Duplicate, "sha256:one"));
-        var second = new FileEntry("C:\\second.txt", Duplicate: new DuplicateClassification(DuplicateStatus.Duplicate, "sha256:one"));
-        var operation = CreateOperation(first, "plan:0");
-        var resolution = new ConflictResolutionResult(
-            [operation],
-            EmptyStatistics(operationsProcessed: 1, operationsAccepted: 1),
-            [new ConflictResolutionIssue(0, "plan:1", ConflictResolutionIssueKind.DestinationConflict, "A destination conflict was found.")]);
-        var viewModel = new ResultsViewModel();
+        var snapshot = CreateSnapshot(files: [
+            CreateFile("file:0", "C:\\Selected\\first.txt", DuplicateStatus.Duplicate, "group:opaque"),
+            CreateFile("file:1", "C:\\Selected\\second.txt", DuplicateStatus.Duplicate, "group:opaque")]);
+        using var viewModel = new ResultsViewModel();
 
-        viewModel.Load([first, second], resolution);
+        await viewModel.LoadSnapshotAsync(snapshot);
 
-        Assert.Equal([first, second], viewModel.Files);
-        Assert.Equal([operation], viewModel.Operations);
-        Assert.Equal(["A destination conflict was found."], viewModel.Warnings);
-        Assert.Equal(new ResultsSummary(2, 1, 1, 1), viewModel.Summary);
-        Assert.Equal("Waiting for user confirmation.", viewModel.StatusText);
+        Assert.Same(snapshot, viewModel.Snapshot);
+        Assert.Equal(new ResultsSummary(2, 1, 1, 2, 1), viewModel.Summary);
+        Assert.Equal(2, viewModel.PageRows.Count);
+        Assert.Equal("first.txt", viewModel.PageRows[0].FileName);
+        Assert.Equal("Exact duplicate", viewModel.PageRows[0].DuplicateStatus);
+        Assert.Equal("Yes", viewModel.PageRows[0].PlannedOperation);
+        Assert.Equal(["A test scan warning."], viewModel.Warnings);
+        Assert.Single(viewModel.Directories);
+        Assert.Single(viewModel.PlannedOperations);
+        Assert.True(viewModel.HasResults);
+        Assert.True(viewModel.HasWarnings);
+        Assert.False(viewModel.IsLoading);
     }
 
     /// <summary>
-    /// Verifies approval emits the accepted plan only after it has been loaded.
+    /// Verifies filters reset paging, selection is derived from a bounded row, and no-all page can be requested.
     /// </summary>
     [Fact]
-    public void ApproveExecution_EmitsCurrentOperationsWithoutExecutingThem()
+    public async Task QueryAndPaging_FilterSortAndSelectWithoutRetainingStaleDetails()
     {
-        var file = new FileEntry("C:\\first.txt");
-        var operation = CreateOperation(file, "plan:0");
-        var viewModel = new ResultsViewModel();
-        viewModel.Load([file], new ConflictResolutionResult([operation], EmptyStatistics(1, 1), []));
-        IReadOnlyList<PlannedOperation>? approvedOperations = null;
-        viewModel.ExecutionApproved += (_, operations) => approvedOperations = operations;
+        var files = Enumerable.Range(0, 250)
+            .Select(index => CreateFile(
+                $"file:{index}",
+                $"C:\\Selected\\{index:D3}.txt",
+                index % 2 == 0 ? DuplicateStatus.Duplicate : DuplicateStatus.Unique,
+                index % 2 == 0 ? "group:opaque" : null,
+                size: index,
+                category: index % 3 == 0 ? FileCategory.Document : FileCategory.Code))
+            .ToArray();
+        using var viewModel = new ResultsViewModel();
+        await viewModel.LoadSnapshotAsync(CreateSnapshot(files));
 
-        viewModel.ApproveExecutionCommand.Execute(null);
+        Assert.Equal(200, viewModel.PageRows.Count);
+        Assert.True(viewModel.CanGoNextPage);
+        viewModel.NextPageCommand.Execute(null);
+        await viewModel.RefreshAsync();
+        Assert.Equal(50, viewModel.PageRows.Count);
 
-        var approved = Assert.IsAssignableFrom<IReadOnlyList<PlannedOperation>>(approvedOperations);
-        Assert.Equal([operation], approved);
-        Assert.Equal("Execution approval requested.", viewModel.StatusText);
-        Assert.Equal("C:\\first.txt", file.FullPath);
+        viewModel.SelectedDuplicateFilter = ResultDuplicateFilter.ExactDuplicatesOnly;
+        await viewModel.RefreshAsync();
+        Assert.Equal(125, viewModel.Page.TotalItemCount);
+        Assert.Equal(0, viewModel.Page.PageIndex);
+        viewModel.SelectedRow = viewModel.PageRows[0];
+        Assert.NotNull(viewModel.SelectedDetails);
+        Assert.Equal(viewModel.PageRows[0].FullPath, viewModel.SelectedDetails!.FullPath);
+
+        viewModel.QueryText = "does-not-match";
+        await viewModel.RefreshAsync();
+        Assert.False(viewModel.HasFilterResults);
+        Assert.True(viewModel.HasNoFilterResults);
+        Assert.Null(viewModel.SelectedDetails);
+        Assert.DoesNotContain(viewModel.AvailablePageSizes, pageSize => pageSize <= 0 || pageSize > 500);
     }
 
     /// <summary>
-    /// Verifies an empty plan cannot emit execution approval and remains a normal review state.
+    /// Verifies exact duplicate review uses opaque group routing and exposes no execution behavior.
     /// </summary>
     [Fact]
-    public void Load_EmptyPlan_DisablesApproval()
+    public async Task DuplicateReview_ShowGroupFilesRoutesToFilteredExplorer()
     {
-        var viewModel = new ResultsViewModel();
-        viewModel.Load([], new ConflictResolutionResult([], EmptyStatistics(0, 0), []));
+        var snapshot = CreateSnapshot(files: [
+            CreateFile("file:0", "C:\\One\\same.txt", DuplicateStatus.Duplicate, "group:opaque"),
+            CreateFile("file:1", "C:\\Two\\same.txt", DuplicateStatus.Duplicate, "group:opaque"),
+            CreateFile("file:2", "C:\\Two\\other.txt", DuplicateStatus.Unique, null)]);
+        using var viewModel = new ResultsViewModel();
+        await viewModel.LoadSnapshotAsync(snapshot);
 
-        Assert.False(viewModel.ApproveExecutionCommand.CanExecute(null));
-        Assert.Equal(ResultsSummary.Empty, viewModel.Summary);
-        Assert.Equal("No operations are awaiting approval.", viewModel.StatusText);
+        viewModel.OpenDuplicateReviewCommand.Execute(null);
+        Assert.True(viewModel.IsDuplicateReviewVisible);
+        var groupRow = Assert.Single(viewModel.DuplicateReview.VisibleGroupRows);
+        Assert.Equal("same.txt, same.txt", groupRow.MemberSummary);
+        Assert.Equal("2 B", groupRow.CommonFileSize);
+        Assert.Equal("2 B", groupRow.PotentialReclaimableSpace);
+        viewModel.DuplicateReview.SelectedGroup = Assert.Single(viewModel.DuplicateReview.VisibleGroups);
+        Assert.Equal("2 B", viewModel.DuplicateReview.SelectedGroupPotentialReclaimableText);
+        viewModel.DuplicateReview.ShowGroupFilesCommand.Execute(null);
+        await viewModel.RefreshAsync();
+
+        Assert.True(viewModel.IsExplorerVisible);
+        Assert.Equal("group:opaque", viewModel.Query.DuplicateGroupId);
+        Assert.Equal(2, viewModel.PageRows.Count);
+        Assert.All(viewModel.PageRows, row => Assert.Equal("Exact duplicate", row.DuplicateStatus));
     }
 
     /// <summary>
-    /// Verifies cancellation and back commands only emit review decisions.
+    /// Verifies an unavailable duplicate detector result remains a usable explorer with a clear limitation.
     /// </summary>
     [Fact]
-    public void ReviewCommands_EmitCancellationAndBackRequests()
+    public async Task LoadSnapshotAsync_DuplicateDataUnavailable_DisablesDuplicateReview()
     {
-        var viewModel = new ResultsViewModel();
-        var cancelled = false;
-        var returned = false;
-        viewModel.ReviewCancelled += (_, _) => cancelled = true;
-        viewModel.BackRequested += (_, _) => returned = true;
+        var snapshot = CreateSnapshot([CreateFile("file:0", "C:\\Only\\entry.txt", DuplicateStatus.Unknown, null)], duplicateDataAvailable: false);
+        using var viewModel = new ResultsViewModel();
 
-        viewModel.CancelCommand.Execute(null);
-        viewModel.BackCommand.Execute(null);
+        await viewModel.LoadSnapshotAsync(snapshot);
 
-        Assert.True(cancelled);
-        Assert.True(returned);
-        Assert.Equal("Review cancelled.", viewModel.StatusText);
+        Assert.False(viewModel.CanOpenDuplicateReview);
+        Assert.Contains(viewModel.Warnings, warning => warning.Contains("unavailable", StringComparison.OrdinalIgnoreCase));
+        Assert.Single(viewModel.PageRows);
     }
 
-    private static PlannedOperation CreateOperation(FileEntry file, string identifier) =>
-        new(identifier, PlannedOperationKind.Move, file, file.FullPath, "C:\\Destination\\first.txt", "rule", "Rule", 1);
+    private static ResultsSnapshot CreateSnapshot(IReadOnlyList<ResultFile> files, bool duplicateDataAvailable = true)
+    {
+        var groups = duplicateDataAvailable && files.Count(file => file.DuplicateGroupId == "group:opaque") >= 2
+            ? Array.AsReadOnly<ResultDuplicateGroup>([
+                new ResultDuplicateGroup("group:opaque", 1, Array.AsReadOnly(["file:0", "file:1"]), 2, 2, 2),
+            ])
+            : Array.AsReadOnly(Array.Empty<ResultDuplicateGroup>());
+        var issues = duplicateDataAvailable
+            ? Array.AsReadOnly<ResultIssue>([new ResultIssue("Scanning", ResultIssueSeverity.Warning, "A test scan warning.")])
+            : Array.AsReadOnly<ResultIssue>([new ResultIssue("Exact duplicates", ResultIssueSeverity.Warning, "Exact duplicate review was unavailable for this completed scan.")]);
+        var operations = Array.AsReadOnly<ResultPlannedOperation>([
+            new ResultPlannedOperation("plan:0", PlannedOperationKind.Move, files[0].Id, "C:\\Destination\\first.txt", "Rule"),
+        ]);
+        var updatedFiles = files.Select((file, index) => file with { HasPlannedOperation = index == 0 }).ToArray();
+        return new ResultsSnapshot(
+            "session:test",
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            Array.AsReadOnly(updatedFiles),
+            Array.AsReadOnly<ResultDirectory>([new ResultDirectory("C:\\Selected", "Selected")]),
+            groups,
+            operations,
+            issues,
+            new ResultsSnapshotStatistics(updatedFiles.Length, 1, groups.Count, groups.Sum(group => group.MemberCount), 1, issues.Count, 0),
+            duplicateDataAvailable);
+    }
 
-    private static ConflictResolutionStatistics EmptyStatistics(long operationsProcessed, long operationsAccepted) =>
-        new(operationsProcessed, operationsAccepted, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    private static ResultFile CreateFile(
+        string id,
+        string path,
+        DuplicateStatus duplicateStatus,
+        string? groupId,
+        long size = 2,
+        FileCategory category = FileCategory.Document) =>
+        new(
+            id,
+            path,
+            Path.GetFileName(path),
+            ".txt",
+            size,
+            DateTimeOffset.UnixEpoch,
+            category,
+            category.ToString(),
+            duplicateStatus,
+            groupId,
+            false);
 }

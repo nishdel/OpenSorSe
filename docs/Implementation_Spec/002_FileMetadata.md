@@ -26,6 +26,7 @@ The File Metadata component shall:
 - Populate metadata fields on each `FileEntry`.
 - Handle missing or inaccessible files gracefully.
 - Continue processing when recoverable errors occur.
+- Skip symbolic links, junctions, and other reparse points rather than following them.
 - Return the updated collection of `FileEntry` objects.
 
 ---

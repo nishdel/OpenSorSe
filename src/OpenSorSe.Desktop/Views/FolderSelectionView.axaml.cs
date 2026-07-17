@@ -1,4 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using OpenSorSe.Desktop.ViewModels;
 
 namespace OpenSorSe.Desktop.Views;
 
@@ -13,5 +16,25 @@ public partial class FolderSelectionView : UserControl
     public FolderSelectionView()
     {
         InitializeComponent();
+    }
+
+    private async void OnBrowseClick(object? sender, RoutedEventArgs eventArgs)
+    {
+        if (DataContext is not FolderSelectionViewModel viewModel ||
+            TopLevel.GetTopLevel(this)?.StorageProvider is not { CanPickFolder: true } storageProvider)
+        {
+            return;
+        }
+
+        var folders = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select a folder to scan",
+            AllowMultiple = false,
+        });
+        var path = folders.FirstOrDefault()?.TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            viewModel.AddFolder(path);
+        }
     }
 }

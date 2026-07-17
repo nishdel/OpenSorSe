@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 013 |
 | Component | Main Window |
-| Project | OpenSorSe.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -132,15 +132,12 @@ Required by:
 
 # Autonomous v0.1 Decisions
 
-The existing `OpenSorSe.Desktop` project is the implementation project; no separate UI project is introduced. The initial shell presents a menu region, toolbar/title region, persistent navigation list, content host, and status bar. Navigation is an immutable ordered enum list and defaults to Dashboard. Selecting an unsupported destination throws before state changes.
+The existing `OpenSorSe.Desktop` project is the implementation project; no separate UI project is introduced. The shell presents a title region, persistent navigation list, content host, and status bar. The unused `Application` menu placeholder is intentionally absent so no visible control suggests an unavailable action. Navigation is an immutable ordered enum list, defaults to Dashboard, and includes a Diagnostics destination. Selecting an unsupported destination throws before state changes.
 
-The shell does not construct later page implementations. Until their specifications provide those views, the content host presents the selected destination title only. Application startup and shutdown remain owned by the existing `App` and `IApplicationHost` composition path. Tests cover deterministic navigation state and invalid destination validation without starting Avalonia.
+The shell hosts the implemented v0.1 pages and owns presentation-level navigation. Application startup and shutdown remain owned by the existing `App` and `IApplicationHost` composition path. The shell forwards folder-selection requests to `IApplicationController`, presents progress and cancellation, and displays read-only results; it never invokes filesystem execution.
 
 ## Layout
 
-+------------------------------------------------------+
-| Menu Bar                                             |
-+------------------------------------------------------+
 | Toolbar                                              |
 +----------------------+-------------------------------+
 | Navigation           | Main Content                  |

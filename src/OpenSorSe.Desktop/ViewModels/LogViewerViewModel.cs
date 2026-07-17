@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
 using OpenSorSe.Core.Logging;
 
 namespace OpenSorSe.Desktop.ViewModels;
@@ -10,9 +9,8 @@ namespace OpenSorSe.Desktop.ViewModels;
 public sealed class LogViewerViewModel : ViewModelBase
 {
     private readonly ILoggingService _loggingService;
-    private LogLevel? _selectedLevel;
     private LoggingStatistics _statistics = LoggingStatistics.Empty;
-    private string _statusText = "No log-entry payloads are retained in v0.1.";
+    private string _statusText = "No diagnostic events have been recorded in this application session.";
 
     /// <summary>
     /// Initializes aggregate logging-health presentation.
@@ -22,7 +20,6 @@ public sealed class LogViewerViewModel : ViewModelBase
     {
         _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
         RefreshCommand = new RelayCommand(Refresh);
-        ClearDisplayCommand = new RelayCommand(ClearDisplay);
         Refresh();
     }
 
@@ -36,45 +33,41 @@ public sealed class LogViewerViewModel : ViewModelBase
         {
             if (SetProperty(ref _statistics, value))
             {
-                OnPropertyChanged(nameof(FilteredEntryCount));
+                OnPropertyChanged(nameof(RecordedEventCount));
+                OnPropertyChanged(nameof(HasRecordedEvents));
+                OnPropertyChanged(nameof(IsEmpty));
+                OnPropertyChanged(nameof(LoggingStatus));
             }
         }
     }
 
     /// <summary>
-    /// Gets or sets an optional aggregate severity filter.
+    /// Gets the total number of diagnostic events recorded during the current application session.
     /// </summary>
-    public LogLevel? SelectedLevel
-    {
-        get => _selectedLevel;
-        set
-        {
-            if (SetProperty(ref _selectedLevel, value))
-            {
-                OnPropertyChanged(nameof(FilteredEntryCount));
-            }
-        }
-    }
+    public long RecordedEventCount => Statistics.TraceEntries + Statistics.DebugEntries + Statistics.InformationEntries +
+        Statistics.WarningEntries + Statistics.ErrorEntries + Statistics.CriticalEntries;
 
     /// <summary>
-    /// Gets the documented levels that may filter the aggregate view.
+    /// Gets whether OpenSorSe recorded any diagnostic events in the current application session.
     /// </summary>
-    public IReadOnlyList<LogLevel> AvailableLevels { get; } = Enum.GetValues<LogLevel>();
+    public bool HasRecordedEvents => RecordedEventCount > 0;
 
     /// <summary>
-    /// Gets the aggregate entry count for the optional selected severity.
+    /// Gets whether the page should show its no-events explanation.
     /// </summary>
-    public long FilteredEntryCount => SelectedLevel switch
-    {
-        null => Statistics.TraceEntries + Statistics.DebugEntries + Statistics.InformationEntries + Statistics.WarningEntries + Statistics.ErrorEntries + Statistics.CriticalEntries,
-        LogLevel.Trace => Statistics.TraceEntries,
-        LogLevel.Debug => Statistics.DebugEntries,
-        LogLevel.Information => Statistics.InformationEntries,
-        LogLevel.Warning => Statistics.WarningEntries,
-        LogLevel.Error => Statistics.ErrorEntries,
-        LogLevel.Critical => Statistics.CriticalEntries,
-        _ => 0,
-    };
+    public bool IsEmpty => !HasRecordedEvents;
+
+    /// <summary>
+    /// Gets a plain-language description of the known diagnostic logging health.
+    /// </summary>
+    public string LoggingStatus => Statistics.FileWriteFailures == 0
+        ? "Healthy: no diagnostic log write failures have been recorded."
+        : "Attention needed: OpenSorSe could not write one or more diagnostic log entries.";
+
+    /// <summary>
+    /// Gets the explanation shown when the current application session has no diagnostic events.
+    /// </summary>
+    public string EmptyStateMessage => "No diagnostic events have been recorded in this application session.";
 
     /// <summary>
     /// Gets the user-safe aggregate-view status.
@@ -86,14 +79,9 @@ public sealed class LogViewerViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets the command that refreshes aggregate logging counters.
+    /// Gets the command that reads the latest aggregate logging counters.
     /// </summary>
     public IRelayCommand RefreshCommand { get; }
-
-    /// <summary>
-    /// Gets the command that clears only the displayed aggregate snapshot.
-    /// </summary>
-    public IRelayCommand ClearDisplayCommand { get; }
 
     /// <summary>
     /// Refreshes the displayed aggregate counters without reading log files.
@@ -101,12 +89,6 @@ public sealed class LogViewerViewModel : ViewModelBase
     public void Refresh()
     {
         Statistics = _loggingService.GetStatistics();
-        StatusText = "Logging statistics refreshed.";
-    }
-
-    private void ClearDisplay()
-    {
-        Statistics = LoggingStatistics.Empty;
-        StatusText = "Displayed statistics cleared. Stored logs were not changed.";
+        StatusText = HasRecordedEvents ? "Diagnostics updated." : EmptyStateMessage;
     }
 }

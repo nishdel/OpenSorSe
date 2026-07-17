@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 016 |
 | Component | Scan Progress |
-| Project | OpenSorSe.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -187,4 +187,4 @@ Required by:
 
 The draft does not define progress percentages, a scanner-to-view lifetime contract, or automatic navigation. The v0.1 view model consumes the existing immutable `OpenSorSe.Scanner.Models.ScanProgress` snapshots directly and uses an indeterminate progress indicator because scanner discovery has no reliable total-work estimate. It exposes `Start`, `ApplyProgress`, and terminal `Complete(ScanStatus)` presentation methods plus a cancellation event. It never calls a scanner or task manager.
 
-The shell or future orchestrator owns navigation and scan lifetime. Completion changes presentation stage but does not close a window or discard results. Pause/resume, estimates, rates, previews, errors, and concurrent scans remain deferred.
+The Desktop shell owns navigation and scan lifetime through `IApplicationController`. Completion changes presentation stage and, for a completed read-only pipeline, loads Results, updates the Dashboard's in-memory latest-scan summary, and navigates to Results without discarding results. Pause/resume, estimates, rates, previews, and concurrent scans remain deferred.

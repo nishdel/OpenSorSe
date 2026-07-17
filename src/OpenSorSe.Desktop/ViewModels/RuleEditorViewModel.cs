@@ -36,6 +36,26 @@ public sealed class RuleEditorViewModel : ViewModelBase
     public ReadOnlyObservableCollection<FileRule> Rules { get; }
 
     /// <summary>
+    /// Gets whether any in-memory rules are available for review.
+    /// </summary>
+    public bool HasRules => _rules.Count > 0;
+
+    /// <summary>
+    /// Gets whether the page should show its no-rules explanation.
+    /// </summary>
+    public bool IsEmpty => !HasRules;
+
+    /// <summary>
+    /// Gets whether a rule is selected for the available in-memory edit actions.
+    /// </summary>
+    public bool HasSelectedRule => SelectedRule is not null;
+
+    /// <summary>
+    /// Gets the user-facing no-rules explanation for v0.1.
+    /// </summary>
+    public string EmptyStateMessage => "No rules exist in this application session. Rules are optional, and OpenSorSe v0.1 will not make file changes.";
+
+    /// <summary>
     /// Gets or sets the selected rule for non-executing edit operations.
     /// </summary>
     public FileRule? SelectedRule
@@ -47,6 +67,7 @@ public sealed class RuleEditorViewModel : ViewModelBase
             {
                 DeleteSelectedRuleCommand.NotifyCanExecuteChanged();
                 ToggleSelectedRuleCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(HasSelectedRule));
             }
         }
     }
@@ -96,6 +117,7 @@ public sealed class RuleEditorViewModel : ViewModelBase
 
         SelectedRule = null;
         StatusText = "Rules loaded.";
+        NotifyRuleCollectionChanged();
     }
 
     /// <summary>
@@ -136,6 +158,7 @@ public sealed class RuleEditorViewModel : ViewModelBase
         }
 
         SelectedRule = rule;
+        NotifyRuleCollectionChanged();
         return validation;
     }
 
@@ -221,6 +244,7 @@ public sealed class RuleEditorViewModel : ViewModelBase
         {
             SelectedRule = null;
             StatusText = "Rule deleted.";
+            NotifyRuleCollectionChanged();
         }
     }
 
@@ -252,5 +276,11 @@ public sealed class RuleEditorViewModel : ViewModelBase
 
         SaveRequested?.Invoke(this, Array.AsReadOnly(_rules.ToArray()));
         StatusText = "Save requested.";
+    }
+
+    private void NotifyRuleCollectionChanged()
+    {
+        OnPropertyChanged(nameof(HasRules));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 }

@@ -6,7 +6,7 @@
     <ScrollViewer>
         <StackPanel Spacing="12">
             <TextBlock Text="Folder Selection" FontSize="24" FontWeight="SemiBold" />
-            <TextBlock Text="Add accessible local folders to request a scan. No scan starts until a later application stage handles the request."
+            <TextBlock Text="Add accessible local folders, then start a read-only analysis. OpenSorSe does not modify selected files."
                        TextWrapping="Wrap" />
             <TextBlock Text="Selected folders" FontWeight="SemiBold" />
             <ListBox ItemsSource="{Binding SelectedFolders}"
@@ -16,6 +16,7 @@
                 <TextBox Width="420"
                          PlaceholderText="Absolute folder path"
                          Text="{Binding FolderPathInput, Mode=TwoWay}" />
+                <Button Content="Browse..." Click="OnBrowseClick" />
                 <Button Content="Add folder" Command="{Binding AddFolderCommand}" />
                 <Button Content="Remove selected" Command="{Binding RemoveSelectedFolderCommand}" />
             </StackPanel>

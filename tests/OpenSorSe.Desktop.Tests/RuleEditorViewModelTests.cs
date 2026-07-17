@@ -41,6 +41,8 @@ public sealed class RuleEditorViewModelTests
         Assert.False(validation.IsValid);
         Assert.NotEmpty(validation.Errors);
         Assert.Empty(viewModel.Rules);
+        Assert.True(viewModel.IsEmpty);
+        Assert.Contains("No rules exist", viewModel.EmptyStateMessage, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -60,6 +62,8 @@ public sealed class RuleEditorViewModelTests
 
         Assert.Empty(viewModel.Rules);
         Assert.Null(viewModel.SelectedRule);
+        Assert.True(viewModel.IsEmpty);
+        Assert.False(viewModel.HasSelectedRule);
     }
 
     /// <summary>

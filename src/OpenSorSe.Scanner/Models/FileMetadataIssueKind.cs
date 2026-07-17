@@ -11,6 +11,9 @@ public enum FileMetadataIssueKind
     /// <summary>Access to the file or its metadata was denied.</summary>
     AccessDenied,
 
+    /// <summary>The entry was a symbolic link, junction, or other reparse point and was skipped.</summary>
+    ReparsePointSkipped,
+
     /// <summary>One or more optional metadata fields could not be retrieved.</summary>
     MetadataUnavailable,
 }

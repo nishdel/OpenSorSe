@@ -21,7 +21,7 @@ public enum NavigationDestination
     Settings,
 
     /// <summary>Displays local logging health and aggregate diagnostics.</summary>
-    Logs,
+    Diagnostics,
 
     /// <summary>Displays explicit undo-record sessions supplied by the application controller.</summary>
     History,

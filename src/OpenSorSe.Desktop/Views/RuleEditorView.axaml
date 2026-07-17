@@ -7,9 +7,10 @@
         <TextBlock Grid.ColumnSpan="2" Text="Rule Editor" FontSize="24" FontWeight="SemiBold" />
         <StackPanel Grid.Row="1" Spacing="6">
             <TextBlock Text="Current rules" FontWeight="SemiBold" />
-            <ListBox ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule, Mode=TwoWay}" />
+            <TextBlock IsVisible="{Binding IsEmpty}" Text="{Binding EmptyStateMessage}" TextWrapping="Wrap" />
+            <ListBox IsVisible="{Binding HasRules}" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule, Mode=TwoWay}" />
         </StackPanel>
-        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
+        <StackPanel Grid.Row="1" Grid.Column="1" IsVisible="{Binding HasSelectedRule}" Spacing="8">
             <TextBlock Text="Selected rule" FontWeight="SemiBold" />
             <TextBlock Text="{Binding SelectedRule.Name}" />
             <TextBlock Text="{Binding SelectedRule.Id}" />
@@ -19,7 +20,6 @@
             </StackPanel>
         </StackPanel>
         <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
-            <Button Content="Save" Command="{Binding SaveCommand}" />
             <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
         </StackPanel>
     </Grid>

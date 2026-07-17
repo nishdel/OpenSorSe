@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 019 |
 | Component | Settings |
-| Project | OpenSorSe.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |
@@ -190,3 +190,5 @@ Required by:
 The draft lists many settings that have no backing models or subsystems. v0.1 exposes only the implemented logging settings: minimum level, local-file enablement, optional absolute log directory, and retained daily-file count. `IConfigurationService` gains a compatible explicit replacement-save overload so a validated immutable `ApplicationSettings` object can be persisted without a UI writing files directly.
 
 The editor holds an independent `SettingsDraft`, validates through `ApplicationSettings.Validate`, saves through configuration, and declares restart required because active logging services are initialized at application startup. The current configuration file is the only file that may be changed. Startup, updates, scanning preferences, conflict strategies, themes, languages, AI, plugin configuration, profiles, and live reconfiguration are deferred.
+
+Each exposed setting has a permanent visible label and short user-facing explanation. In particular, **Daily diagnostic log files to retain** controls how many OpenSorSe application diagnostic log files are kept; it requires a whole number of at least one and never affects scanned user files. It is separate from the scanner and does not alter scan, metadata, duplicate, or results behaviour.

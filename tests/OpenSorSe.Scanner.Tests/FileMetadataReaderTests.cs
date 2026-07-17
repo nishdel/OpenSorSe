@@ -104,6 +104,31 @@ public sealed class FileMetadataReaderTests
             CreateReader().ReadAsync(Array.Empty<FileEntry>(), cancellationSource.Token));
     }
 
+    /// <summary>
+    /// Verifies an explicitly supplied symbolic link is not followed when the host permits link creation.
+    /// </summary>
+    [Fact]
+    public async Task ReadAsync_SkipsReparsePointWhenSupported()
+    {
+        using var directory = new TemporaryDirectory();
+        var target = directory.CreateFile("target.txt", "content");
+        var link = Path.Combine(directory.Path, "link.txt");
+
+        try
+        {
+            File.CreateSymbolicLink(link, target);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return;
+        }
+
+        var result = await CreateReader().ReadAsync([new FileEntry(link)]);
+
+        Assert.Null(result.Files[0].Metadata);
+        Assert.Contains(result.Issues, issue => issue.Kind == FileMetadataIssueKind.ReparsePointSkipped);
+    }
+
     private static FileMetadataReader CreateReader() => new(new TestLoggingService(), new TestErrorHandler());
 
     private sealed class TemporaryDirectory : IDisposable

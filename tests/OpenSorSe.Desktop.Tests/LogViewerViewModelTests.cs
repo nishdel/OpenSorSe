@@ -11,35 +11,35 @@ namespace OpenSorSe.Desktop.Tests;
 public sealed class LogViewerViewModelTests
 {
     /// <summary>
-    /// Verifies refresh projects process-lifetime counters without querying log-entry payloads.
+    /// Verifies refresh projects user-facing process-lifetime diagnostics without querying log-entry payloads.
     /// </summary>
     [Fact]
-    public void Refresh_ProjectsAggregateCountersAndOptionalLevelFilter()
+    public void Refresh_ProjectsAggregateCountersAndLoggingHealth()
     {
         var logging = new TestLoggingService(new LoggingStatistics(1, 2, 3, 4, 5, 6, 7));
         var viewModel = new LogViewerViewModel(logging);
 
-        viewModel.SelectedLevel = LogLevel.Warning;
-
-        Assert.Equal(4L, viewModel.FilteredEntryCount);
+        Assert.Equal(21L, viewModel.RecordedEventCount);
         Assert.Equal(7L, viewModel.Statistics.FileWriteFailures);
-        Assert.Equal("Logging statistics refreshed.", viewModel.StatusText);
+        Assert.Equal("Attention needed: OpenSorSe could not write one or more diagnostic log entries.", viewModel.LoggingStatus);
+        Assert.Equal("Diagnostics updated.", viewModel.StatusText);
         Assert.Equal(1, logging.StatisticsRequestCount);
     }
 
     /// <summary>
-    /// Verifies clearing changes only the displayed snapshot and never asks the logging service to mutate storage.
+    /// Verifies the empty diagnostics state explains that no events exist in the current application session.
     /// </summary>
     [Fact]
-    public void ClearDisplay_ClearsOnlyPresentationState()
+    public void Constructor_NoRecordedEvents_UsesPlainLanguageEmptyState()
     {
-        var logging = new TestLoggingService(new LoggingStatistics(0, 0, 1, 0, 0, 0, 0));
+        var logging = new TestLoggingService(LoggingStatistics.Empty);
         var viewModel = new LogViewerViewModel(logging);
 
-        viewModel.ClearDisplayCommand.Execute(null);
-
-        Assert.Equal(0L, viewModel.FilteredEntryCount);
-        Assert.Equal("Displayed statistics cleared. Stored logs were not changed.", viewModel.StatusText);
+        Assert.True(viewModel.IsEmpty);
+        Assert.False(viewModel.HasRecordedEvents);
+        Assert.Equal("No diagnostic events have been recorded in this application session.", viewModel.EmptyStateMessage);
+        Assert.Equal("Healthy: no diagnostic log write failures have been recorded.", viewModel.LoggingStatus);
+        Assert.Equal(viewModel.EmptyStateMessage, viewModel.StatusText);
         Assert.Equal(1, logging.StatisticsRequestCount);
     }
 

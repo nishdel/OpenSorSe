@@ -4,7 +4,7 @@
 |----------|-------|
 | Spec ID | 023 |
 | Component | Notification Center |
-| Project | OpenSorSe.UI |
+| Project | OpenSorSe.Desktop |
 | Version | 1.0 |
 | Target Release | v0.1 |
 | Status | Draft |

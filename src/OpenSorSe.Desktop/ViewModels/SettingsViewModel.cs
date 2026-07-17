@@ -60,6 +60,21 @@ public sealed class SettingsViewModel : ViewModelBase
     public IReadOnlyList<LogLevel> AvailableLogLevels { get; } = Enum.GetValues<LogLevel>();
 
     /// <summary>
+    /// Gets the permanent user-facing label for daily diagnostic-log retention.
+    /// </summary>
+    public string DailyLogRetentionLabel => "Daily diagnostic log files to retain";
+
+    /// <summary>
+    /// Gets the user-facing explanation for the daily diagnostic-log retention setting.
+    /// </summary>
+    public string DailyLogRetentionDescription => "Controls how many OpenSorSe application diagnostic log files are kept. It does not affect scanned user files.";
+
+    /// <summary>
+    /// Gets the validation guidance for daily diagnostic-log retention.
+    /// </summary>
+    public string DailyLogRetentionValidation => "Enter a whole number of at least 1.";
+
+    /// <summary>
     /// Gets the command that validates and persists the draft.
     /// </summary>
     public IAsyncRelayCommand SaveCommand { get; }
@@ -90,7 +105,7 @@ public sealed class SettingsViewModel : ViewModelBase
         {
             var settings = Draft.ToSettings();
             settings.Validate();
-            await _configurationService.SaveAsync(settings, CancellationToken.None).ConfigureAwait(false);
+            await _configurationService.SaveAsync(settings, CancellationToken.None);
             RestartRequired = true;
             StatusText = "Settings saved. Restart the application to apply active-service changes.";
         }

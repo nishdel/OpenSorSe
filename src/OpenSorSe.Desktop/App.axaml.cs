@@ -67,6 +67,7 @@ public partial class App : Avalonia.Application
         services.AddSingleton<IProcessingOrchestrator, ProcessingOrchestrator>();
         services.AddSingleton<IProcessingSessionManager, ProcessingSessionManager>();
         services.AddSingleton<IApplicationController, ApplicationController>();
+        services.AddSingleton<IResultsSnapshotProjector, ResultsSnapshotProjector>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions

@@ -120,6 +120,12 @@ public sealed class FileMetadataReader : IFileMetadataReader
             return file;
         }
 
+        if (attributes.Value.HasFlag(FileAttributes.ReparsePoint))
+        {
+            RecordIssue(file.FullPath, FileMetadataIssueKind.ReparsePointSkipped, "The reparse point was skipped.", issues);
+            return file with { Metadata = null };
+        }
+
         TryRead(() => fileInfo.Length, value => sizeInBytes = value, ref metadataUnavailable);
         TryRead(() => ToUtcOffset(fileInfo.CreationTimeUtc), value => creationTimeUtc = value, ref metadataUnavailable);
         TryRead(() => ToUtcOffset(fileInfo.LastWriteTimeUtc), value => lastWriteTimeUtc = value, ref metadataUnavailable);
