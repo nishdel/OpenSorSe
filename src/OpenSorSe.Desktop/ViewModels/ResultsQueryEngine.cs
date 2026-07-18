@@ -4,24 +4,29 @@ using OpenSorSe.Scanner.Models;
 namespace OpenSorSe.Desktop.ViewModels;
 
 /// <summary>
-/// Evaluates local, deterministic result-explorer queries without filesystem or UI dependencies.
+/// Evaluates deterministic, metadata-aware queries over one immutable result snapshot without filesystem access.
 /// </summary>
 public static class ResultsQueryEngine
 {
     private static readonly int[] ApprovedPageSizes = [50, 100, 200, 500];
 
     /// <summary>
-    /// Evaluates a query against an immutable snapshot.
+    /// Evaluates a normalized query with deterministic ranking, filters, and bounded paging.
     /// </summary>
-    /// <param name="snapshot">The snapshot to filter and sort.</param>
+    /// <param name="snapshot">The immutable completed scan snapshot.</param>
     /// <param name="query">The user query to normalize and evaluate.</param>
     /// <param name="cancellationToken">Cancels only this local query evaluation.</param>
-    /// <returns>A normalized query and a bounded page.</returns>
-    public static ResultsQueryResult Evaluate(ResultsSnapshot snapshot, ResultsQuery? query, CancellationToken cancellationToken = default)
+    /// <param name="tagsByFile">Accepted application-owned tags for the current in-memory result session.</param>
+    /// <returns>A normalized query and a bounded, stable page.</returns>
+    public static ResultsQueryResult Evaluate(
+        ResultsSnapshot snapshot,
+        ResultsQuery? query,
+        CancellationToken cancellationToken = default,
+        IReadOnlyDictionary<string, IReadOnlyList<TagAssociation>>? tagsByFile = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         var normalizedQuery = Normalize(query);
-        var filtered = new List<ResultFile>(snapshot.Files.Count);
+        var filtered = new List<SearchCandidate>(snapshot.Files.Count);
         for (var index = 0; index < snapshot.Files.Count; index++)
         {
             if ((index & 127) == 0)
@@ -30,9 +35,12 @@ public static class ResultsQueryEngine
             }
 
             var file = snapshot.Files[index];
-            if (Matches(file, normalizedQuery))
+            var tags = tagsByFile is not null && tagsByFile.TryGetValue(file.Id, out var values)
+                ? values
+                : Array.Empty<TagAssociation>();
+            if (Matches(file, tags, normalizedQuery, out var match))
             {
-                filtered.Add(file);
+                filtered.Add(new SearchCandidate(file, match));
             }
         }
 
@@ -42,12 +50,17 @@ public static class ResultsQueryEngine
         var totalPageCount = totalItemCount == 0 ? 0 : (int)Math.Ceiling(totalItemCount / (double)normalizedQuery.PageSize);
         var pageIndex = totalPageCount == 0 ? 0 : Math.Min(normalizedQuery.PageIndex, totalPageCount - 1);
         normalizedQuery = normalizedQuery with { PageIndex = pageIndex };
-        var pageItems = totalItemCount == 0
-            ? Array.Empty<ResultFile>()
+        var pageCandidates = totalItemCount == 0
+            ? Array.Empty<SearchCandidate>()
             : ordered.Skip(pageIndex * normalizedQuery.PageSize).Take(normalizedQuery.PageSize).ToArray();
+        var pageItems = pageCandidates.Select(candidate => candidate.File).ToArray();
+        var matches = pageCandidates.ToDictionary(candidate => candidate.File.Id, candidate => candidate.Match, StringComparer.Ordinal);
         return new ResultsQueryResult(
             normalizedQuery,
-            new ResultsPage(Array.AsReadOnly(pageItems), pageIndex, normalizedQuery.PageSize, totalItemCount, totalPageCount));
+            new ResultsPage(Array.AsReadOnly(pageItems), pageIndex, normalizedQuery.PageSize, totalItemCount, totalPageCount)
+            {
+                Matches = matches,
+            });
     }
 
     /// <summary>
@@ -77,9 +90,13 @@ public static class ResultsQueryEngine
             string.IsNullOrWhiteSpace(query.DuplicateGroupId) ? null : query.DuplicateGroupId);
     }
 
-    private static bool Matches(ResultFile file, ResultsQuery query)
+    private static bool Matches(
+        ResultFile file,
+        IReadOnlyList<TagAssociation> tags,
+        ResultsQuery query,
+        out ResultSearchMatch match)
     {
-        return MatchesText(file, query.Text)
+        return MatchesText(file, tags, query.Text, out match)
             && MatchesDuplicate(file, query.DuplicateFilter)
             && (query.Extension is null || string.Equals(file.NormalizedExtension, query.Extension, StringComparison.Ordinal))
             && MatchesCategory(file, query.Category)
@@ -87,13 +104,125 @@ public static class ResultsQueryEngine
             && (query.DuplicateGroupId is null || string.Equals(file.DuplicateGroupId, query.DuplicateGroupId, StringComparison.Ordinal));
     }
 
-    private static bool MatchesText(ResultFile file, string? text)
+    private static bool MatchesText(ResultFile file, IReadOnlyList<TagAssociation> tags, string? text, out ResultSearchMatch match)
     {
-        return text is null
-            || file.DisplayFileName.Contains(text, StringComparison.OrdinalIgnoreCase)
-            || file.FullPath.Contains(text, StringComparison.OrdinalIgnoreCase)
-            || file.NormalizedExtension.Contains(text, StringComparison.OrdinalIgnoreCase)
-            || file.ClassificationDisplay.Contains(text, StringComparison.OrdinalIgnoreCase);
+        if (text is null)
+        {
+            match = new ResultSearchMatch(0, "No text query applied.");
+            return true;
+        }
+
+        var tokens = Tokenize(text);
+        var totalScore = 0;
+        var explanations = new List<string>(tokens.Count);
+        foreach (var token in tokens)
+        {
+            var signal = GetBestSignal(file, tags, token);
+            if (signal.Score == 0)
+            {
+                match = default!;
+                return false;
+            }
+
+            totalScore += signal.Score;
+            explanations.Add(signal.Explanation);
+        }
+
+        match = new ResultSearchMatch(totalScore, string.Join("; ", explanations.Distinct(StringComparer.Ordinal)));
+        return true;
+    }
+
+    private static SearchSignal GetBestSignal(ResultFile file, IReadOnlyList<TagAssociation> tags, string token)
+    {
+        var signals = new List<SearchSignal>();
+        if (string.Equals(file.DisplayFileName, token, StringComparison.OrdinalIgnoreCase))
+        {
+            signals.Add(new SearchSignal(120, $"exact filename match: {token}"));
+        }
+        else if (file.DisplayFileName.StartsWith(token, StringComparison.OrdinalIgnoreCase))
+        {
+            signals.Add(new SearchSignal(100, $"filename starts with: {token}"));
+        }
+        else if (file.DisplayFileName.Contains(token, StringComparison.OrdinalIgnoreCase))
+        {
+            signals.Add(new SearchSignal(80, $"filename contains: {token}"));
+        }
+
+        if (string.Equals(file.NormalizedExtension, token, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(file.NormalizedExtension.TrimStart('.'), token, StringComparison.OrdinalIgnoreCase))
+        {
+            signals.Add(new SearchSignal(70, $"extension match: {file.NormalizedExtension}"));
+        }
+
+        if (file.ClassificationDisplay.Contains(token, StringComparison.OrdinalIgnoreCase))
+        {
+            signals.Add(new SearchSignal(60, $"category match: {file.ClassificationDisplay}"));
+        }
+
+        if (file.FullPath.Contains(token, StringComparison.OrdinalIgnoreCase))
+        {
+            signals.Add(new SearchSignal(45, $"path match: {token}"));
+        }
+
+        foreach (var tag in tags.Where(tag => tag.AcceptanceState == TagAcceptanceState.Accepted))
+        {
+            if (string.Equals(tag.NormalizedValue, token, StringComparison.OrdinalIgnoreCase) || string.Equals(tag.DisplayName, token, StringComparison.OrdinalIgnoreCase))
+            {
+                signals.Add(new SearchSignal(90, $"tag match: {tag.DisplayName}"));
+            }
+            else if (tag.DisplayName.Contains(token, StringComparison.OrdinalIgnoreCase) || tag.NormalizedValue.Contains(token, StringComparison.OrdinalIgnoreCase))
+            {
+                signals.Add(new SearchSignal(75, $"tag match: {tag.DisplayName}"));
+            }
+        }
+
+        return signals.Count == 0
+            ? new SearchSignal(0, string.Empty)
+            : signals.OrderByDescending(signal => signal.Score).ThenBy(signal => signal.Explanation, StringComparer.Ordinal).First();
+    }
+
+    private static List<SearchCandidate> Order(List<SearchCandidate> candidates, ResultsQuery query)
+    {
+        var sortField = query.Text is not null && query.SortField == ResultsSortField.Name
+            ? ResultsSortField.Relevance
+            : query.SortField;
+        var sortDirection = sortField == ResultsSortField.Relevance && query.SortField == ResultsSortField.Name
+            ? SortDirection.Descending
+            : query.SortDirection;
+        IOrderedEnumerable<SearchCandidate> ordered = sortField switch
+        {
+            ResultsSortField.Relevance => candidates.OrderByDescending(candidate => candidate.Match.Score),
+            ResultsSortField.Name => candidates.OrderBy(candidate => candidate.File.DisplayFileName, StringComparer.OrdinalIgnoreCase),
+            ResultsSortField.Path => candidates.OrderBy(candidate => candidate.File.FullPath, StringComparer.OrdinalIgnoreCase),
+            ResultsSortField.Extension => candidates.OrderBy(candidate => candidate.File.NormalizedExtension, StringComparer.OrdinalIgnoreCase),
+            ResultsSortField.Size => candidates.OrderBy(candidate => candidate.File.SizeInBytes is null).ThenBy(candidate => candidate.File.SizeInBytes),
+            ResultsSortField.ModifiedTime => candidates.OrderBy(candidate => candidate.File.LastWriteTimeUtc is null).ThenBy(candidate => candidate.File.LastWriteTimeUtc),
+            ResultsSortField.DuplicateState => candidates.OrderBy(candidate => candidate.File.DuplicateStatus),
+            _ => throw new InvalidOperationException("The query sort field was not normalized."),
+        };
+
+        if (sortDirection == SortDirection.Ascending && sortField == ResultsSortField.Relevance)
+        {
+            ordered = candidates.OrderBy(candidate => candidate.Match.Score);
+        }
+        else if (sortDirection == SortDirection.Descending && sortField != ResultsSortField.Relevance)
+        {
+            ordered = sortField switch
+            {
+                ResultsSortField.Name => candidates.OrderByDescending(candidate => candidate.File.DisplayFileName, StringComparer.OrdinalIgnoreCase),
+                ResultsSortField.Path => candidates.OrderByDescending(candidate => candidate.File.FullPath, StringComparer.OrdinalIgnoreCase),
+                ResultsSortField.Extension => candidates.OrderByDescending(candidate => candidate.File.NormalizedExtension, StringComparer.OrdinalIgnoreCase),
+                ResultsSortField.Size => candidates.OrderBy(candidate => candidate.File.SizeInBytes is not null).ThenByDescending(candidate => candidate.File.SizeInBytes),
+                ResultsSortField.ModifiedTime => candidates.OrderBy(candidate => candidate.File.LastWriteTimeUtc is not null).ThenByDescending(candidate => candidate.File.LastWriteTimeUtc),
+                ResultsSortField.DuplicateState => candidates.OrderByDescending(candidate => candidate.File.DuplicateStatus),
+                _ => throw new InvalidOperationException("The query sort field was not normalized."),
+            };
+        }
+
+        return ordered
+            .ThenBy(candidate => candidate.File.FullPath, StringComparer.Ordinal)
+            .ThenBy(candidate => candidate.File.Id, StringComparer.Ordinal)
+            .ToList();
     }
 
     private static bool MatchesDuplicate(ResultFile file, ResultDuplicateFilter filter) => filter switch
@@ -125,35 +254,13 @@ public static class ResultsQueryEngine
         _ => false,
     };
 
-    private static List<ResultFile> Order(List<ResultFile> files, ResultsQuery query)
-    {
-        IOrderedEnumerable<ResultFile> ordered = query.SortField switch
-        {
-            ResultsSortField.Name => files.OrderBy(file => file.DisplayFileName, StringComparer.OrdinalIgnoreCase),
-            ResultsSortField.Path => files.OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase),
-            ResultsSortField.Extension => files.OrderBy(file => file.NormalizedExtension, StringComparer.OrdinalIgnoreCase),
-            ResultsSortField.Size => files.OrderBy(file => file.SizeInBytes is null).ThenBy(file => file.SizeInBytes),
-            ResultsSortField.ModifiedTime => files.OrderBy(file => file.LastWriteTimeUtc is null).ThenBy(file => file.LastWriteTimeUtc),
-            ResultsSortField.DuplicateState => files.OrderBy(file => file.DuplicateStatus),
-            _ => throw new InvalidOperationException("The query sort field was not normalized."),
-        };
-
-        if (query.SortDirection == SortDirection.Descending)
-        {
-            ordered = query.SortField switch
-            {
-                ResultsSortField.Name => files.OrderByDescending(file => file.DisplayFileName, StringComparer.OrdinalIgnoreCase),
-                ResultsSortField.Path => files.OrderByDescending(file => file.FullPath, StringComparer.OrdinalIgnoreCase),
-                ResultsSortField.Extension => files.OrderByDescending(file => file.NormalizedExtension, StringComparer.OrdinalIgnoreCase),
-                ResultsSortField.Size => files.OrderBy(file => file.SizeInBytes is not null).ThenByDescending(file => file.SizeInBytes),
-                ResultsSortField.ModifiedTime => files.OrderBy(file => file.LastWriteTimeUtc is not null).ThenByDescending(file => file.LastWriteTimeUtc),
-                ResultsSortField.DuplicateState => files.OrderByDescending(file => file.DuplicateStatus),
-                _ => throw new InvalidOperationException("The query sort field was not normalized."),
-            };
-        }
-
-        return ordered.ThenBy(file => file.FullPath, StringComparer.Ordinal).ThenBy(file => file.Id, StringComparer.Ordinal).ToList();
-    }
+    private static IReadOnlyList<string> Tokenize(string query) => Array.AsReadOnly(query
+        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(token => token.Trim().ToLowerInvariant())
+        .Where(token => token.Length > 0)
+        .Distinct(StringComparer.Ordinal)
+        .Take(12)
+        .ToArray());
 
     private static string? NormalizeExtension(string? extension)
     {
@@ -170,4 +277,8 @@ public static class ResultsQueryEngine
 
         return $".{trimmed.TrimStart('.').ToLowerInvariant()}";
     }
+
+    private sealed record SearchCandidate(ResultFile File, ResultSearchMatch Match);
+
+    private sealed record SearchSignal(int Score, string Explanation);
 }

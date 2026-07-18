@@ -13,6 +13,11 @@ public sealed class ApplicationSettings
     public LoggingSettings Logging { get; init; } = new();
 
     /// <summary>
+    /// Gets or initializes the optional local AI-provider settings.
+    /// </summary>
+    public AiSettings Ai { get; init; } = new();
+
+    /// <summary>
     /// Validates settings before they are made available to the application.
     /// </summary>
     /// <exception cref="ConfigurationValidationException">
@@ -26,6 +31,61 @@ public sealed class ApplicationSettings
         }
 
         Logging.Validate();
+
+        if (Ai is null)
+        {
+            throw new ConfigurationValidationException("AI settings are required.");
+        }
+
+        Ai.Validate();
+    }
+}
+
+/// <summary>
+/// Defines the optional, user-controlled local Ollama integration settings.
+/// </summary>
+public sealed class AiSettings
+{
+    /// <summary>
+    /// Gets or initializes whether AI suggestion requests are permitted.
+    /// </summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>
+    /// Gets or initializes the Ollama-compatible endpoint. The default is the local Ollama endpoint.
+    /// </summary>
+    public string Endpoint { get; init; } = "http://127.0.0.1:11434";
+
+    /// <summary>
+    /// Gets or initializes the locally discovered model selected for suggestion requests.
+    /// </summary>
+    public string? SelectedModel { get; init; }
+
+    /// <summary>
+    /// Gets or initializes the bounded duration permitted for one AI request.
+    /// </summary>
+    public int RequestTimeoutSeconds { get; init; } = 30;
+
+    /// <summary>
+    /// Gets or initializes whether locally recorded approved patterns may be supplied as concise request context.
+    /// </summary>
+    public bool PreferenceAdaptationEnabled { get; init; } = true;
+
+    /// <summary>
+    /// Validates the supported local AI configuration values.
+    /// </summary>
+    /// <exception cref="ConfigurationValidationException">Thrown when the settings are unsafe or unsupported.</exception>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(Endpoint) ||
+            !Uri.TryCreate(Endpoint.Trim(), UriKind.Absolute, out var endpoint) ||
+            endpoint.Scheme is not ("http" or "https") ||
+            string.IsNullOrWhiteSpace(endpoint.Host) ||
+            RequestTimeoutSeconds is < 1 or > 120 ||
+            SelectedModel is { Length: > 256 })
+        {
+            throw new ConfigurationValidationException("AI settings are invalid.");
+        }
     }
 }
 

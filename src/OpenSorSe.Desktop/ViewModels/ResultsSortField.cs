@@ -5,6 +5,9 @@ namespace OpenSorSe.Desktop.ViewModels;
 /// </summary>
 public enum ResultsSortField
 {
+    /// <summary>Sorts text-query matches by deterministic relevance and stable path tie-breakers.</summary>
+    Relevance,
+
     /// <summary>Sorts by display file name.</summary>
     Name,
 

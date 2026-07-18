@@ -8,7 +8,9 @@
         x:Class="OpenSorSe.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="OpenSorSe">
+        Title="OpenSorSe"
+        MinWidth="960"
+        MinHeight="640">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,

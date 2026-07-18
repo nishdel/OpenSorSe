@@ -4,6 +4,7 @@
 | --- | --- | --- | --- |
 | v0.1 Foundation | Complete | Restore, build, automated tests, and manual UI validation complete. | Read-only scan pipeline, metadata, hashing, deterministic rules, Dashboard, Settings, Diagnostics, and supporting application infrastructure. |
 | v0.2 Results Exploration | Complete | Restore, build, 233 automated tests, and manual UI validation complete. | Immutable result snapshots, Results Explorer, filtering, sorting, paging, details, and exact-duplicate review. |
+| v0.3 Local Suggestions and Ranked Exploration | Complete | Clean isolated restore/build and 251 automated tests passed. Existing repository `obj` folders blocked direct in-place validation. | Optional Ollama integration, validated read-only suggestions, local decision history, session tags, deterministic ranked search, and product polish. |
 
 ## Current product boundary
 
@@ -13,12 +14,12 @@ The current Desktop workflow does not:
 
 - Rename, move, delete, overwrite, or otherwise modify user files.
 - Execute planned operations or undo operations.
-- Run AI, OCR, semantic search, content readers, or automatic organization.
-- Persist scan results, search indexes, or result history.
+- Execute AI suggestions, OCR, semantic search, content readers, or automatic organization. Optional local Ollama can generate validated previews only.
+- Persist scan results, search indexes, session tags, or result history. It persists settings and separate local AI review decisions only.
 
 ## Validation baseline
 
-The validated v0.2 branch is `coding/v0.2`. Validation includes successful restore and build, 233 passing automated tests, and completed manual UI validation of the read-only scan and results-review workflow.
+The v0.3 working tree was restored, built, and tested successfully in a clean isolated copy: 251 tests passed. This environment denied writes to pre-existing generated `obj` folders in the repository itself, so direct in-place restore/build/test failed before compilation. No source or user files were removed to work around that host restriction.
 
 ## Documentation status
 
@@ -26,4 +27,4 @@ The architecture directory contains both current implementation documentation an
 
 ## Next release
 
-v0.3 is planned for usability improvements and workflow enhancements. Its exact scope will be defined by future proposals; no future feature is implied to be implemented today.
+v0.3 is complete. See [v0.3 implementation specifications](Implementation_Spec/v0.3/00_v0.3_Release_Proposal.md) for the actual optional-AI and ranked-search boundary.

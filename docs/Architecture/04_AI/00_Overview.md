@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-The AI subsystem is future architecture only. The validated v0.2 release contains no AI providers, model execution, content enrichment, embedding generation, or AI-generated file or folder suggestions. The design below is not a shipped feature set or release commitment.
+v0.3 implements a deliberately narrow optional local-AI slice: provider-neutral application contracts, an Ollama HTTP provider, health/model discovery, selected-model settings, validated metadata-only organization suggestions, and local decision-history preference context. It does not implement content enrichment, Readers integration, embeddings, semantic search, caching, cloud providers, automatic organization, or filesystem mutation. Broad design material below remains future architecture unless it matches the v0.3 specifications.
 
 ---
 
@@ -17,6 +17,10 @@ The AI subsystem transforms extracted document information into meaningful knowl
 Using local and optional cloud-based language models, the AI subsystem analyzes documents, generates structured insights, classifies content, produces summaries, suggests filenames and folder locations, and creates semantic representations for search.
 
 The AI subsystem operates on information extracted by the Readers subsystem. It does not read files directly.
+
+### v0.3 concrete boundary
+
+The delivered provider is optional and receives only bounded result metadata. `OpenSorSe.Application.AI` owns provider-neutral contracts and safety validation; `OpenSorSe.AI` owns Ollama HTTP DTOs and local JSON decision history. The Desktop never calls HTTP directly, and model output remains untrusted until it becomes an application-owned preview. See [v0.3 specification 032](../../Implementation_Spec/v0.3/032_Optional_Ollama_and_Suggestion_Safety.md).
 
 ---
 

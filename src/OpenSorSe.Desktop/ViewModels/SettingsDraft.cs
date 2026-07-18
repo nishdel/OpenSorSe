@@ -12,6 +12,11 @@ public sealed class SettingsDraft : ViewModelBase
     private string? _logDirectoryPath;
     private LogLevel _minimumLogLevel;
     private int _retainedFileCount;
+    private bool _aiEnabled;
+    private string _aiEndpoint = "http://127.0.0.1:11434";
+    private string? _selectedAiModel;
+    private int _aiRequestTimeoutSeconds = 30;
+    private bool _preferenceAdaptationEnabled = true;
 
     /// <summary>
     /// Gets or sets whether local daily file logging is enabled.
@@ -49,6 +54,41 @@ public sealed class SettingsDraft : ViewModelBase
         set => SetProperty(ref _retainedFileCount, value);
     }
 
+    /// <summary>Gets or sets whether optional local AI suggestions may be requested.</summary>
+    public bool AiEnabled
+    {
+        get => _aiEnabled;
+        set => SetProperty(ref _aiEnabled, value);
+    }
+
+    /// <summary>Gets or sets the user-configured Ollama-compatible endpoint.</summary>
+    public string AiEndpoint
+    {
+        get => _aiEndpoint;
+        set => SetProperty(ref _aiEndpoint, value);
+    }
+
+    /// <summary>Gets or sets the model selected from the provider's installed-model list.</summary>
+    public string? SelectedAiModel
+    {
+        get => _selectedAiModel;
+        set => SetProperty(ref _selectedAiModel, value);
+    }
+
+    /// <summary>Gets or sets the bounded timeout for one optional local AI request.</summary>
+    public int AiRequestTimeoutSeconds
+    {
+        get => _aiRequestTimeoutSeconds;
+        set => SetProperty(ref _aiRequestTimeoutSeconds, value);
+    }
+
+    /// <summary>Gets or sets whether local decision history may influence concise suggestion context.</summary>
+    public bool PreferenceAdaptationEnabled
+    {
+        get => _preferenceAdaptationEnabled;
+        set => SetProperty(ref _preferenceAdaptationEnabled, value);
+    }
+
     /// <summary>
     /// Creates a draft copied from validated application settings.
     /// </summary>
@@ -63,6 +103,11 @@ public sealed class SettingsDraft : ViewModelBase
             LogDirectoryPath = settings.Logging.LogDirectoryPath,
             MinimumLogLevel = settings.Logging.MinimumLevel,
             RetainedFileCount = settings.Logging.RetainedFileCount,
+            AiEnabled = settings.Ai.Enabled,
+            AiEndpoint = settings.Ai.Endpoint,
+            SelectedAiModel = settings.Ai.SelectedModel,
+            AiRequestTimeoutSeconds = settings.Ai.RequestTimeoutSeconds,
+            PreferenceAdaptationEnabled = settings.Ai.PreferenceAdaptationEnabled,
         };
     }
 
@@ -78,6 +123,14 @@ public sealed class SettingsDraft : ViewModelBase
             LogDirectoryPath = string.IsNullOrWhiteSpace(LogDirectoryPath) ? null : LogDirectoryPath.Trim(),
             MinimumLevel = MinimumLogLevel,
             RetainedFileCount = RetainedFileCount,
+        },
+        Ai = new AiSettings
+        {
+            Enabled = AiEnabled,
+            Endpoint = AiEndpoint?.Trim() ?? string.Empty,
+            SelectedModel = string.IsNullOrWhiteSpace(SelectedAiModel) ? null : SelectedAiModel.Trim(),
+            RequestTimeoutSeconds = AiRequestTimeoutSeconds,
+            PreferenceAdaptationEnabled = PreferenceAdaptationEnabled,
         },
     };
 }

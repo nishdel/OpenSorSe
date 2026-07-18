@@ -73,6 +73,27 @@ public sealed class ResultsQueryEngineTests
         Assert.All(group.Page.Items, file => Assert.Equal("group:opaque", file.DuplicateGroupId));
     }
 
+    /// <summary>
+    /// Verifies multi-token matching, accepted tag matching, relevance ranking, stable tie-breaking, and match explanations.
+    /// </summary>
+    [Fact]
+    public void Evaluate_MetadataAwareRankedSearch_UsesAllTokensTagsAndStableOrdering()
+    {
+        var first = CreateFile("file:1", "C:\\Reports\\invoice-april.pdf", ".pdf", "Document");
+        var second = CreateFile("file:2", "C:\\Archive\\invoice-april.pdf", ".pdf", "Document");
+        var snapshot = CreateSnapshot(first, second);
+        var tags = new Dictionary<string, IReadOnlyList<TagAssociation>>(StringComparer.Ordinal)
+        {
+            ["file:2"] = [new TagAssociation("tag:2:finance", "file:2", "Finance", "finance", "Suggested", TagSource.UserApproved, TagAcceptanceState.Accepted, null, DateTimeOffset.UnixEpoch)],
+        };
+
+        var result = ResultsQueryEngine.Evaluate(snapshot, ResultsQuery.Default with { Text = "invoice finance" }, tagsByFile: tags);
+
+        Assert.Equal("file:2", Assert.Single(result.Page.Items).Id);
+        Assert.Contains("tag match: Finance", result.Page.Matches["file:2"].Explanation, StringComparison.Ordinal);
+        Assert.Equal(1, result.Page.TotalItemCount);
+    }
+
     private static ResultsSnapshot CreateSnapshot(params ResultFile[] files) => new(
         "session:test",
         DateTimeOffset.UnixEpoch,

@@ -145,6 +145,14 @@ public sealed class JsonConfigurationServiceTests
                 FileLoggingEnabled = false,
                 RetainedFileCount = 3,
             },
+            Ai = new AiSettings
+            {
+                Enabled = true,
+                Endpoint = "http://127.0.0.1:11434",
+                SelectedModel = "llama3:latest",
+                RequestTimeoutSeconds = 45,
+                PreferenceAdaptationEnabled = false,
+            },
         };
 
         try
@@ -159,6 +167,10 @@ public sealed class JsonConfigurationServiceTests
             Assert.Equal(LogLevel.Warning, reader.Current.Logging.MinimumLevel);
             Assert.False(reader.Current.Logging.FileLoggingEnabled);
             Assert.Equal(3, reader.Current.Logging.RetainedFileCount);
+            Assert.True(reader.Current.Ai.Enabled);
+            Assert.Equal("llama3:latest", reader.Current.Ai.SelectedModel);
+            Assert.Equal(45, reader.Current.Ai.RequestTimeoutSeconds);
+            Assert.False(reader.Current.Ai.PreferenceAdaptationEnabled);
         }
         finally
         {

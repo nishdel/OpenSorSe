@@ -10,6 +10,8 @@ using OpenSorSe.Scanner;
 using OpenSorSe.Rules;
 using OpenSorSe.Executor;
 using OpenSorSe.Application;
+using OpenSorSe.Application.AI;
+using OpenSorSe.AI;
 
 namespace OpenSorSe.Desktop;
 
@@ -68,6 +70,16 @@ public partial class App : Avalonia.Application
         services.AddSingleton<IProcessingSessionManager, ProcessingSessionManager>();
         services.AddSingleton<IApplicationController, ApplicationController>();
         services.AddSingleton<IResultsSnapshotProjector, ResultsSnapshotProjector>();
+        services.AddSingleton<HttpClient>();
+        services.AddSingleton<IAiSuggestionProvider, OllamaSuggestionProvider>();
+        services.AddSingleton<IDecisionHistoryStore>(serviceProvider =>
+        {
+            var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;
+            var settingsDirectory = Path.GetDirectoryName(settingsFilePath)
+                ?? throw new InvalidOperationException("The OpenSorSe settings path must include a directory.");
+            return new JsonDecisionHistoryStore(Path.Combine(settingsDirectory, "decision-history.json"), serviceProvider.GetRequiredService<OpenSorSe.Core.Logging.ILoggingService>());
+        });
+        services.AddSingleton<IAiSuggestionService, AiSuggestionService>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
         return services.BuildServiceProvider(new ServiceProviderOptions

@@ -138,6 +138,7 @@ public sealed class JsonConfigurationService : IConfigurationService
                 LogDirectoryPath = settings.Logging.LogDirectoryPath,
                 RetainedFileCount = settings.Logging.RetainedFileCount,
             },
+            Ai = settings.Ai,
         };
     }
 }

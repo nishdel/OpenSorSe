@@ -1,4 +1,5 @@
 using OpenSorSe.Application;
+using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
@@ -24,7 +25,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// Initializes the shell with its dashboard presentation model.
     /// </summary>
     public MainViewModel()
-        : this(new PreviewConfigurationService(), new LoggingService(), null, new ResultsSnapshotProjector(), true)
+        : this(new PreviewConfigurationService(), new LoggingService(), null, new ResultsSnapshotProjector(), null, true)
     {
     }
 
@@ -34,7 +35,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <param name="configurationService">The initialized configuration service used by the settings page.</param>
     /// <param name="loggingService">The centralized logging service used by the aggregate log viewer.</param>
     public MainViewModel(IConfigurationService configurationService, ILoggingService loggingService)
-        : this(configurationService, loggingService, null, new ResultsSnapshotProjector(), true)
+        : this(configurationService, loggingService, null, new ResultsSnapshotProjector(), null, true)
     {
     }
 
@@ -48,7 +49,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IConfigurationService configurationService,
         ILoggingService loggingService,
         IApplicationController applicationController)
-        : this(configurationService, loggingService, applicationController ?? throw new ArgumentNullException(nameof(applicationController)), new ResultsSnapshotProjector(), true)
+        : this(configurationService, loggingService, applicationController ?? throw new ArgumentNullException(nameof(applicationController)), new ResultsSnapshotProjector(), null, true)
     {
     }
 
@@ -69,6 +70,31 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             loggingService,
             applicationController ?? throw new ArgumentNullException(nameof(applicationController)),
             resultsSnapshotProjector ?? throw new ArgumentNullException(nameof(resultsSnapshotProjector)),
+            null,
+            true)
+    {
+    }
+
+    /// <summary>
+    /// Initializes the shell with all read-only processing and optional AI suggestion services.
+    /// </summary>
+    /// <param name="configurationService">The initialized configuration service used by Settings and optional AI workflows.</param>
+    /// <param name="loggingService">The centralized logging service used by Diagnostics.</param>
+    /// <param name="applicationController">The UI-agnostic controller for read-only processing requests.</param>
+    /// <param name="resultsSnapshotProjector">The application-layer projector for completed processing output.</param>
+    /// <param name="aiSuggestionService">The application-owned optional suggestion service.</param>
+    public MainViewModel(
+        IConfigurationService configurationService,
+        ILoggingService loggingService,
+        IApplicationController applicationController,
+        IResultsSnapshotProjector resultsSnapshotProjector,
+        IAiSuggestionService aiSuggestionService)
+        : this(
+            configurationService,
+            loggingService,
+            applicationController ?? throw new ArgumentNullException(nameof(applicationController)),
+            resultsSnapshotProjector ?? throw new ArgumentNullException(nameof(resultsSnapshotProjector)),
+            aiSuggestionService ?? throw new ArgumentNullException(nameof(aiSuggestionService)),
             true)
     {
     }
@@ -78,6 +104,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         ILoggingService loggingService,
         IApplicationController? applicationController,
         IResultsSnapshotProjector resultsSnapshotProjector,
+        IAiSuggestionService? aiSuggestionService,
         bool _)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
@@ -87,9 +114,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Dashboard = new DashboardViewModel(Navigate);
         FolderSelection = new FolderSelectionViewModel();
         ScanProgress = new ScanProgressViewModel();
-        Results = new ResultsViewModel();
+        Results = new ResultsViewModel(configurationService, aiSuggestionService);
         RuleEditor = new RuleEditorViewModel();
-        Settings = new SettingsViewModel(configurationService);
+        Settings = new SettingsViewModel(configurationService, aiSuggestionService);
         LogViewer = new LogViewerViewModel(loggingService);
         UndoHistory = new UndoHistoryViewModel();
         About = new AboutViewModel();
