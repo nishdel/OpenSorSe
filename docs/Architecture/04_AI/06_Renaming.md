@@ -12,6 +12,12 @@ Its primary purpose is to improve file organization by recommending clear, consi
 
 The Renaming component provides recommendations only. It does not rename files or modify the filesystem.
 
+## v0.9.1 implementation status
+
+Rename suggestions are disabled by default and require both the global AI switch and **Enable file rename suggestions**. A request covers exactly one known result identity and metadata-only context. The required JSON response must repeat that identity and return one safe filename, a bounded reason, and optional confidence between 0 and 1.
+
+Validation preserves the original extension exactly and rejects paths, separators, traversal, control or portable-invalid characters, reserved names, empty/no-change results, overly long values, and known sibling conflicts. Unknown JSON properties are ignored for forward compatibility, but all required fields and safety rules remain strict. Markdown-fenced or partially valid output is not accepted. The user may review, edit, accept, or reject the proposal; these actions do not rename the file.
+
 ---
 
 # Responsibilities

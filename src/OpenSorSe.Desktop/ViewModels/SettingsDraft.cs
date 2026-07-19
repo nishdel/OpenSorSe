@@ -12,12 +12,22 @@ public sealed class SettingsDraft : ViewModelBase
     private string? _logDirectoryPath;
     private LogLevel _minimumLogLevel;
     private int _retainedFileCount;
+    private bool _showAdvancedFeatures;
     private bool _aiEnabled;
+    private bool _fileRenameSuggestionsEnabled;
+    private bool _folderStructureSuggestionsEnabled;
     private string _aiEndpoint = "http://127.0.0.1:11434";
     private string? _selectedAiModel;
     private int _aiRequestTimeoutSeconds = 30;
     private bool _preferenceAdaptationEnabled = true;
     private bool _catalogEnabled;
+
+    /// <summary>Gets or sets whether specialist and troubleshooting interface features are shown.</summary>
+    public bool ShowAdvancedFeatures
+    {
+        get => _showAdvancedFeatures;
+        set => SetProperty(ref _showAdvancedFeatures, value);
+    }
 
     /// <summary>
     /// Gets or sets whether local daily file logging is enabled.
@@ -60,6 +70,20 @@ public sealed class SettingsDraft : ViewModelBase
     {
         get => _aiEnabled;
         set => SetProperty(ref _aiEnabled, value);
+    }
+
+    /// <summary>Gets or sets whether review-only file-rename suggestions are enabled.</summary>
+    public bool FileRenameSuggestionsEnabled
+    {
+        get => _fileRenameSuggestionsEnabled;
+        set => SetProperty(ref _fileRenameSuggestionsEnabled, value);
+    }
+
+    /// <summary>Gets or sets whether review-only folder-structure suggestions are enabled.</summary>
+    public bool FolderStructureSuggestionsEnabled
+    {
+        get => _folderStructureSuggestionsEnabled;
+        set => SetProperty(ref _folderStructureSuggestionsEnabled, value);
     }
 
     /// <summary>Gets or sets the user-configured Ollama-compatible endpoint.</summary>
@@ -111,7 +135,10 @@ public sealed class SettingsDraft : ViewModelBase
             LogDirectoryPath = settings.Logging.LogDirectoryPath,
             MinimumLogLevel = settings.Logging.MinimumLevel,
             RetainedFileCount = settings.Logging.RetainedFileCount,
+            ShowAdvancedFeatures = settings.Features.ShowAdvancedFeatures,
             AiEnabled = settings.Ai.Enabled,
+            FileRenameSuggestionsEnabled = settings.Ai.FileRenameSuggestionsEnabled,
+            FolderStructureSuggestionsEnabled = settings.Ai.FolderStructureSuggestionsEnabled,
             AiEndpoint = settings.Ai.Endpoint,
             SelectedAiModel = settings.Ai.SelectedModel,
             AiRequestTimeoutSeconds = settings.Ai.RequestTimeoutSeconds,
@@ -126,6 +153,10 @@ public sealed class SettingsDraft : ViewModelBase
     /// <returns>The settings ready for persistence.</returns>
     public ApplicationSettings ToSettings() => new()
     {
+        Features = new FeatureSettings
+        {
+            ShowAdvancedFeatures = ShowAdvancedFeatures,
+        },
         Logging = new LoggingSettings
         {
             FileLoggingEnabled = FileLoggingEnabled,
@@ -136,6 +167,8 @@ public sealed class SettingsDraft : ViewModelBase
         Ai = new AiSettings
         {
             Enabled = AiEnabled,
+            FileRenameSuggestionsEnabled = FileRenameSuggestionsEnabled,
+            FolderStructureSuggestionsEnabled = FolderStructureSuggestionsEnabled,
             Endpoint = AiEndpoint?.Trim() ?? string.Empty,
             SelectedModel = string.IsNullOrWhiteSpace(SelectedAiModel) ? null : SelectedAiModel.Trim(),
             RequestTimeoutSeconds = AiRequestTimeoutSeconds,

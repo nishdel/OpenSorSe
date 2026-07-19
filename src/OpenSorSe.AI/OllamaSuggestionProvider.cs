@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -38,9 +39,9 @@ public sealed class OllamaSuggestionProvider : IAiSuggestionProvider
             return new AiConnectionResult(AiAvailabilityState.Disabled, "AI assistance is disabled in Settings.", Array.Empty<AiModel>());
         }
 
-        if (!TryCreateEndpoint(settings.Endpoint, out var endpoint))
+        if (!TryCreateEndpoint(settings.Endpoint, out var endpoint) || settings.RequestTimeoutSeconds is < 1 or > 120)
         {
-            return new AiConnectionResult(AiAvailabilityState.Unavailable, "The Ollama endpoint is invalid.", Array.Empty<AiModel>());
+            return new AiConnectionResult(AiAvailabilityState.Unavailable, "The Ollama connection settings are invalid.", Array.Empty<AiModel>());
         }
 
         var started = Stopwatch.GetTimestamp();
@@ -108,12 +109,14 @@ public sealed class OllamaSuggestionProvider : IAiSuggestionProvider
     public async Task<AiProviderGenerationResult> GenerateAsync(AiProviderGenerationRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!TryCreateEndpoint(request.Endpoint, out var endpoint) ||
+        if (!Enum.IsDefined(request.Kind) ||
+            !TryCreateEndpoint(request.Endpoint, out var endpoint) ||
             string.IsNullOrWhiteSpace(request.Model) ||
             request.Model.Length > AiSettings.MaximumModelIdentifierLength ||
             request.Model.Any(char.IsControl) ||
             string.IsNullOrWhiteSpace(request.Prompt) ||
-            Encoding.UTF8.GetByteCount(request.Prompt) > OllamaTransportLimits.MaximumPromptBytes)
+            Encoding.UTF8.GetByteCount(request.Prompt) > OllamaTransportLimits.MaximumPromptBytes ||
+            request.Timeout <= TimeSpan.Zero || request.Timeout > TimeSpan.FromSeconds(120))
         {
             return new AiProviderGenerationResult(null, AiProviderFailureKind.Configuration, "The Ollama suggestion settings are incomplete.");
         }
@@ -131,6 +134,16 @@ public sealed class OllamaSuggestionProvider : IAiSuggestionProvider
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Ollama {SuggestionKind} request for model {Model} returned HTTP {StatusCode} after {ElapsedMilliseconds} ms.", request.Kind, request.Model, (int)response.StatusCode, ElapsedMilliseconds(started));
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new AiProviderGenerationResult(null, AiProviderFailureKind.ModelUnavailable, "The configured Ollama model is unavailable. Discover installed models in advanced Settings.");
+                }
+
+                if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
+                {
+                    return new AiProviderGenerationResult(null, AiProviderFailureKind.UnsupportedResponse, "The configured Ollama model could not provide the required structured response. Try another installed model.");
+                }
+
                 return new AiProviderGenerationResult(null, AiProviderFailureKind.HttpFailure, "Ollama could not complete the suggestion request.");
             }
 

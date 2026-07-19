@@ -187,7 +187,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Border IsVisible="{Binding HasContext}"
+                    <Border IsVisible="{Binding IsVisible}"
                             Padding="12"
                             BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                             BorderThickness="1"
@@ -196,61 +196,65 @@
                         <StackPanel Spacing="8">
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <StackPanel Spacing="2">
-                                    <TextBlock Text="Optional AI organization suggestions" FontSize="18" FontWeight="SemiBold" />
-                                    <TextBlock Text="Suggestions use only bounded metadata, are validated by OpenSorSe, and remain review-only. Nothing on this screen can change a file or folder."
+                                    <TextBlock Text="Optional AI suggestions" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="AI-generated suggestions are unverified. OpenSorSe sends bounded metadata only, validates the complete response, and never changes a file or folder from this panel."
                                                TextWrapping="Wrap" />
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="Suggest for selected file" Command="{Binding GenerateSuggestionCommand}" />
+                                <Button Grid.Column="1"
+                                        IsVisible="{Binding IsBusy}"
+                                        Content="Cancel AI request"
+                                        Command="{Binding CancelAiOperationCommand}" />
                             </Grid>
                             <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding IsBusy}" />
                             <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
-                            <StackPanel IsVisible="{Binding HasSuggestion}" Spacing="8">
-                                <TextBlock Text="Review the proposal before recording a decision. Recording a decision improves only local suggestion context; it never performs the proposed operation."
-                                           TextWrapping="Wrap" />
+                            <Border IsVisible="{Binding IsFileRenameVisible}"
+                                    Padding="8"
+                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                    BorderThickness="1">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Rename proposal" FontWeight="SemiBold" />
-                                    <TextBox Text="{Binding ProposedFileName, Mode=TwoWay}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Content="Accept or edit rename" Command="{Binding AcceptRenameCommand}" />
-                                        <Button Content="Reject rename" Command="{Binding RejectRenameCommand}" />
+                                    <TextBlock Text="AI file-rename suggestion" FontWeight="SemiBold" />
+                                    <TextBlock Text="For the explicitly selected known file. The extension is preserved and no directory change is allowed."
+                                               TextWrapping="Wrap" />
+                                    <Button Content="Suggest a name for the selected file" Command="{Binding GenerateSuggestionCommand}" />
+                                    <StackPanel IsVisible="{Binding HasRenameSuggestion}" Spacing="4">
+                                        <TextBlock Text="Review or edit the unverified proposal" FontWeight="SemiBold" />
+                                        <TextBox Text="{Binding ProposedFileName, Mode=TwoWay}" />
+                                        <TextBlock Text="{Binding RenameReason}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding RenameConfidenceText}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Record accept or edit" Command="{Binding AcceptRenameCommand}" />
+                                            <Button Content="Reject suggestion" Command="{Binding RejectRenameCommand}" />
+                                        </StackPanel>
+                                        <TextBlock Text="Recording a review decision does not rename the file." TextWrapping="Wrap" />
                                     </StackPanel>
                                 </StackPanel>
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Tag proposal" FontWeight="SemiBold" />
-                                    <TextBox Text="{Binding ProposedTagsText, Mode=TwoWay}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Content="Accept tags" Command="{Binding AcceptTagsCommand}" />
-                                        <Button Content="Reject tags" Command="{Binding RejectTagsCommand}" />
-                                    </StackPanel>
-                                </StackPanel>
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Category proposal" FontWeight="SemiBold" />
-                                    <TextBox Text="{Binding ProposedCategory, Mode=TwoWay}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Content="Accept category" Command="{Binding AcceptCategoryCommand}" />
-                                        <Button Content="Reject category" Command="{Binding RejectCategoryCommand}" />
-                                    </StackPanel>
-                                </StackPanel>
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Destination proposal (relative path)" FontWeight="SemiBold" />
-                                    <TextBox Text="{Binding ProposedDestinationFolder, Mode=TwoWay}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Content="Accept destination" Command="{Binding AcceptDestinationCommand}" />
-                                        <Button Content="Reject destination" Command="{Binding RejectDestinationCommand}" />
-                                    </StackPanel>
-                                </StackPanel>
-                                <TextBlock Text="{Binding SuggestionExplanation}" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <Border Padding="8" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+                            </Border>
+                            <Border IsVisible="{Binding IsFolderStructureVisible}"
+                                    Padding="8"
+                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                    BorderThickness="1">
                                 <StackPanel Spacing="6">
-                                    <TextBlock Text="Folder-structure preview" FontWeight="SemiBold" />
-                                    <TextBlock Text="Proposes relative destination folders for up to 25 files on the current results page. It is a preview only: OpenSorSe will not create folders or move files."
+                                    <TextBlock Text="AI folder-structure suggestion" FontWeight="SemiBold" />
+                                    <TextBlock Text="Proposes a logical hierarchy and known-file assignments from bounded metadata on the current Results page. It cannot create folders or move files."
                                                TextWrapping="Wrap" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <Button Content="Suggest structure for this page" Command="{Binding GenerateFolderStructureCommand}" />
-                                        <Button Content="Accept plan" Command="{Binding AcceptFolderStructureCommand}" />
-                                        <Button Content="Reject plan" Command="{Binding RejectFolderStructureCommand}" />
+                                        <Button Content="Record acceptance" Command="{Binding AcceptFolderStructureCommand}" />
+                                        <Button Content="Reject suggestion" Command="{Binding RejectFolderStructureCommand}" />
                                     </StackPanel>
+                                    <TextBlock IsVisible="{Binding HasFolderStructurePlan}" Text="Suggested logical folders" FontWeight="SemiBold" />
+                                    <ItemsControl IsVisible="{Binding HasFolderStructurePlan}" ItemsSource="{Binding FolderStructurePlan.Folders}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="ai:AiSuggestedFolder">
+                                                <StackPanel Margin="0,2" Spacing="2">
+                                                    <TextBlock Text="{Binding LogicalPath}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Confidence, StringFormat='Model confidence estimate: {0:P0} (not certainty)'}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock IsVisible="{Binding HasFolderStructurePlan}" Text="Known-file assignments" FontWeight="SemiBold" />
                                     <ItemsControl IsVisible="{Binding HasFolderStructurePlan}" ItemsSource="{Binding StructureItems}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="ai:AiFolderStructurePlanItem">
@@ -261,7 +265,8 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock IsVisible="{Binding HasFolderStructurePlan}" Text="{Binding FolderStructureExplanation}" TextWrapping="Wrap" />
+                                    <TextBlock IsVisible="{Binding HasFolderStructurePlan}" Text="{Binding FolderStructureReason}" TextWrapping="Wrap" />
+                                    <TextBlock IsVisible="{Binding HasFolderStructurePlan}" Text="Review decisions are local preferences only. No folder is created and no file is moved." TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>

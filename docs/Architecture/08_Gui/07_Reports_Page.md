@@ -4,7 +4,7 @@
 
 ## Implementation status
 
-Future design only. OpenSorSe 0.9 has no Reports navigation destination, report generator, export command, persistent comparison report, or report file writes. Current snapshot comparison is an on-screen, bounded, in-memory metadata analysis.
+Future design only. OpenSorSe 0.9.1 has no Reports navigation destination, report generator, export command, persistent comparison report, or report file writes. Current snapshot comparison is an on-screen, bounded, in-memory metadata analysis.
 
 ---
 

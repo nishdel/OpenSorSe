@@ -14,7 +14,7 @@ When multiple solutions are technically valid, these principles should help dete
 
 ## Current Release Boundary
 
-The v0.9 release is a local-first, read-only file analysis application. It does not modify selected user files. It offers optional validated Ollama previews; an opt-in bounded, named, scope-aware historical catalog; user-managed application metadata tags; named deterministic catalog-query presets; and in-memory stored-metadata comparison. Comparison is historical and never verifies a stored path. OpenSorSe does not implement OCR, content readers, embedding-based semantic search, automatic organization, monitoring, report export, or operation execution. References below to broader automation remain future direction.
+The v0.9.1 release is a local-first, read-only file analysis application. It does not modify selected user files. AI and advanced interface features are independently disabled by default. The only AI capabilities are constrained, metadata-only file-rename and logical folder-structure proposals, each separately enabled, strictly validated, clearly identified as unverified, and retained as review decisions only. Disabling AI prevents model communication. The release also retains the opt-in bounded historical catalog, user-managed application metadata tags, named deterministic catalog-query presets, and in-memory stored-metadata comparison. OpenSorSe does not implement OCR, content readers, embedding-based semantic search, automatic organization, monitoring, report export, operation execution, or plugins. References below to broader automation remain future direction.
 
 ---
 

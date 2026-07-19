@@ -1,12 +1,12 @@
 # Safety and Privacy
 
-OpenSorSe 0.9 is a local-first, read-only analysis application. The current Desktop workflow reads only folders the user selects and does not expose a command that mutates a scanned file.
+OpenSorSe 0.9.1 is a local-first, read-only analysis application. The current Desktop workflow reads only folders the user selects and does not expose a command that mutates a scanned file.
 
 ## Scanned user files
 
 The current workflow does not rename, move, delete, overwrite, copy, edit, execute, open, reveal, change permissions, change timestamps, or create sidecars beside scanned files. Scanner, metadata, and hashing services skip filesystem reparse points and symbolic links. Results search, catalog search, and snapshot comparison operate on already captured metadata and never re-open a stored path.
 
-The repository retains historical `OpenSorSe.Executor` move/copy/undo components and their isolated tests. They are not registered by the v0.9 Desktop, are not consumed by the Application pipeline, and have no user-facing entry point.
+The repository retains historical `OpenSorSe.Executor` move/copy/undo components and their isolated tests. They are not registered by the v0.9.1 Desktop, are not consumed by the Application pipeline, and have no user-facing entry point. AI application and provider services do not reference Executor APIs.
 
 ## OpenSorSe-owned writes
 
@@ -34,7 +34,9 @@ Diagnostic messages omit raw exception details and file contents. Paths may appe
 
 ## Network and telemetry
 
-Core scanning and catalog workflows perform no network communication and no telemetry is present. Optional AI suggestions use an explicitly enabled, user-configured Ollama-compatible HTTP or HTTPS endpoint. Those requests contain metadata-only prompts bounded to 128 KiB, not file contents; a non-local endpoint receives that metadata over the configured connection. Response bodies are limited to 1 MiB and model discovery publishes at most 100 validated identifiers. AI output remains review-only.
+Core scanning and catalog workflows perform no network communication and no telemetry is present. AI is disabled by default. While disabled, AI controls are hidden, provider detection is not performed, and provider/model requests are rejected at the application boundary before transport. Optional suggestions use an explicitly enabled, user-configured Ollama-compatible HTTP or HTTPS endpoint and a separately enabled capability.
+
+Rename requests include only the selected display filename, extension, safe deterministic metadata, bounded nearby names, and optional concise preferences. Folder-structure requests include only a deterministic maximum of 25 selected metadata records, bounded existing logical folder names, and optional concise preferences. Absolute paths and file contents are not sent. A non-local endpoint receives this bounded metadata over the configured connection. Prompts are limited to 128 KiB, responses to 1 MiB, and model discovery to 100 validated identifiers. Model output is untrusted and rejected as a whole unless its strict JSON contract and safety rules pass. Accepted or edited suggestions only create local review-decision records; they never invoke a filesystem operation.
 
 ## Recovery
 

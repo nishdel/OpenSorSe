@@ -8,6 +8,11 @@ namespace OpenSorSe.Core.Configuration;
 public sealed class ApplicationSettings
 {
     /// <summary>
+    /// Gets or initializes application-wide feature-presentation settings.
+    /// </summary>
+    public FeatureSettings Features { get; init; } = new();
+
+    /// <summary>
     /// Gets or initializes the logging settings.
     /// </summary>
     public LoggingSettings Logging { get; init; } = new();
@@ -30,6 +35,13 @@ public sealed class ApplicationSettings
     /// </exception>
     public void Validate()
     {
+        if (Features is null)
+        {
+            throw new ConfigurationValidationException("Feature settings are required.");
+        }
+
+        Features.Validate();
+
         if (Logging is null)
         {
             throw new ConfigurationValidationException("Logging settings are required.");
@@ -51,6 +63,31 @@ public sealed class ApplicationSettings
 
         Catalog.Validate();
     }
+}
+
+/// <summary>
+/// Defines application-wide interface-complexity choices independently from AI enablement.
+/// </summary>
+public sealed class FeatureSettings
+{
+    /// <summary>Gets or initializes whether specialist and troubleshooting features are shown.</summary>
+    public bool ShowAdvancedFeatures { get; init; }
+
+    /// <summary>Validates feature settings reserved for compatible expansion.</summary>
+    public void Validate()
+    {
+    }
+}
+
+/// <summary>
+/// Identifies an independently enabled AI capability.
+/// </summary>
+public enum AiCapability
+{
+    /// <summary>Review-only suggestions for one known file name.</summary>
+    FileRenameSuggestions,
+    /// <summary>Review-only logical folder hierarchies for known file metadata.</summary>
+    FolderStructureSuggestions,
 }
 
 /// <summary>
@@ -84,6 +121,12 @@ public sealed class AiSettings
     /// </summary>
     public bool Enabled { get; init; }
 
+    /// <summary>Gets or initializes whether review-only file-rename suggestions are enabled.</summary>
+    public bool FileRenameSuggestionsEnabled { get; init; }
+
+    /// <summary>Gets or initializes whether review-only folder-structure suggestions are enabled.</summary>
+    public bool FolderStructureSuggestionsEnabled { get; init; }
+
     /// <summary>
     /// Gets or initializes the Ollama-compatible endpoint. The default is the local Ollama endpoint.
     /// </summary>
@@ -103,6 +146,18 @@ public sealed class AiSettings
     /// Gets or initializes whether locally recorded approved patterns may be supplied as concise request context.
     /// </summary>
     public bool PreferenceAdaptationEnabled { get; init; } = true;
+
+    /// <summary>
+    /// Gets whether the master switch and the specified capability switch are both enabled.
+    /// </summary>
+    /// <param name="capability">The capability to evaluate.</param>
+    /// <returns><see langword="true"/> only when the capability may be considered for use.</returns>
+    public bool IsCapabilityEnabled(AiCapability capability) => Enabled && capability switch
+    {
+        AiCapability.FileRenameSuggestions => FileRenameSuggestionsEnabled,
+        AiCapability.FolderStructureSuggestions => FolderStructureSuggestionsEnabled,
+        _ => false,
+    };
 
     /// <summary>
     /// Validates the supported local AI configuration values.

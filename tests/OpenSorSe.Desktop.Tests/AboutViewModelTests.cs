@@ -16,7 +16,7 @@ public sealed class AboutViewModelTests
         var viewModel = new AboutViewModel();
 
         Assert.Equal("OpenSorSe", viewModel.ApplicationName);
-        Assert.Equal("0.9.0", viewModel.Version);
+        Assert.Equal("0.9.1", viewModel.Version);
         Assert.Equal("MIT License", viewModel.License);
         Assert.NotEmpty(viewModel.Acknowledgements);
     }

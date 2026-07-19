@@ -6,41 +6,86 @@
     <ScrollViewer>
         <StackPanel Spacing="12">
             <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" />
-            <TextBlock Text="Application logging" FontSize="18" FontWeight="SemiBold" />
-            <StackPanel Spacing="4">
-                <CheckBox Content="Enable local daily diagnostic logging" IsChecked="{Binding Draft.FileLoggingEnabled, Mode=TwoWay}" />
-                <TextBlock Text="Writes OpenSorSe application diagnostics to its local log folder. This does not read or change scanned user files."
-                           TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <TextBlock Text="Diagnostic log folder" FontWeight="SemiBold" />
-                <TextBlock Text="Optional absolute folder for OpenSorSe application log files. Leave empty to use the default local application-data folder."
-                           TextWrapping="Wrap" />
-                <TextBox PlaceholderText="Optional absolute log directory" Text="{Binding Draft.LogDirectoryPath, Mode=TwoWay}" />
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <TextBlock Text="{Binding DailyLogRetentionLabel}" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding DailyLogRetentionDescription}" TextWrapping="Wrap" />
-                <TextBox PlaceholderText="At least 1" Text="{Binding Draft.RetainedFileCount, Mode=TwoWay}" />
-                <TextBlock Text="{Binding DailyLogRetentionValidation}" TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Spacing="4">
-                <TextBlock Text="Minimum diagnostic detail level" FontWeight="SemiBold" />
-                <TextBlock Text="Controls the least severe OpenSorSe application events recorded in diagnostic logs."
-                           TextWrapping="Wrap" />
-                <ComboBox ItemsSource="{Binding AvailableLogLevels}" SelectedItem="{Binding Draft.MinimumLogLevel, Mode=TwoWay}" />
-            </StackPanel>
+
+            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="General settings" FontSize="18" FontWeight="SemiBold" />
+                    <CheckBox Content="Keep bounded completed scan snapshots locally"
+                              IsChecked="{Binding Draft.CatalogEnabled, Mode=TwoWay}" />
+                    <TextBlock Text="Off by default. When enabled, OpenSorSe stores display-safe file paths, metadata, and accepted tags only in its own local application-data folder. It never writes beside scanned folders or changes their files."
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
             <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="Optional local AI (Ollama)" FontSize="18" FontWeight="SemiBold" />
-                    <CheckBox Content="Enable optional AI-assisted suggestions"
+                    <TextBlock Text="Optional AI assistance" FontSize="18" FontWeight="SemiBold" />
+                    <CheckBox Content="Enable AI features"
                               IsChecked="{Binding Draft.AiEnabled, Mode=TwoWay}" />
-                    <TextBlock Text="AI remains optional. Scanning, results, duplicates, diagnostics, and ranked search continue to work when it is disabled or unavailable. Suggestions never rename, move, delete, or create files or folders."
+                    <TextBlock Text="Off by default. When disabled, OpenSorSe hides AI actions and does not detect providers, discover models, or send model requests. Scanning, results, duplicates, catalog, search, tags, rules, and settings remain available."
                                TextWrapping="Wrap" />
+                    <StackPanel IsVisible="{Binding IsAiCapabilitySettingsVisible}" Spacing="6">
+                        <TextBlock Text="AI capabilities" FontWeight="SemiBold" />
+                        <CheckBox Content="Enable file rename suggestions"
+                                  IsChecked="{Binding Draft.FileRenameSuggestionsEnabled, Mode=TwoWay}" />
+                        <CheckBox Content="Enable folder structure suggestions"
+                                  IsChecked="{Binding Draft.FolderStructureSuggestionsEnabled, Mode=TwoWay}" />
+                        <TextBlock Text="Each capability is independent. AI-generated results are unverified proposals for review only and never rename, move, create, delete, or overwrite files or folders."
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Interface complexity" FontSize="18" FontWeight="SemiBold" />
+                    <CheckBox Content="Show advanced features"
+                              IsChecked="{Binding Draft.ShowAdvancedFeatures, Mode=TwoWay}" />
+                    <TextBlock Text="Shows specialist comparison, diagnostics, operation-history, logging, and provider controls. Hidden values remain saved and ordinary workflows stay available."
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border IsVisible="{Binding IsAdvancedSettingsVisible}"
+                    Padding="12"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Advanced diagnostics and logging" FontSize="18" FontWeight="SemiBold" />
+                    <StackPanel Spacing="4">
+                        <CheckBox Content="Enable local daily diagnostic logging" IsChecked="{Binding Draft.FileLoggingEnabled, Mode=TwoWay}" />
+                        <TextBlock Text="Writes OpenSorSe application diagnostics to its local log folder. This does not read or change scanned user files."
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Diagnostic log folder" FontWeight="SemiBold" />
+                        <TextBlock Text="Optional absolute folder for OpenSorSe application log files. Leave empty to use the default local application-data folder."
+                                   TextWrapping="Wrap" />
+                        <TextBox PlaceholderText="Optional absolute log directory" Text="{Binding Draft.LogDirectoryPath, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding DailyLogRetentionLabel}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding DailyLogRetentionDescription}" TextWrapping="Wrap" />
+                        <TextBox PlaceholderText="At least 1" Text="{Binding Draft.RetainedFileCount, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding DailyLogRetentionValidation}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Minimum diagnostic detail level" FontWeight="SemiBold" />
+                        <ComboBox ItemsSource="{Binding AvailableLogLevels}" SelectedItem="{Binding Draft.MinimumLogLevel, Mode=TwoWay}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border IsVisible="{Binding IsAdvancedAiSettingsVisible}"
+                    Padding="12"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Advanced AI provider settings (Ollama)" FontSize="18" FontWeight="SemiBold" />
                     <StackPanel Spacing="4">
                         <TextBlock Text="Ollama endpoint" FontWeight="SemiBold" />
                         <TextBox Text="{Binding Draft.AiEndpoint, Mode=TwoWay}" ToolTip.Tip="Default: http://127.0.0.1:11434" />
-                        <TextBlock Text="The default endpoint is local. A custom remote endpoint can receive the filenames, extensions, categories, selected folder names, and concise approved preferences supplied for a request. OpenSorSe does not upload file contents."
+                        <TextBlock Text="Ollama is externally managed. The default endpoint is local. A custom remote endpoint receives bounded filenames, extensions, categories, logical folder names, and concise preference values; OpenSorSe does not send file contents or absolute paths."
                                    TextWrapping="Wrap" />
                     </StackPanel>
                     <StackPanel Spacing="4">
@@ -53,7 +98,7 @@
                                   SelectedItem="{Binding Draft.SelectedAiModel, Mode=TwoWay}" />
                         <TextBlock Text="Use Discover models to populate this list, then save the selected model." TextWrapping="Wrap" />
                     </StackPanel>
-                    <CheckBox Content="Use locally recorded review decisions to provide concise preference context"
+                    <CheckBox Content="Use locally recorded review decisions as concise preference context"
                               IsChecked="{Binding Draft.PreferenceAdaptationEnabled, Mode=TwoWay}" />
                     <WrapPanel>
                         <Button Margin="0,0,8,8" Content="Test connection" Command="{Binding TestAiConnectionCommand}" />
@@ -66,17 +111,10 @@
                     <TextBlock Text="{Binding AiStatusText}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
-            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Local results catalog" FontSize="18" FontWeight="SemiBold" />
-                    <CheckBox Content="Keep bounded completed scan snapshots locally"
-                              IsChecked="{Binding Draft.CatalogEnabled, Mode=TwoWay}" />
-                    <TextBlock Text="Off by default. When enabled, OpenSorSe stores display-safe file paths, metadata, and accepted tags only in its own local application-data folder. It never writes beside scanned folders or changes their files."
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-            <TextBlock Text="Restart required after saving to apply active logging changes."
-                       IsVisible="{Binding RestartRequired}" TextWrapping="Wrap" />
+
+            <TextBlock Text="Restart required only to apply active logging changes."
+                       IsVisible="{Binding RestartRequired}"
+                       TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Content="Restore defaults" Command="{Binding RestoreDefaultsCommand}" />
                 <Button Content="Discard changes" Command="{Binding CancelCommand}" />

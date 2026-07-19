@@ -12,9 +12,11 @@ Its purpose is to allow users to customize OpenSorSe's behavior, configure subsy
 
 The Settings Page presents and modifies configuration but does not implement application behavior.
 
-## v0.9 implementation status
+## v0.9.1 implementation status
 
-The delivered page includes diagnostic logging, optional Ollama-compatible settings, and the opt-in local catalog toggle. AI controls cover enabled state, endpoint, timeout, installed-model discovery/selection, connection status, preference-adaptation toggle, explicit cancellation, and a separately confirmed decision-history reset. The ViewModel delegates discovery and reset to application services; it contains no HTTP transport or persistence implementation. Remote endpoint privacy guidance is visible in the UI. Import/export and the broader categories below remain future design.
+The delivered page follows the existing explicit-save model. General controls include the opt-in catalog, **Enable AI features**, and **Show advanced features**, all default off. When the editable AI master is on, independent rename and folder-structure capability controls appear immediately within Settings. Detailed logging requires advanced mode. Endpoint, timeout, installed-model discovery/selection, preference adaptation, cancellation, connection status, and separately confirmed decision-history reset require both AI and advanced mode.
+
+Saving publishes the central feature state to navigation and Results. If an advanced page is currently selected when advanced mode is saved off, the shell safely selects Dashboard. Hidden settings are preserved rather than reset. The ViewModel delegates provider work and persistence to application services; it contains no HTTP transport or filesystem business logic. Import/export, localization, provider plugins, and the broader categories below remain future design.
 
 ---
 

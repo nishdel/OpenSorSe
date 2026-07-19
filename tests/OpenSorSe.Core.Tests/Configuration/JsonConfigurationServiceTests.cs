@@ -45,6 +45,36 @@ public sealed class JsonConfigurationServiceTests
         await service.InitializeAsync(CancellationToken.None);
 
         Assert.Equal(LogLevel.Information, service.Current.Logging.MinimumLevel);
+        Assert.False(service.Current.Features.ShowAdvancedFeatures);
+        Assert.False(service.Current.Ai.Enabled);
+        Assert.False(service.Current.Ai.FileRenameSuggestionsEnabled);
+        Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
+    }
+
+    /// <summary>Verifies pre-v0.9.1 JSON keeps established values while new opt-ins receive safe defaults.</summary>
+    [Fact]
+    public async Task InitializeAsync_PreV091Settings_DefaultsNewSwitchesOffWithoutResettingProviderValues()
+    {
+        var settingsFilePath = Path.Combine(Path.GetTempPath(), $"opensorse-{Guid.NewGuid():N}.json");
+        await File.WriteAllTextAsync(settingsFilePath, """{"Ai":{"Enabled":true,"Endpoint":"http://127.0.0.1:11434","SelectedModel":"existing-model","RequestTimeoutSeconds":45}}""");
+
+        try
+        {
+            var service = new JsonConfigurationService(settingsFilePath, _ => null);
+
+            await service.InitializeAsync(CancellationToken.None);
+
+            Assert.True(service.Current.Ai.Enabled);
+            Assert.Equal("existing-model", service.Current.Ai.SelectedModel);
+            Assert.Equal(45, service.Current.Ai.RequestTimeoutSeconds);
+            Assert.False(service.Current.Ai.FileRenameSuggestionsEnabled);
+            Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
+            Assert.False(service.Current.Features.ShowAdvancedFeatures);
+        }
+        finally
+        {
+            File.Delete(settingsFilePath);
+        }
     }
 
     /// <summary>
@@ -195,6 +225,10 @@ public sealed class JsonConfigurationServiceTests
         var settingsFilePath = Path.Combine(directoryPath, "settings.json");
         var settings = new ApplicationSettings
         {
+            Features = new FeatureSettings
+            {
+                ShowAdvancedFeatures = true,
+            },
             Logging = new LoggingSettings
             {
                 MinimumLevel = LogLevel.Warning,
@@ -204,6 +238,8 @@ public sealed class JsonConfigurationServiceTests
             Ai = new AiSettings
             {
                 Enabled = true,
+                FileRenameSuggestionsEnabled = true,
+                FolderStructureSuggestionsEnabled = false,
                 Endpoint = "http://127.0.0.1:11434",
                 SelectedModel = "llama3:latest",
                 RequestTimeoutSeconds = 45,
@@ -228,6 +264,9 @@ public sealed class JsonConfigurationServiceTests
             Assert.False(reader.Current.Logging.FileLoggingEnabled);
             Assert.Equal(3, reader.Current.Logging.RetainedFileCount);
             Assert.True(reader.Current.Ai.Enabled);
+            Assert.True(reader.Current.Features.ShowAdvancedFeatures);
+            Assert.True(reader.Current.Ai.FileRenameSuggestionsEnabled);
+            Assert.False(reader.Current.Ai.FolderStructureSuggestionsEnabled);
             Assert.Equal("llama3:latest", reader.Current.Ai.SelectedModel);
             Assert.Equal(45, reader.Current.Ai.RequestTimeoutSeconds);
             Assert.False(reader.Current.Ai.PreferenceAdaptationEnabled);

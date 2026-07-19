@@ -1,6 +1,6 @@
 # User Flow
 
-> This document describes the validated v0.9 read-only user workflow.
+> This document describes the validated v0.9.1 read-only user workflow.
 
 ---
 

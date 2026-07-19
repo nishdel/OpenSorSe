@@ -36,7 +36,7 @@ The project may later explore content readers, OCR, AI assistance, richer search
 
 ## Current non-goals
 
-The validated v0.9 release does not:
+The v0.9.1 release does not:
 
 - Modify, delete, move, rename, or overwrite selected user files.
 - Perform OCR, semantic search, content extraction, live monitoring, or automatic operation execution. Optional Ollama provides validated previews only.

@@ -122,7 +122,7 @@ public sealed class OllamaSuggestionProviderTests
         var provider = new OllamaSuggestionProvider(client, new LoggingService());
 
         var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
-            AiSuggestionKind.FileOrganization,
+            AiSuggestionKind.FileRename,
             "http://127.0.0.1:11434",
             "llama3:latest",
             "redacted test prompt",
@@ -130,6 +130,51 @@ public sealed class OllamaSuggestionProviderTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal("{\"fileName\":null}", result.StructuredJson);
+    }
+
+    /// <summary>Verifies model and structured-output HTTP failures receive distinct actionable outcomes.</summary>
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, AiProviderFailureKind.ModelUnavailable)]
+    [InlineData(HttpStatusCode.BadRequest, AiProviderFailureKind.UnsupportedResponse)]
+    [InlineData(HttpStatusCode.UnprocessableEntity, AiProviderFailureKind.UnsupportedResponse)]
+    [InlineData(HttpStatusCode.InternalServerError, AiProviderFailureKind.HttpFailure)]
+    public async Task GenerateAsync_HttpFailure_MapsControlledFailure(HttpStatusCode statusCode, AiProviderFailureKind expected)
+    {
+        using var client = new HttpClient(new StubHandler(_ => Json(statusCode, "{}")));
+        var provider = new OllamaSuggestionProvider(client, new LoggingService());
+
+        var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
+            AiSuggestionKind.FileRename,
+            "http://127.0.0.1:11434",
+            "model",
+            "prompt",
+            TimeSpan.FromSeconds(1)), CancellationToken.None);
+
+        Assert.Equal(expected, result.FailureKind);
+        Assert.Null(result.StructuredJson);
+    }
+
+    /// <summary>Verifies an unknown internal capability value is blocked before transport.</summary>
+    [Fact]
+    public async Task GenerateAsync_UnknownSuggestionKind_ReturnsConfigurationFailureWithoutRequest()
+    {
+        var requestCount = 0;
+        using var client = new HttpClient(new StubHandler(_ =>
+        {
+            requestCount++;
+            return Json(HttpStatusCode.OK, "{}");
+        }));
+        var provider = new OllamaSuggestionProvider(client, new LoggingService());
+
+        var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
+            (AiSuggestionKind)999,
+            "http://127.0.0.1:11434",
+            "model",
+            "prompt",
+            TimeSpan.FromSeconds(1)), CancellationToken.None);
+
+        Assert.Equal(AiProviderFailureKind.Configuration, result.FailureKind);
+        Assert.Equal(0, requestCount);
     }
 
     /// <summary>Verifies invalid model identifiers fail before any provider request is sent.</summary>
@@ -145,7 +190,7 @@ public sealed class OllamaSuggestionProviderTests
         var provider = new OllamaSuggestionProvider(client, new LoggingService());
 
         var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
-            AiSuggestionKind.FileOrganization,
+            AiSuggestionKind.FileRename,
             "http://127.0.0.1:11434",
             "bad\nmodel",
             "prompt",
@@ -168,7 +213,7 @@ public sealed class OllamaSuggestionProviderTests
         var provider = new OllamaSuggestionProvider(client, new LoggingService());
 
         var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
-            AiSuggestionKind.FileOrganization,
+            AiSuggestionKind.FileRename,
             "http://127.0.0.1:11434",
             "model",
             new string('p', OllamaTransportLimits.MaximumPromptBytes + 1),
@@ -187,7 +232,7 @@ public sealed class OllamaSuggestionProviderTests
         var provider = new OllamaSuggestionProvider(client, new LoggingService());
 
         var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
-            AiSuggestionKind.FileOrganization,
+            AiSuggestionKind.FileRename,
             "http://127.0.0.1:11434",
             "model",
             "prompt",
@@ -209,7 +254,7 @@ public sealed class OllamaSuggestionProviderTests
             return Json(HttpStatusCode.OK, "{}");
         }));
         var provider = new OllamaSuggestionProvider(client, new LoggingService());
-        var request = new AiProviderGenerationRequest(AiSuggestionKind.FileOrganization, "http://127.0.0.1:11434", "model", "prompt", TimeSpan.FromMilliseconds(25));
+        var request = new AiProviderGenerationRequest(AiSuggestionKind.FileRename, "http://127.0.0.1:11434", "model", "prompt", TimeSpan.FromMilliseconds(25));
 
         var timeout = await provider.GenerateAsync(request, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();

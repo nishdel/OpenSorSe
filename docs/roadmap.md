@@ -6,7 +6,7 @@
 
 OpenSorSe is a local-first, read-only desktop application for analyzing selected folders and reviewing the results safely. The project is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
-The current application does not modify selected user files. It provides optional local Ollama suggestions and metadata-aware ranked search, but not OCR, content readers, embeddings, or semantic search.
+The current v0.9.1 application does not modify selected user files. It provides default-off, capability-specific local Ollama suggestions and metadata-aware ranked search, but not OCR, content readers, embeddings, semantic search, automatic organization, or plugins.
 
 ## Completed releases
 
@@ -98,6 +98,20 @@ Complete.
 - Cancellation, change-kind/path filtering, a 4,000-change service bound, and a 500-row presentation bound.
 - Baseline/current opening reuses the existing historical Results workflow and never accesses a stored file path.
 - No live monitoring, rename inference, content/hash comparison, reports/export, database, or file mutation.
+
+## v0.9.1 - Optional AI and progressive feature visibility
+
+Complete.
+
+- Independent default-off **Enable AI features** and **Show advanced features** settings with centralized feature requirements for views, navigation, commands, and application services.
+- Independent default-off rename and folder-structure capability switches; disabled capabilities cannot reach the provider even through direct internal calls.
+- Deterministic, bounded, metadata-only prompts for one-file rename and selected-file logical hierarchy proposals.
+- Strict JSON parsing and whole-response validation for identities, fields, counts, confidence, filenames, path components, hierarchy graphs, and duplicate suggestions.
+- Review/edit/accept/reject decision workflow only; no AI proposal creates a folder or renames, moves, deletes, overwrites, or edits a file.
+- Advanced classification for historical comparison, detailed diagnostics, operation-history internals, logging detail, and provider controls while core workflows remain regular.
+- Ollama remains optional, externally managed, and isolated from all non-AI workflows.
+
+This refinement is not the v1.0 plugin, localization, packaging, database, semantic-search, or cross-platform release programme.
 
 ## Future release ideas
 

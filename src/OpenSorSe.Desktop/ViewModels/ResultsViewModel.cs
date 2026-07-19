@@ -68,7 +68,6 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         DuplicateReview.ShowGroupFilesRequested += OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested += OnBackToExplorerRequested;
         AiSuggestions = new AiSuggestionsViewModel(configurationService, aiSuggestionService);
-        AiSuggestions.TagsAccepted += OnTagsAccepted;
         ClearFiltersCommand = new RelayCommand(ClearFilters, CanClearFilters);
         PreviousPageCommand = new RelayCommand(GoToPreviousPage, () => CanGoPreviousPage);
         NextPageCommand = new RelayCommand(GoToNextPage, () => CanGoNextPage);
@@ -127,6 +126,9 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets the preview-only optional AI suggestion workflow for the selected result.</summary>
     public AiSuggestionsViewModel AiSuggestions { get; }
+
+    /// <summary>Refreshes AI panel visibility and commands after active settings are saved.</summary>
+    public void RefreshFeatureAvailability() => AiSuggestions.RefreshFeatureAvailability();
 
     /// <summary>Gets the current normalized explorer query.</summary>
     public ResultsQuery Query
@@ -548,7 +550,6 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     {
         DuplicateReview.ShowGroupFilesRequested -= OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested -= OnBackToExplorerRequested;
-        AiSuggestions.TagsAccepted -= OnTagsAccepted;
         AiSuggestions.Dispose();
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();
@@ -829,37 +830,6 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     private IReadOnlyList<TagAssociation> GetTags(string fileId) => _tagsByFile.TryGetValue(fileId, out var tags)
         ? tags
         : Array.Empty<TagAssociation>();
-
-    private async void OnTagsAccepted(object? sender, IReadOnlyList<TagAssociation> tags)
-    {
-        if (tags.Count == 0)
-        {
-            return;
-        }
-
-        var fileId = tags[0].FileId;
-        var existing = GetTags(fileId);
-        var existingIdentities = existing.Select(tag => tag.NormalizedValue).ToHashSet(StringComparer.Ordinal);
-        var additions = tags.Where(tag => !existingIdentities.Contains(tag.NormalizedValue)).ToArray();
-        var acceptedCount = existing.Count(tag => tag.Source != TagSource.Deterministic && tag.AcceptanceState == TagAcceptanceState.Accepted);
-        if (acceptedCount + additions.Length > UserTagLimits.MaximumAcceptedTagsPerFile)
-        {
-            UserTagStatusText = $"The accepted suggestion would exceed the {UserTagLimits.MaximumAcceptedTagsPerFile}-tag limit for this result.";
-            return;
-        }
-
-        if (additions.Length == 0)
-        {
-            UserTagStatusText = "Those suggested tags are already associated with this result.";
-            return;
-        }
-
-        _tagsByFile[fileId] = Array.AsReadOnly(existing
-            .Concat(additions)
-            .OrderBy(tag => tag.NormalizedValue, StringComparer.Ordinal)
-            .ToArray());
-        await PublishTagChangeAsync("Accepted tags were added as OpenSorSe metadata. The selected file was not changed.");
-    }
 
     private sealed class PreviewConfigurationService : IConfigurationService
     {

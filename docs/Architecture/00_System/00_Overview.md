@@ -6,11 +6,11 @@
 
 ## Current product boundary
 
-OpenSorSe is a local-first desktop application for safely analyzing selected folders. The validated v0.9 release is implemented in .NET 8, C#, Avalonia UI, and MVVM.
+OpenSorSe is a local-first desktop application for safely analyzing selected folders. The v0.9.1 release is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
 The Desktop workflow is intentionally read-only. It scans selected folders, enriches file information in memory, and presents review data without renaming, moving, deleting, overwriting, or otherwise modifying selected user files.
 
-The current release includes optional validated suggestions through an explicitly configured Ollama-compatible endpoint, deterministic metadata search, an opt-in bounded local catalog, user-managed result tags, named saved catalog queries, snapshot names/source scope, and bounded historical snapshot comparison. The default AI endpoint is local, but a custom endpoint can be remote. It does not implement live monitoring, OCR, content readers, semantic search, a persistent search index, database-backed storage, report generation/export, or plugins.
+The current release includes default-off, capability-specific validated suggestions through an explicitly configured Ollama-compatible endpoint, an independent default-off advanced-interface mode, deterministic metadata search, an opt-in bounded local catalog, user-managed result tags, named saved catalog queries, snapshot names/source scope, and bounded historical snapshot comparison. The default AI endpoint is local, but a custom endpoint can be remote. AI suggestions are metadata-only, unverified, and review-only. The release does not implement live monitoring, OCR, content readers, semantic search, a persistent search index, database-backed storage, report generation/export, automatic file organization, or plugins.
 
 ## Implemented architecture
 
@@ -20,9 +20,9 @@ The current release includes optional validated suggestions through an explicitl
 | `OpenSorSe.Scanner` | Read-only folder traversal, file discovery, metadata extraction, SHA-256 hashing, deterministic classification, and exact duplicate detection. |
 | `OpenSorSe.Rules` | Deterministic rule evaluation, planning, and lexical conflict resolution. |
 | `OpenSorSe.Executor` | Historical execution and undo components retained for isolated testing; the current Desktop neither registers nor exposes them. |
-| `OpenSorSe.Application` | Read-only processing orchestration, immutable snapshots, tag validation, bounded schema-2 catalog persistence, bounded saved-query persistence, and pure historical comparison. |
-| `OpenSorSe.AI` | Optional configured Ollama-compatible transport and bounded AI-decision-history persistence. |
-| `OpenSorSe.Desktop` | Avalonia MVVM shell, Dashboard, Scan, Results Explorer, duplicate review, Catalog, Catalog Search, Compare Snapshots, Settings, Diagnostics, Operation History, and notifications. |
+| `OpenSorSe.Application` | Read-only orchestration, immutable snapshots, central feature gates, bounded AI prompts and response validation, tag validation, bounded catalog/query persistence, and pure historical comparison. |
+| `OpenSorSe.AI` | Optional configured Ollama-compatible transport and bounded AI-review-decision persistence. |
+| `OpenSorSe.Desktop` | Avalonia MVVM shell, feature-aware navigation/settings, regular analysis/catalog workflows, advanced review/diagnostics pages, and constrained AI proposal review. |
 
 ```mermaid
 flowchart LR
@@ -57,7 +57,7 @@ The current Desktop composition root does not register or invoke execution or un
 
 ## Architecture maturity
 
-The architecture documentation also contains longer-term designs for Readers, Database, Search, Reports, and Plugins. Those sections are future architectural intent unless a current release document explicitly identifies a narrow v0.9 implementation.
+The architecture documentation also contains longer-term designs for Readers, Database, Search, Reports, and Plugins. Those sections are future architectural intent unless a current release document explicitly identifies a narrow implementation through v0.9.1.
 
 Future work should preserve the current component boundaries and receive its own implementation proposal before changing the read-only safety model.
 
@@ -69,7 +69,7 @@ Future work should preserve the current component boundaries and receive its own
 | `01_Core` | Implemented foundation. |
 | `02_Scanner` | Implemented read-only analysis pipeline. |
 | `03_Readers` | Future design intent. |
-| `04_AI` | Future design intent. |
+| `04_AI` | Two constrained v0.9.1 suggestion capabilities; enrichment, embeddings, multi-provider orchestration, agents, and plugins remain future intent. |
 | `05_Database` | Future design intent; the bounded catalog and saved-query JSON files are not a database. |
 | `06_Search` | Deterministic in-memory/catalog search, v0.6 user tags, and v0.7 named query presets; v0.9 comparison is separate stored-metadata analysis, not a search index. |
 | `07-Rules` | Implemented deterministic evaluation and planning infrastructure; no Desktop execution workflow. |

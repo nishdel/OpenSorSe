@@ -1,6 +1,6 @@
 # Implementation Specification
 
-> **Current v0.9 supersession:** About displays product version `0.9.0` and labelled, copyable vetted HTTPS addresses. It exposes no inert link button and does not launch a browser, process, or shell. The external-link request contract below records the historical v0.1 foundation.
+> **Current v0.9.1 supersession:** About displays product version `0.9.1` and labelled, copyable vetted HTTPS addresses. It exposes no inert link button and does not launch a browser, process, or shell. The external-link request contract below records the historical v0.1 foundation.
 
 | Property | Value |
 |----------|-------|

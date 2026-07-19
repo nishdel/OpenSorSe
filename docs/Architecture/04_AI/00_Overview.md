@@ -6,7 +6,9 @@
 
 ## Implementation Status
 
-v0.9 retains the deliberately narrow optional local-AI slice introduced in v0.3: provider-neutral application contracts, an Ollama HTTP provider, health/model discovery, selected-model settings, validated metadata-only organization suggestions, and local decision-history preference context. Accepted tags can participate in metadata search and historical tag-set comparison, but AI is not required for manual tags, saved queries, snapshot identity, or comparison. AI does not implement content enrichment, Readers integration, embeddings, semantic search, caching, cloud providers, automatic organization, monitoring, or filesystem mutation. Broad design material below remains future architecture unless it matches current specifications.
+v0.9.1 narrows and hardens the optional local-AI slice. AI is disabled by default, with independent rename and folder-structure capability switches. Application-owned feature gates reject disabled, invalid, or unconfigured calls before `IAiSuggestionProvider` can run. `AiPromptBuilder` produces capability-specific, deterministic, bounded, metadata-only prompts; `AiResponseParser` and `AiSuggestionValidator` reject malformed, invented, duplicate, unsafe, or excessive output as a whole. The only results are immutable, unverified review proposals and bounded local review decisions. No proposal mutates a filesystem.
+
+Provider configuration, connection testing, model discovery, and review-history reset are advanced controls that appear only when both AI and advanced mode are enabled. Manual tags, deterministic classification, search, scanning, catalog functions, and saved queries do not require AI. Content enrichment, Readers integration, embeddings, semantic search, caching, cloud providers, automatic organization, monitoring, agents, plugins, and filesystem mutation remain future architecture.
 
 ---
 
@@ -18,9 +20,9 @@ Using local and optional cloud-based language models, the AI subsystem analyzes 
 
 The AI subsystem operates on information extracted by the Readers subsystem. It does not read files directly.
 
-### v0.3 concrete boundary
+### v0.9.1 concrete boundary
 
-The delivered provider is optional and receives only bounded result metadata. `OpenSorSe.Application.AI` owns provider-neutral contracts and safety validation; `OpenSorSe.AI` owns Ollama HTTP DTOs and local JSON decision history. The Desktop never calls HTTP directly, and model output remains untrusted until it becomes an application-owned preview. See [v0.3 specification 032](../../Implementation_Spec/v0.3/032_Optional_Ollama_and_Suggestion_Safety.md).
+The delivered provider is optional and receives only bounded result metadata. `OpenSorSe.Application.AI` owns gates, provider-neutral contracts, prompts, parsing, validation, and review coordination; `OpenSorSe.AI` owns Ollama HTTP DTOs and local JSON decision history. The Desktop never calls HTTP directly. Model output remains untrusted until the complete response passes validation and becomes an application-owned preview. See [v0.9.1 specification 046](../../Implementation_Spec/v0.9.1/046_Optional_AI_and_Advanced_Feature_Controls.md).
 
 ---
 

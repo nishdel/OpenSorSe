@@ -148,6 +148,7 @@ public sealed class JsonConfigurationService : IConfigurationService
 
         return new ApplicationSettings
         {
+            Features = settings.Features,
             Logging = new LoggingSettings
             {
                 MinimumLevel = minimumLevel,

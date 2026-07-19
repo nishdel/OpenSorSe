@@ -12,6 +12,12 @@ Its purpose is to host navigation, present application pages, manage the overall
 
 The Main Window does not implement business logic or application workflows.
 
+## v0.9.1 implementation status
+
+Navigation entries carry reusable feature requirements. Dashboard, Scan, Results, Duplicate review, Rules, Saved catalog, Catalog search, Settings, and About are regular. Compare snapshots, Diagnostics, and Operation history are advanced. AI suggestions are a Results panel rather than a page and appear only when AI and at least one capability are enabled. A feature requiring both AI and advanced mode requires both flags.
+
+The shell builds visible navigation from the central requirements after Settings is successfully saved. Direct or stale attempts to navigate to a hidden page are rejected; if the selected page becomes hidden, Dashboard is selected. This prevents keyboard or programmatic navigation from bypassing visual hiding.
+
 ---
 
 # Responsibilities

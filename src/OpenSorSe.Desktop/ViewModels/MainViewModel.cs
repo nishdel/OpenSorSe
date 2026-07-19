@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
 using OpenSorSe.Application;
 using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Catalog;
 using OpenSorSe.Application.CatalogComparison;
 using OpenSorSe.Application.CatalogSearch;
+using OpenSorSe.Application.Features;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
@@ -15,28 +17,27 @@ namespace OpenSorSe.Desktop.ViewModels;
 /// </summary>
 public sealed class MainViewModel : ViewModelBase, IDisposable
 {
-    private static readonly IReadOnlyList<NavigationDestination> NavigationDestinations =
-        Enum.GetValues<NavigationDestination>();
-    private static readonly IReadOnlyList<NavigationItem> PrimaryNavigationItems = Array.AsReadOnly<NavigationItem>(
+    private static readonly IReadOnlyList<NavigationItem> AllNavigationItems = Array.AsReadOnly<NavigationItem>(
     [
-        new(NavigationDestination.Dashboard, "Dashboard"),
-        new(NavigationDestination.Scan, "Scan folders"),
-        new(NavigationDestination.Results, "Results"),
-        new(NavigationDestination.Catalog, "Saved catalog"),
-        new(NavigationDestination.CatalogSearch, "Catalog search"),
-        new(NavigationDestination.CatalogComparison, "Compare snapshots"),
-        new(NavigationDestination.Rules, "Rules"),
-        new(NavigationDestination.Settings, "Settings"),
-        new(NavigationDestination.Diagnostics, "Diagnostics"),
-        new(NavigationDestination.History, "Operation history"),
-        new(NavigationDestination.About, "About"),
+        new(NavigationDestination.Dashboard, "Dashboard", FeatureRequirement.Regular),
+        new(NavigationDestination.Scan, "Scan folders", FeatureRequirement.Regular),
+        new(NavigationDestination.Results, "Results", FeatureRequirement.Regular),
+        new(NavigationDestination.Catalog, "Saved catalog", FeatureRequirement.Regular),
+        new(NavigationDestination.CatalogSearch, "Catalog search", FeatureRequirement.Regular),
+        new(NavigationDestination.CatalogComparison, "Compare snapshots", FeatureRequirement.Advanced),
+        new(NavigationDestination.Rules, "Rules", FeatureRequirement.Regular),
+        new(NavigationDestination.Settings, "Settings", FeatureRequirement.Regular),
+        new(NavigationDestination.Diagnostics, "Diagnostics", FeatureRequirement.Advanced),
+        new(NavigationDestination.History, "Operation history", FeatureRequirement.Advanced),
+        new(NavigationDestination.About, "About", FeatureRequirement.Regular),
     ]);
     private readonly IApplicationController? _applicationController;
     private readonly IConfigurationService _configurationService;
     private readonly IResultsSnapshotProjector _resultsSnapshotProjector;
     private readonly IResultsCatalogStore? _catalogStore;
+    private readonly ObservableCollection<NavigationItem> _navigationItems = [];
     private NavigationDestination _selectedDestination = NavigationDestination.Dashboard;
-    private NavigationItem _selectedNavigationItem = PrimaryNavigationItems[0];
+    private NavigationItem _selectedNavigationItem = AllNavigationItems[0];
     private CancellationTokenSource? _processingCancellation;
     private bool _isProcessing;
     private string _statusText = "Ready";
@@ -224,6 +225,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogComparison = new CatalogComparisonViewModel(configurationService, catalogStore, comparisonService);
         RuleEditor = new RuleEditorViewModel();
         Settings = new SettingsViewModel(configurationService, aiSuggestionService);
+        NavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_navigationItems);
+        RefreshNavigationItems(configurationService.Current);
         LogViewer = new LogViewerViewModel(loggingService);
         UndoHistory = new UndoHistoryViewModel();
         About = new AboutViewModel();
@@ -235,6 +238,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Catalog.CatalogChanged += OnCatalogChanged;
         CatalogSearch.EntryOpened += OnCatalogEntryOpened;
         CatalogComparison.EntryOpened += OnCatalogEntryOpened;
+        Settings.SettingsSaved += OnSettingsSaved;
     }
 
     /// <summary>
@@ -305,10 +309,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets the destinations offered by the primary application shell.
     /// </summary>
-    public IReadOnlyList<NavigationDestination> Destinations => NavigationDestinations;
+    public IReadOnlyList<NavigationDestination> Destinations => Array.AsReadOnly(_navigationItems.Select(item => item.Destination).ToArray());
 
     /// <summary>Gets user-facing primary navigation items in their stable shell order.</summary>
-    public IReadOnlyList<NavigationItem> NavigationItems => PrimaryNavigationItems;
+    public ReadOnlyObservableCollection<NavigationItem> NavigationItems { get; }
 
     /// <summary>Gets or sets the user-facing navigation item selected by the shell.</summary>
     public NavigationItem SelectedNavigationItem
@@ -334,9 +338,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 throw new ArgumentOutOfRangeException(nameof(value), "The navigation destination is unsupported.");
             }
 
+            var visibleItem = _navigationItems.FirstOrDefault(item => item.Destination == value);
+            if (visibleItem is null)
+            {
+                StatusText = "That feature is hidden by the current Settings choices.";
+                return;
+            }
+
             if (SetProperty(ref _selectedDestination, value))
             {
-                _selectedNavigationItem = PrimaryNavigationItems.Single(item => item.Destination == value);
+                _selectedNavigationItem = visibleItem;
                 OnPropertyChanged(nameof(SelectedNavigationItem));
                 OnPropertyChanged(nameof(CurrentPageTitle));
                 OnPropertyChanged(nameof(IsDashboardSelected));
@@ -480,6 +491,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public async Task NavigateAsync(NavigationDestination destination)
     {
         Navigate(destination);
+        if (SelectedDestination != destination)
+        {
+            return;
+        }
+
         if (destination == NavigationDestination.Catalog)
         {
             await Catalog.RefreshAsync();
@@ -515,6 +531,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Catalog.CatalogChanged -= OnCatalogChanged;
         CatalogSearch.EntryOpened -= OnCatalogEntryOpened;
         CatalogComparison.EntryOpened -= OnCatalogEntryOpened;
+        Settings.SettingsSaved -= OnSettingsSaved;
         _processingCancellation?.Cancel();
         Results.Dispose();
         Catalog.Dispose();
@@ -522,6 +539,36 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogComparison.Dispose();
         Settings.Dispose();
         Notifications.Dispose();
+    }
+
+    private void OnSettingsSaved(object? sender, ApplicationSettings settings)
+    {
+        RefreshNavigationItems(settings);
+        Results.RefreshFeatureAvailability();
+    }
+
+    private void RefreshNavigationItems(ApplicationSettings settings)
+    {
+        var visibleItems = AllNavigationItems
+            .Where(item => FeatureAccess.IsEnabled(settings, item.Requirement))
+            .ToArray();
+        _navigationItems.Clear();
+        foreach (var item in visibleItems)
+        {
+            _navigationItems.Add(item);
+        }
+
+        OnPropertyChanged(nameof(Destinations));
+        if (_navigationItems.All(item => item.Destination != _selectedDestination))
+        {
+            SelectedDestination = NavigationDestination.Dashboard;
+            StatusText = "The previously selected advanced feature was hidden. Dashboard is now selected.";
+        }
+        else
+        {
+            _selectedNavigationItem = _navigationItems.Single(item => item.Destination == _selectedDestination);
+            OnPropertyChanged(nameof(SelectedNavigationItem));
+        }
     }
 
     private async void OnScanRequested(object? sender, ScanRequest request)

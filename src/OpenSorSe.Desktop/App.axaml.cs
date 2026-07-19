@@ -90,6 +90,8 @@ public partial class App : Avalonia.Application
         });
         services.AddSingleton<HttpClient>();
         services.AddSingleton<IAiSuggestionProvider, OllamaSuggestionProvider>();
+        services.AddSingleton<IAiPromptBuilder, AiPromptBuilder>();
+        services.AddSingleton<IAiResponseParser, AiResponseParser>();
         services.AddSingleton<IDecisionHistoryStore>(serviceProvider =>
         {
             var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;

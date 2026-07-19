@@ -12,6 +12,12 @@ Its primary purpose is to assist users in organizing files by suggesting logical
 
 The Folder Suggestions component provides recommendations only. It does not move files or modify the filesystem.
 
+## v0.9.1 implementation status
+
+Folder-structure suggestions are disabled by default and require both the global AI switch and **Enable folder structure suggestions**. The request contains at most 25 deterministically selected known result identities with filenames, extensions, deterministic categories, and bounded existing logical folder names; it never contains file contents or absolute paths.
+
+The response is one logical hierarchy plus source-to-folder assignments, a bounded reason, and optional confidence. Validation rejects unknown or duplicate identities, duplicate folder IDs or paths, missing parents, cycles, unsafe/reserved/system directory names, traversal, absolute paths, excessive counts, and invalid confidence. It derives display-only relative logical paths after the whole response is valid. Reviewing or accepting the plan cannot create a directory or move a file.
+
 ---
 
 # Responsibilities

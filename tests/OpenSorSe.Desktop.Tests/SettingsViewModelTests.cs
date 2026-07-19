@@ -20,6 +20,42 @@ public sealed class SettingsViewModelTests
         Assert.Equal(warning, viewModel.StatusText);
     }
 
+    /// <summary>Verifies safe defaults and the settings hierarchy hide all subordinate AI and advanced controls.</summary>
+    [Fact]
+    public void Constructor_DefaultsHideSubordinateAiAndAdvancedSettings()
+    {
+        using var viewModel = new SettingsViewModel(new TestConfigurationService());
+
+        Assert.False(viewModel.Draft.AiEnabled);
+        Assert.False(viewModel.Draft.ShowAdvancedFeatures);
+        Assert.False(viewModel.IsAiCapabilitySettingsVisible);
+        Assert.False(viewModel.IsAdvancedSettingsVisible);
+        Assert.False(viewModel.IsAdvancedAiSettingsVisible);
+        Assert.False(viewModel.TestAiConnectionCommand.CanExecute(null));
+    }
+
+    /// <summary>Verifies independent switches update draft visibility without resetting hidden provider values.</summary>
+    [Fact]
+    public void DraftMasterSwitches_UpdateHierarchyAndPreserveHiddenValues()
+    {
+        using var viewModel = new SettingsViewModel(new TestConfigurationService());
+        viewModel.Draft.SelectedAiModel = "kept-model";
+        viewModel.Draft.AiEndpoint = "http://127.0.0.1:12345";
+
+        viewModel.Draft.AiEnabled = true;
+        Assert.True(viewModel.IsAiCapabilitySettingsVisible);
+        Assert.False(viewModel.IsAdvancedAiSettingsVisible);
+        viewModel.Draft.ShowAdvancedFeatures = true;
+        Assert.True(viewModel.IsAdvancedSettingsVisible);
+        Assert.True(viewModel.IsAdvancedAiSettingsVisible);
+        viewModel.Draft.AiEnabled = false;
+
+        Assert.False(viewModel.IsAiCapabilitySettingsVisible);
+        Assert.False(viewModel.IsAdvancedAiSettingsVisible);
+        Assert.Equal("kept-model", viewModel.Draft.SelectedAiModel);
+        Assert.Equal("http://127.0.0.1:12345", viewModel.Draft.AiEndpoint);
+    }
+
     /// <summary>
     /// Verifies a valid draft persists through the centralized configuration service and requests restart.
     /// </summary>
@@ -109,7 +145,7 @@ public sealed class SettingsViewModelTests
     public async Task PreferenceHistoryReset_RequiresConfirmationAndCanBeCancelled()
     {
         var ai = new RecordingAiSuggestionService();
-        using var viewModel = new SettingsViewModel(new TestConfigurationService(), ai);
+        using var viewModel = new SettingsViewModel(new TestConfigurationService(settings: AiAdvancedSettings()), ai);
 
         viewModel.RequestPreferenceHistoryResetCommand.Execute(null);
         Assert.True(viewModel.IsPreferenceHistoryResetPending);
@@ -132,7 +168,7 @@ public sealed class SettingsViewModelTests
     public async Task TestAiConnection_CancelCommand_CancelsAndPreventsStalePublication()
     {
         var ai = new RecordingAiSuggestionService(blockConnection: true);
-        using var viewModel = new SettingsViewModel(new TestConfigurationService(), ai);
+        using var viewModel = new SettingsViewModel(new TestConfigurationService(settings: AiAdvancedSettings()), ai);
 
         var running = viewModel.TestAiConnectionCommand.ExecuteAsync(null);
         await ai.ConnectionStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -146,9 +182,44 @@ public sealed class SettingsViewModelTests
         Assert.True(viewModel.TestAiConnectionCommand.CanExecute(null));
     }
 
-    private sealed class TestConfigurationService(string? initializationWarning = null) : IConfigurationService
+    /// <summary>Verifies capability values persist independently and visibility-only changes do not require restart.</summary>
+    [Fact]
+    public async Task SaveAsync_FeatureSwitches_PersistIndependentlyWithoutLoggingRestart()
     {
-        public ApplicationSettings Current { get; private set; } = new();
+        var configuration = new TestConfigurationService();
+        using var viewModel = new SettingsViewModel(configuration);
+        ApplicationSettings? published = null;
+        viewModel.SettingsSaved += (_, settings) => published = settings;
+        viewModel.Draft.AiEnabled = true;
+        viewModel.Draft.FileRenameSuggestionsEnabled = true;
+        viewModel.Draft.FolderStructureSuggestionsEnabled = false;
+        viewModel.Draft.ShowAdvancedFeatures = true;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.RestartRequired);
+        Assert.Same(configuration.Current, published);
+        Assert.True(configuration.Current.Ai.Enabled);
+        Assert.True(configuration.Current.Ai.FileRenameSuggestionsEnabled);
+        Assert.False(configuration.Current.Ai.FolderStructureSuggestionsEnabled);
+        Assert.True(configuration.Current.Features.ShowAdvancedFeatures);
+    }
+
+    private static ApplicationSettings AiAdvancedSettings() => new()
+    {
+        Features = new FeatureSettings { ShowAdvancedFeatures = true },
+        Ai = new AiSettings
+        {
+            Enabled = true,
+            FileRenameSuggestionsEnabled = true,
+            FolderStructureSuggestionsEnabled = true,
+            SelectedModel = "local-model",
+        },
+    };
+
+    private sealed class TestConfigurationService(string? initializationWarning = null, ApplicationSettings? settings = null) : IConfigurationService
+    {
+        public ApplicationSettings Current { get; private set; } = settings ?? new();
 
         public string? InitializationWarning { get; } = initializationWarning;
 
@@ -172,7 +243,7 @@ public sealed class SettingsViewModelTests
 
         public int ResetCallCount { get; private set; }
 
-        public async Task<AiConnectionResult> TestConnectionAsync(AiSettings settings, CancellationToken cancellationToken)
+        public async Task<AiConnectionResult> TestConnectionAsync(ApplicationSettings settings, CancellationToken cancellationToken)
         {
             ConnectionStarted.TrySetResult(true);
             if (blockConnection)
@@ -183,14 +254,14 @@ public sealed class SettingsViewModelTests
             return new AiConnectionResult(AiAvailabilityState.Connected, "Connected", []);
         }
 
-        public Task<AiConnectionResult> DiscoverModelsAsync(AiSettings settings, CancellationToken cancellationToken) =>
+        public Task<AiConnectionResult> DiscoverModelsAsync(ApplicationSettings settings, CancellationToken cancellationToken) =>
             Task.FromResult(new AiConnectionResult(AiAvailabilityState.NoModelsAvailable, "No models", []));
 
-        public Task<AiFileSuggestionResult> GenerateFileSuggestionAsync(
-            AiFileSuggestionRequest request,
+        public Task<AiFileRenameResult> GenerateFileRenameAsync(
+            AiFileRenameRequest request,
             AiSettings settings,
             CancellationToken cancellationToken) =>
-            Task.FromResult(new AiFileSuggestionResult(AiAvailabilityState.Disabled, "Disabled", null));
+            Task.FromResult(new AiFileRenameResult(AiAvailabilityState.Disabled, "Disabled", null));
 
         public Task<AiFolderStructureResult> GenerateFolderStructureAsync(
             AiFolderStructureRequest request,
@@ -198,13 +269,14 @@ public sealed class SettingsViewModelTests
             CancellationToken cancellationToken) =>
             Task.FromResult(new AiFolderStructureResult(AiAvailabilityState.Disabled, "Disabled", null));
 
-        public Task RecordDecisionAsync(AiSuggestionDecision decision, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<AiDecisionResult> RecordDecisionAsync(AiSuggestionDecision decision, AiSettings settings, CancellationToken cancellationToken) =>
+            Task.FromResult(new AiDecisionResult(AiAvailabilityState.ModelSelected, "Saved"));
 
-        public Task ResetDecisionHistoryAsync(CancellationToken cancellationToken)
+        public Task<AiDecisionResult> ResetDecisionHistoryAsync(ApplicationSettings settings, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ResetCallCount++;
-            return Task.CompletedTask;
+            return Task.FromResult(new AiDecisionResult(AiAvailabilityState.ModelSelected, "Local AI review history was reset. No scanned file changed."));
         }
     }
 }

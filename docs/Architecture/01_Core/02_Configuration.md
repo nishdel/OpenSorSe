@@ -4,7 +4,7 @@
 
 ## Implementation status
 
-v0.9 uses a validated JSON settings file of at most 1 MiB in OpenSorSe local application data. Implemented groups cover diagnostic logging, optional AI endpoint/model/timeout/history reuse, and `Catalog.Enabled` (default `false`). The catalog toggle controls schema-2 snapshot/tag/name/source-root writes, catalog search, and historical comparison. Named query presets are application data in a separate bounded `saved-catalog-searches.json`, not configuration; they can be removed/reset without re-enabling the catalog. Scan defaults, UI preferences, comparison filters/selections, command-line options, profiles, import/export, and plugin configuration are not implemented. The only environment override is `OPENSORSE_LOGGING__MINIMUMLEVEL`.
+v0.9.1 uses a validated JSON settings file of at most 1 MiB in OpenSorSe local application data. Implemented groups cover diagnostic logging, `Features.ShowAdvancedFeatures`, optional AI endpoint/model/timeout/history reuse, `Ai.Enabled`, independent rename/folder capability flags, and `Catalog.Enabled`. All feature and catalog switches default `false`. Missing v0.9.1 properties deserialize to safe defaults, so an older file needs no schema rewrite or manual deletion; hidden values remain persisted and inactive. Named query presets remain separate bounded application data. Scan defaults, command-line options, profiles, import/export, localization, and plugin configuration are not implemented. The only environment override is `OPENSORSE_LOGGING__MINIMUMLEVEL`.
 
 ---
 

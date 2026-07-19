@@ -1,6 +1,6 @@
 # Technology Stack
 
-> This document distinguishes technologies used by the validated v0.9 release from longer-term technology ideas.
+> This document distinguishes technologies used by the v0.9.1 release from longer-term technology ideas.
 
 ---
 
@@ -22,7 +22,7 @@ The repository pins an SDK version in the root [global.json](../../../global.jso
 
 ## Current non-adoptions
 
-The v0.9 release does not use the following as implemented product capabilities:
+The v0.9.1 release does not use the following as implemented product capabilities:
 
 - SQLite or another database; bounded schema-2 scan snapshots and named query text use separate JSON stores, while comparison is in memory.
 - Full-text or vector search.

@@ -10,11 +10,17 @@ namespace OpenSorSe.Application.AI;
 /// </summary>
 public static class AiSuggestionValidator
 {
+    private static readonly char[] PortableInvalidNameCharacters = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
     private static readonly HashSet<string> ReservedFileNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "CON", "PRN", "AUX", "NUL",
         "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    };
+    private static readonly HashSet<string> ReservedSystemFolderNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "$Recycle.Bin", "Program Files", "Program Files (x86)", "ProgramData", "System Volume Information",
+        "System32", "Windows", "dev", "etc", "proc", "root", "sys", "usr", "var",
     };
 
     /// <summary>
@@ -43,15 +49,16 @@ public static class AiSuggestionValidator
 
         var candidate = proposedFileName.Trim();
         if (candidate.Length > 255 || candidate is "." or ".." ||
-            Path.IsPathRooted(candidate) || candidate.Contains('/') || candidate.Contains('\\') || candidate.Contains("..", StringComparison.Ordinal) ||
-            candidate.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || candidate.EndsWith(' ') || candidate.EndsWith('.'))
+            Path.IsPathRooted(candidate) || candidate.Contains("..", StringComparison.Ordinal) ||
+            candidate.IndexOfAny(PortableInvalidNameCharacters) >= 0 || candidate.Any(char.IsControl) ||
+            candidate.EndsWith(' ') || candidate.EndsWith('.'))
         {
             error = "The suggested file name is not a safe file name.";
             return false;
         }
 
         var extension = Path.GetExtension(candidate);
-        if (!string.Equals(extension, currentExtension, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(extension, currentExtension, StringComparison.Ordinal))
         {
             error = "The suggested file name must preserve the original extension.";
             return false;
@@ -71,6 +78,42 @@ public static class AiSuggestionValidator
         }
 
         normalizedFileName = candidate;
+        return true;
+    }
+
+    /// <summary>
+    /// Validates one logical folder-name component independently from host operating-system rules.
+    /// </summary>
+    /// <param name="value">The untrusted folder name.</param>
+    /// <param name="normalizedFolderName">The trimmed safe component.</param>
+    /// <param name="error">A user-safe validation explanation.</param>
+    /// <returns><see langword="true"/> when the value is one portable safe component.</returns>
+    public static bool TryNormalizeFolderName(string? value, out string normalizedFolderName, out string error)
+    {
+        normalizedFolderName = string.Empty;
+        error = string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            error = "A suggested folder name is required.";
+            return false;
+        }
+
+        var candidate = value.Trim();
+        if (candidate.Length > 100 || candidate is "." or ".." || Path.IsPathRooted(candidate) ||
+            candidate.Contains("..", StringComparison.Ordinal) || candidate.IndexOfAny(PortableInvalidNameCharacters) >= 0 ||
+            candidate.Any(char.IsControl) || candidate.EndsWith(' ') || candidate.EndsWith('.'))
+        {
+            error = "The suggested folder name is not a safe portable folder name.";
+            return false;
+        }
+
+        if (ReservedFileNames.Contains(candidate) || ReservedSystemFolderNames.Contains(candidate))
+        {
+            error = "The suggested folder name uses a reserved or system-directory name.";
+            return false;
+        }
+
+        normalizedFolderName = candidate;
         return true;
     }
 
@@ -169,16 +212,13 @@ public static class AiSuggestionValidator
         var safeSegments = new List<string>(segments.Length);
         foreach (var segment in segments)
         {
-            if (segment is "." or ".." || segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || segment.EndsWith(' ') || segment.EndsWith('.'))
+            if (!TryNormalizeFolderName(segment, out var safeSegment, out _))
             {
                 error = "The suggested destination contains an unsafe folder name.";
                 return false;
             }
 
-            if (!safeSegments.Contains(segment, StringComparer.OrdinalIgnoreCase))
-            {
-                safeSegments.Add(segment);
-            }
+            safeSegments.Add(safeSegment);
         }
 
         normalizedFolder = string.Join('/', safeSegments);

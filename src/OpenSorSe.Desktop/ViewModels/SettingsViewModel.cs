@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using OpenSorSe.Application.AI;
@@ -33,6 +34,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _aiSuggestionService = aiSuggestionService;
         _draft = SettingsDraft.FromSettings(_configurationService.Current);
+        _draft.PropertyChanged += OnDraftPropertyChanged;
         _statusText = _configurationService.InitializationWarning ?? "Ready";
         AvailableAiModels = new ReadOnlyObservableCollection<string>(_availableAiModels);
         SaveCommand = new AsyncRelayCommand(SaveAsync);
@@ -52,8 +54,33 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     public SettingsDraft Draft
     {
         get => _draft;
-        private set => SetProperty(ref _draft, value);
+        private set
+        {
+            if (ReferenceEquals(_draft, value))
+            {
+                return;
+            }
+
+            _draft.PropertyChanged -= OnDraftPropertyChanged;
+            if (SetProperty(ref _draft, value))
+            {
+                _draft.PropertyChanged += OnDraftPropertyChanged;
+                NotifyFeatureVisibilityChanged();
+            }
+        }
     }
+
+    /// <summary>Occurs after validated settings have been persisted and made active.</summary>
+    public event EventHandler<ApplicationSettings>? SettingsSaved;
+
+    /// <summary>Gets whether AI capability switches are visible in the editable hierarchy.</summary>
+    public bool IsAiCapabilitySettingsVisible => Draft.AiEnabled;
+
+    /// <summary>Gets whether advanced non-AI settings are visible in the editable hierarchy.</summary>
+    public bool IsAdvancedSettingsVisible => Draft.ShowAdvancedFeatures;
+
+    /// <summary>Gets whether low-level provider and AI-history settings are visible.</summary>
+    public bool IsAdvancedAiSettingsVisible => Draft.AiEnabled && Draft.ShowAdvancedFeatures;
 
     /// <summary>
     /// Gets whether saved settings require application restart to reconfigure active services.
@@ -189,11 +216,15 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     {
         try
         {
+            var previous = _configurationService.Current;
             var settings = Draft.ToSettings();
             settings.Validate();
             await _configurationService.SaveAsync(settings, CancellationToken.None);
-            RestartRequired = true;
-            StatusText = "Settings saved. Restart the application to apply active-service changes.";
+            RestartRequired = LoggingChanged(previous.Logging, settings.Logging);
+            StatusText = RestartRequired
+                ? "Settings saved and feature visibility updated. Restart OpenSorSe to apply active logging changes."
+                : "Settings saved and feature visibility updated.";
+            SettingsSaved?.Invoke(this, settings);
         }
         catch (ConfigurationValidationException)
         {
@@ -226,13 +257,14 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         StatusText = "Unsaved changes discarded.";
     }
 
-    private bool CanStartAiOperation() => _aiSuggestionService is not null && !IsAiBusy;
+    private bool CanStartAiOperation() =>
+        _aiSuggestionService is not null && !IsAiBusy && Draft.AiEnabled && Draft.ShowAdvancedFeatures;
 
     private bool CanRequestPreferenceHistoryReset() =>
-        _aiSuggestionService is not null && !IsAiBusy && !IsPreferenceHistoryResetPending;
+        _aiSuggestionService is not null && !IsAiBusy && Draft.AiEnabled && Draft.ShowAdvancedFeatures && !IsPreferenceHistoryResetPending;
 
     private bool CanConfirmPreferenceHistoryReset() =>
-        _aiSuggestionService is not null && !IsAiBusy && IsPreferenceHistoryResetPending;
+        _aiSuggestionService is not null && !IsAiBusy && Draft.AiEnabled && Draft.ShowAdvancedFeatures && IsPreferenceHistoryResetPending;
 
     private async Task TestAiConnectionAsync()
     {
@@ -245,7 +277,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         try
         {
             SetAiStatus(AiAvailabilityState.Connecting, "Testing the configured Ollama endpoint…");
-            var result = await _aiSuggestionService.TestConnectionAsync(Draft.ToSettings().Ai, cancellation.Token);
+            var result = await _aiSuggestionService.TestConnectionAsync(Draft.ToSettings(), cancellation.Token);
             if (IsCurrentAiOperation(cancellation, version))
             {
                 PublishAiConnection(result, selectFirstModel: false);
@@ -286,7 +318,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         try
         {
             SetAiStatus(AiAvailabilityState.Connecting, "Discovering installed Ollama models…");
-            var result = await _aiSuggestionService.DiscoverModelsAsync(Draft.ToSettings().Ai, cancellation.Token);
+            var result = await _aiSuggestionService.DiscoverModelsAsync(Draft.ToSettings(), cancellation.Token);
             if (IsCurrentAiOperation(cancellation, version))
             {
                 PublishAiConnection(result, selectFirstModel: true);
@@ -338,11 +370,11 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         var (cancellation, version) = BeginAiOperation();
         try
         {
-            await _aiSuggestionService.ResetDecisionHistoryAsync(cancellation.Token);
+            var result = await _aiSuggestionService.ResetDecisionHistoryAsync(Draft.ToSettings(), cancellation.Token);
             if (IsCurrentAiOperation(cancellation, version))
             {
                 IsPreferenceHistoryResetPending = false;
-                StatusText = "Local AI decision history and preference signals were reset. No scanned file or other OpenSorSe store changed.";
+                StatusText = result.Message;
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -429,6 +461,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         Interlocked.Increment(ref _aiOperationVersion);
         cancellation?.Cancel();
         cancellation?.Dispose();
+        _draft.PropertyChanged -= OnDraftPropertyChanged;
         _isDisposed = true;
     }
 
@@ -457,4 +490,34 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(AiAvailabilityState));
         OnPropertyChanged(nameof(AiStatusText));
     }
+
+    private void OnDraftPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName is nameof(SettingsDraft.AiEnabled) or nameof(SettingsDraft.ShowAdvancedFeatures))
+        {
+            if ((!Draft.AiEnabled || !Draft.ShowAdvancedFeatures) && IsAiBusy)
+            {
+                CancelAiOperation();
+            }
+
+            NotifyFeatureVisibilityChanged();
+        }
+    }
+
+    private void NotifyFeatureVisibilityChanged()
+    {
+        OnPropertyChanged(nameof(IsAiCapabilitySettingsVisible));
+        OnPropertyChanged(nameof(IsAdvancedSettingsVisible));
+        OnPropertyChanged(nameof(IsAdvancedAiSettingsVisible));
+        TestAiConnectionCommand.NotifyCanExecuteChanged();
+        DiscoverAiModelsCommand.NotifyCanExecuteChanged();
+        RequestPreferenceHistoryResetCommand.NotifyCanExecuteChanged();
+        ConfirmPreferenceHistoryResetCommand.NotifyCanExecuteChanged();
+    }
+
+    private static bool LoggingChanged(LoggingSettings previous, LoggingSettings current) =>
+        previous.FileLoggingEnabled != current.FileLoggingEnabled ||
+        previous.MinimumLevel != current.MinimumLevel ||
+        previous.RetainedFileCount != current.RetainedFileCount ||
+        !string.Equals(previous.LogDirectoryPath, current.LogDirectoryPath, StringComparison.Ordinal);
 }
