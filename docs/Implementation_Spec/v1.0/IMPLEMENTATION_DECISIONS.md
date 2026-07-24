@@ -6,7 +6,19 @@ Semantic search uses a deterministic feature-hashing embedding provider bundled 
 
 ## Capability-detected OCR
 
-OCR is behind `IOcrEngine` and `IOcrService`. The first integration uses an explicitly configured or PATH-resolved local Tesseract CLI for PNG, JPEG, and TIFF. It is never downloaded or started in the background. Scanned PDF OCR reports that a local page rasterizer is unavailable rather than pretending success. Unit tests use fakes and require no native engine.
+OCR is behind `IOcrEngine` and `IOcrService`. The final 1.0 integration uses the MIT-licensed `PDFtoImage` wrapper over permissively licensed PDFium native packages for bounded page rendering, then an explicitly configured or PATH-resolved local Tesseract CLI for character recognition. PDFium is in-process and serialized; Tesseract is external, optional, and never downloaded or started in the background. Unit tests use fakes and tiny generated fixtures and require no installed native OCR engine.
+
+## FOSS-only dependency gate
+
+Every resolved dependency must have a committed machine-readable license record and pass the engineering compliance test. Unknown, proprietary, non-commercial, source-available-only, paid-runtime, and AGPL dependencies fail. `AvaloniaUI.DiagnosticsSupport` is removed because its resolved package manifest declares no license; OpenSorSe's own logging/Diagnostics remains available.
+
+## Page-level PDF text
+
+PDF text is represented per page. Meaningful native text wins; only empty, short, corrupt, or explicitly reprocessed pages are rasterized and OCRed. Mixed documents retain native/OCR provenance and page boundaries. Unique owned temporary images are deleted in a final cleanup on every outcome.
+
+## Optional AI document interpretation
+
+Extracted-text interpretation is a separate default-off AI capability, not an extension of filename suggestions. It requires global AI, a separate consent switch, valid endpoint/model, explicit invocation, and bounded text context. Its strict JSON is unverified review data and cannot produce exact transcription or filesystem actions.
 
 ## Metadata without document execution
 
