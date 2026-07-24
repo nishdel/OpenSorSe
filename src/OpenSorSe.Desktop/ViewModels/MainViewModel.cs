@@ -236,7 +236,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IStructureHistoryStore? structureHistoryStore = null,
         IFolderRestructuringService? folderRestructuringService = null,
         IFolderStructureSnapshotService? folderStructureSnapshotService = null,
-        IStructureComparisonService? structureComparisonService = null)
+        IStructureComparisonService? structureComparisonService = null,
+        IAiDiagnosticsCollector? aiDiagnosticsCollector = null)
         : this(
             configurationService,
             loggingService,
@@ -258,7 +259,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             structureHistoryStore,
             folderRestructuringService,
             folderStructureSnapshotService,
-            structureComparisonService)
+            structureComparisonService,
+            aiDiagnosticsCollector)
     {
     }
 
@@ -283,7 +285,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IStructureHistoryStore? structureHistoryStore = null,
         IFolderRestructuringService? folderRestructuringService = null,
         IFolderStructureSnapshotService? folderStructureSnapshotService = null,
-        IStructureComparisonService? structureComparisonService = null)
+        IStructureComparisonService? structureComparisonService = null,
+        IAiDiagnosticsCollector? aiDiagnosticsCollector = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(loggingService);
@@ -319,7 +322,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             aiSuggestionService,
             aiRequestDiagnosticsStore,
             contentStore,
-            ocrService);
+            ocrService,
+            aiDiagnosticsCollector);
         _enableAi = configurationService.Current.Ai.Enabled;
         _showAdvancedFeatures = configurationService.Current.Features.ShowAdvancedFeatures;
         NavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_navigationItems);

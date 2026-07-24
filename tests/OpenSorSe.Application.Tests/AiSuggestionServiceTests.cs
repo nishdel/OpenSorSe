@@ -239,7 +239,7 @@ public sealed class AiSuggestionServiceTests
         var record = Assert.Single(diagnostics.GetRecent());
         Assert.Equal("Accepted", record.ValidationOutcome);
         Assert.Contains("item-001", record.Prompt, StringComparison.Ordinal);
-        Assert.Contains("invoice.pdf", record.Prompt, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED]", record.Prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("C:\\Reports", record.Prompt, StringComparison.Ordinal);
         Assert.Contains(record.Stages, stage => stage.Stage == AiRequestStage.ValidatingModel);
         Assert.Contains(record.Stages, stage => stage.Stage == AiRequestStage.ValidatingSuggestion);
@@ -281,6 +281,67 @@ public sealed class AiSuggestionServiceTests
 
         Assert.NotNull(result.Suggestion);
         Assert.Empty(diagnostics.GetRecent());
+    }
+
+    /// <summary>Live diagnostics capture the exact final prompt and parsed response as separate artifacts.</summary>
+    [Fact]
+    public async Task GenerateFileRenameAsync_LiveDiagnostics_CapturesFinalPromptAndValidation()
+    {
+        var collector = new AiDiagnosticsCollector();
+        collector.Configure(true, true);
+        var provider = new FakeProvider(RenameJson("item-001", "April Invoice.pdf"));
+        var settings = EnabledSettings();
+        settings = new AiSettings
+        {
+            Enabled = settings.Enabled,
+            FileRenameSuggestionsEnabled = settings.FileRenameSuggestionsEnabled,
+            FolderStructureSuggestionsEnabled = settings.FolderStructureSuggestionsEnabled,
+            Endpoint = settings.Endpoint,
+            SelectedModel = settings.SelectedModel,
+            RequestTimeoutSeconds = settings.RequestTimeoutSeconds,
+            RequestDiagnosticsEnabled = true,
+        };
+        var service = new AiSuggestionService(
+            provider,
+            new InMemoryDecisionHistoryStore(),
+            new LoggingService(),
+            new FixedTimeProvider(DateTimeOffset.UnixEpoch),
+            diagnosticsCollector: collector);
+
+        var result = await service.GenerateFileRenameAsync(CreateRenameRequest(), settings, CancellationToken.None);
+
+        Assert.NotNull(result.Suggestion);
+        var session = Assert.Single(collector.GetRecent());
+        Assert.Equal(provider.LastPrompt, session.UserPrompt);
+        Assert.Equal(AiStructuredOutputContracts.SystemPrompt, session.SystemPrompt);
+        Assert.Contains("\"taskId\": \"file-rename-v1\"", session.ParsedStructuredResponse, StringComparison.Ordinal);
+        Assert.All(session.Validation, check => Assert.True(check.Passed, check.Message));
+        Assert.Equal(AiDiagnosticState.Succeeded, session.Status);
+    }
+
+    /// <summary>A broken diagnostics implementation cannot change a valid AI operation outcome.</summary>
+    [Fact]
+    public async Task GenerateFileRenameAsync_DiagnosticsFailure_DoesNotBreakSuggestion()
+    {
+        var settings = EnabledSettings();
+        settings = new AiSettings
+        {
+            Enabled = true,
+            FileRenameSuggestionsEnabled = true,
+            FolderStructureSuggestionsEnabled = true,
+            SelectedModel = settings.SelectedModel,
+            RequestDiagnosticsEnabled = true,
+        };
+        var service = new AiSuggestionService(
+            new FakeProvider(RenameJson("item-001", "April Invoice.pdf")),
+            new InMemoryDecisionHistoryStore(),
+            new LoggingService(),
+            diagnosticsCollector: new ThrowingDiagnosticsCollector());
+
+        var result = await service.GenerateFileRenameAsync(CreateRenameRequest(), settings, CancellationToken.None);
+
+        Assert.NotNull(result.Suggestion);
+        Assert.Equal(AiAvailabilityState.ModelSelected, result.State);
     }
 
     /// <summary>Verifies the AI master switch alone gates ordinary provider setup communication.</summary>
@@ -487,5 +548,22 @@ public sealed class AiSuggestionServiceTests
         public List<T> Values { get; } = [];
 
         public void Report(T value) => Values.Add(value);
+    }
+
+    private sealed class ThrowingDiagnosticsCollector : IAiDiagnosticsCollector
+    {
+        public bool IsEnabled => throw new InvalidOperationException();
+        public bool ShowUnredactedContent => throw new InvalidOperationException();
+        public event EventHandler<AiDiagnosticSessionChangedEventArgs>? SessionChanged { add => throw new InvalidOperationException(); remove => throw new InvalidOperationException(); }
+        public void Configure(bool enabled, bool showUnredactedContent) => throw new InvalidOperationException();
+        public string? Begin(AiSuggestionKind operationType, string model, string endpoint, int retryAttempt = 1) => throw new InvalidOperationException();
+        public void ReportStage(string? requestId, string name, AiDiagnosticState state, TimeSpan elapsed, string? error = null) => throw new InvalidOperationException();
+        public void Capture(string? requestId, AiDiagnosticContentKind kind, string? value) => throw new InvalidOperationException();
+        public void SetTransport(string? requestId, int? statusCode, string? contentType, IReadOnlyDictionary<string, string>? safeHeaders, int responseSizeBytes, bool complete, bool streaming) => throw new InvalidOperationException();
+        public void SetValidation(string? requestId, string? parsedJson, IReadOnlyList<AiDiagnosticValidation> validation, IReadOnlyList<string> errors) => throw new InvalidOperationException();
+        public void Complete(string? requestId, AiDiagnosticState state, bool cancelled, TimeSpan elapsed, string? error = null) => throw new InvalidOperationException();
+        public IReadOnlyList<AiDiagnosticSession> GetRecent() => throw new InvalidOperationException();
+        public void Clear(string requestId) => throw new InvalidOperationException();
+        public void Clear() => throw new InvalidOperationException();
     }
 }

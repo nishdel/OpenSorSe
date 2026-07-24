@@ -9,6 +9,17 @@ namespace OpenSorSe.Application.Tests;
 /// <summary>Verifies strict whole-response validation of untrusted AI JSON.</summary>
 public sealed class AiResponseParserTests
 {
+    /// <summary>Reports a precise reason type mismatch instead of the historical generic warning.</summary>
+    [Fact]
+    public void ParseFileRename_ReasonObject_ReportsPreciseType()
+    {
+        var result = new AiResponseParser().ParseFileRename(
+            """{"taskId":"file-rename-v1","status":"suggestion","sourceFileId":"file:1","suggestedFileName":"new.pdf","reason":{"text":"clearer"}}""",
+            RenameRequest());
+
+        Assert.False(result.IsValid);
+        Assert.Contains("received object", result.Message, StringComparison.Ordinal);
+    }
     private readonly AiResponseParser _parser = new();
 
     /// <summary>Verifies a complete rename response is accepted and unknown properties are ignored.</summary>

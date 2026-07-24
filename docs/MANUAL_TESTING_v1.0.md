@@ -208,6 +208,20 @@ Use only disposable files for the apply test.
 142. Enable AI and rename suggestions, leave the model empty, and confirm the action explains that a model must be selected.
 143. Stop Ollama, select a file, choose **Retry connection**, and confirm the concise unavailable state.
 144. Start Ollama, retry, and confirm server/model readiness refreshes without restarting OpenSorSe.
+
+### Live AI Request Diagnostics
+
+145. Enable AI, Advanced mode, **Enable AI request diagnostics**, and **Show unredacted prompt and response content**; save.
+146. Start a rename suggestion and confirm the separate non-modal diagnostics window opens immediately and stays usable.
+147. Observe stages update through request serialization, connection, response receipt, extraction, parsing, validation, and completion.
+148. Copy the exact system prompt, user prompt, and request JSON; confirm request JSON names the selected model, uses `stream: false`, includes the capability JSON Schema in `format`, temperature `0.1`, and `keep_alive: 5m`.
+149. Compare the raw Ollama envelope, extracted assistant `response`, and pretty-printed parsed JSON tabs.
+150. Trigger or reproduce a validation failure and confirm the Validation tab reports the property, required status, expected/actual type and value, and a precise failure—for example, an object-valued `reason` is identified as an object.
+151. Exercise section copy, complete-report copy, JSON/text save, word-wrap, auto-scroll, current clear, and clear-all.
+152. Close the diagnostics window during a request and confirm the AI operation continues.
+153. Disable diagnostics and save; confirm retained records are cleared, then start another request and confirm no diagnostics window opens.
+154. Repeat with Ollama unavailable, a missing model, timeout, cancellation, malformed JSON, Markdown-fenced JSON, and a non-success HTTP response.
+155. Confirm no prompt or response body appears in ordinary application log files and no file or folder is changed by any suggestion.
 145. Select an unavailable model and confirm the distinct model-missing state.
 146. Select an installed model, save, retry, and generate a rename suggestion.
 147. Confirm the actual model used matches the newly selected model.

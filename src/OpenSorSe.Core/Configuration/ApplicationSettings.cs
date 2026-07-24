@@ -51,6 +51,7 @@ public sealed class ApplicationSettings
             FileRenameSuggestionsEnabled = Ai.FileRenameSuggestionsEnabled,
             FolderStructureSuggestionsEnabled = Ai.FolderStructureSuggestionsEnabled,
             RequestDiagnosticsEnabled = Ai.RequestDiagnosticsEnabled,
+            ShowUnredactedDiagnosticContent = Ai.ShowUnredactedDiagnosticContent,
             Endpoint = Ai.Endpoint,
             SelectedModel = Ai.SelectedModel,
             RequestTimeoutSeconds = Ai.RequestTimeoutSeconds,
@@ -316,6 +317,9 @@ public sealed class AiSettings
 
     /// <summary>Gets or initializes opt-in, session-only raw AI request diagnostics.</summary>
     public bool RequestDiagnosticsEnabled { get; init; }
+
+    /// <summary>Gets or initializes whether opt-in diagnostics retain exact prompt and response display content.</summary>
+    public bool ShowUnredactedDiagnosticContent { get; init; }
 
     /// <summary>
     /// Gets or initializes the Ollama-compatible endpoint. The default is the local Ollama endpoint.

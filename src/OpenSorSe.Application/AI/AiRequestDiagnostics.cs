@@ -48,7 +48,7 @@ public interface IAiRequestDiagnosticsStore
     bool IsEnabled { get; }
 
     /// <summary>Applies the active setting and clears raw history when disabled.</summary>
-    void SetEnabled(bool enabled);
+    void SetEnabled(bool enabled, bool showUnredactedContent = false);
 
     /// <summary>Records one already bounded request when capture is enabled.</summary>
     void Record(AiRequestDiagnostic diagnostic);
@@ -68,6 +68,7 @@ public sealed partial class AiRequestDiagnosticsStore : IAiRequestDiagnosticsSto
     private readonly Queue<AiRequestDiagnostic> _records = new();
     private readonly object _syncRoot = new();
     private bool _isEnabled;
+    private bool _showUnredactedContent;
 
     /// <inheritdoc />
     public bool IsEnabled
@@ -82,11 +83,12 @@ public sealed partial class AiRequestDiagnosticsStore : IAiRequestDiagnosticsSto
     }
 
     /// <inheritdoc />
-    public void SetEnabled(bool enabled)
+    public void SetEnabled(bool enabled, bool showUnredactedContent = false)
     {
         lock (_syncRoot)
         {
             _isEnabled = enabled;
+            _showUnredactedContent = enabled && showUnredactedContent;
             if (!enabled)
             {
                 _records.Clear();
@@ -105,7 +107,7 @@ public sealed partial class AiRequestDiagnosticsStore : IAiRequestDiagnosticsSto
                 return;
             }
 
-            _records.Enqueue(Redact(diagnostic));
+            _records.Enqueue(Redact(diagnostic, _showUnredactedContent));
             while (_records.Count > AiRequestDiagnosticLimits.MaximumRetainedRequests)
             {
                 _records.Dequeue();
@@ -143,20 +145,31 @@ public sealed partial class AiRequestDiagnosticsStore : IAiRequestDiagnosticsSto
         return SecretPropertyRegex().Replace(redacted, "$1[REDACTED]$3");
     }
 
-    private static AiRequestDiagnostic Redact(AiRequestDiagnostic diagnostic) => diagnostic with
+    private static AiRequestDiagnostic Redact(AiRequestDiagnostic diagnostic, bool showUnredactedContent) => diagnostic with
     {
         NormalizedEndpoint = RedactSensitiveText(diagnostic.NormalizedEndpoint),
-        Prompt = RedactSensitiveText(diagnostic.Prompt),
-        Response = RedactSensitiveText(diagnostic.Response),
+        Prompt = RedactDiagnosticContent(diagnostic.Prompt, showUnredactedContent),
+        Response = RedactDiagnosticContent(diagnostic.Response, showUnredactedContent),
         ValidationIssues = Array.AsReadOnly(diagnostic.ValidationIssues
             .Select(RedactSensitiveText)
             .Take(50)
             .ToArray()),
     };
 
+    private static string RedactDiagnosticContent(string? value, bool showUnredactedContent)
+    {
+        var credentialSafe = RedactSensitiveText(value);
+        return showUnredactedContent
+            ? credentialSafe
+            : DiagnosticContentRegex().Replace(credentialSafe, "$1[REDACTED]$3");
+    }
+
     [GeneratedRegex("(?i)(\\\"?authorization\\\"?\\s*[:=]\\s*\\\"?)(?:bearer\\s+)?[^\\s,;\\\"]+")]
     private static partial Regex AuthorizationRegex();
 
     [GeneratedRegex("(?i)(\\\"?(?:api[_-]?key|access[_-]?token|password|secret)\\\"?\\s*[:=]\\s*\\\"?)([^\\\",}\\s]+)(\\\"?)")]
     private static partial Regex SecretPropertyRegex();
+
+    [GeneratedRegex("(\\\"(?:fileName|currentFileName|suggestedFileName|displayFileName|relativePath|path|text|metadata)\\\"\\s*:\\s*\\\")([^\\\"]*)(\\\")", RegexOptions.IgnoreCase)]
+    private static partial Regex DiagnosticContentRegex();
 }

@@ -47,6 +47,7 @@ public partial class App : Avalonia.Application
             _serviceProvider = CreateServiceProvider();
             _applicationHost = _serviceProvider.GetRequiredService<IApplicationHost>();
             _applicationHost.InitializeAsync().GetAwaiter().GetResult();
+            _ = _serviceProvider.GetRequiredService<AiDiagnosticsWindowCoordinator>();
             var mainViewModel = _serviceProvider.GetRequiredService<MainViewModel>();
             desktop.MainWindow = new MainWindow(mainViewModel);
             desktop.Exit += OnDesktopExit;
@@ -140,8 +141,10 @@ public partial class App : Avalonia.Application
         services.AddSingleton<IAiPromptBuilder, AiPromptBuilder>();
         services.AddSingleton<IAiResponseParser, AiResponseParser>();
         services.AddSingleton<IAiRequestDiagnosticsStore, AiRequestDiagnosticsStore>();
+        services.AddSingleton<IAiDiagnosticsCollector, AiDiagnosticsCollector>();
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
         services.AddSingleton<IExternalFileLauncher, ExternalFileLauncher>();
+        services.AddSingleton<AiDiagnosticsWindowCoordinator>();
         services.AddSingleton<IDecisionHistoryStore>(serviceProvider =>
         {
             var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;
@@ -161,6 +164,7 @@ public partial class App : Avalonia.Application
 
     private void OnDesktopExit(object? sender, ControlledApplicationLifetimeExitEventArgs eventArgs)
     {
+        _serviceProvider?.GetService<IAiDiagnosticsCollector>()?.Clear();
         _applicationHost?.ShutdownAsync().GetAwaiter().GetResult();
         _serviceProvider?.Dispose();
     }

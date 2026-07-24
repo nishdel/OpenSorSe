@@ -109,6 +109,7 @@ An installer is not currently provided. The portable package avoids unsigned MSI
 ### Optional components
 
 - **Ollama:** Required only for explicitly enabled File Assistant capabilities. Install and manage it separately, then select an installed model in OpenSorSe Settings.
+- **AI request diagnostics:** Advanced, default-off live inspection can show request stages, the Ollama payload, raw envelope, extracted response, parsed JSON, and validation. Display content is redacted unless the separate unredacted opt-in is enabled; all records remain memory-only.
 - **Tesseract 5:** Required only for local OCR recognition. Native metadata and supported document text extraction work without it. English (`eng`) and/or German (`deu`) language data must match the configured languages.
 - **Developing from source:** Requires the .NET SDK version selected by [`global.json`](global.json).
 

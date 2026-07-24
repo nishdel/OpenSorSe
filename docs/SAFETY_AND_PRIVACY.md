@@ -51,7 +51,7 @@ By default, runtime files are below `Environment.SpecialFolder.LocalApplicationD
 | Semantic index | `semantic-index.json` | Up to 10,000 bounded entries with normalized terms, accepted tag evidence, and deterministic vectors. |
 | Structure history | `structure-history.json` | Up to 250 records and 4,000 nodes per snapshot with relative paths, fingerprints, previews, outcomes, and applied state. |
 
-Content and semantic stores can contain sensitive words extracted from selected documents. They remain local but should be protected like other application data. Raw OCR/native text, semantic vectors, and credentials are never written to ordinary logs. Session diagnostic events are bounded; raw AI request diagnostics require AI, Advanced mode, and a separate explicit setting.
+Content and semantic stores can contain sensitive words extracted from selected documents. They remain local but should be protected like other application data. Raw OCR/native text, semantic vectors, and credentials are never written to ordinary logs. Live AI request diagnostics require AI, Advanced mode, and a separate explicit setting, retain at most 20 requests in process memory, default to redacted display content, and are cleared when disabled or when the app exits. A second default-off warning switch is required before exact prompt and response display content is retained.
 
 Atomic stores use temporary sibling files and replace only their own target. Corrupt optional content/semantic/history stores fail closed to an empty or rebuildable state; they never trigger source-file operations.
 

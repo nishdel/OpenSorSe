@@ -251,7 +251,14 @@
                     <TextBlock Text="Advanced AI diagnostics" FontSize="18" FontWeight="SemiBold" />
                     <CheckBox Content="Enable AI request diagnostics"
                               IsChecked="{Binding Draft.AiRequestDiagnosticsEnabled, Mode=TwoWay}" />
-                    <TextBlock Text="AI request diagnostics may contain filenames and relative folder metadata. When enabled, the latest 20 requests may retain redacted prompts and responses in memory for this session only. Disabling and saving clears them."
+                    <TextBlock Text="Opens a live, non-modal window for explicit Ollama operations. The latest 20 requests are retained in memory for this session only. Disabling and saving clears them."
+                               TextWrapping="Wrap" />
+                    <CheckBox Content="Show unredacted prompt and response content"
+                              IsEnabled="{Binding Draft.AiRequestDiagnosticsEnabled}"
+                              IsChecked="{Binding Draft.ShowUnredactedAiDiagnosticContent, Mode=TwoWay}" />
+                    <TextBlock Text="Warning: unredacted diagnostics may expose filenames, folder structure, relative paths, and extracted metadata. They are never written to normal log files."
+                               IsVisible="{Binding Draft.ShowUnredactedAiDiagnosticContent}"
+                               Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
                                TextWrapping="Wrap" />
                     <CheckBox Content="Use locally recorded review decisions as concise preference context"
                               IsChecked="{Binding Draft.PreferenceAdaptationEnabled, Mode=TwoWay}" />

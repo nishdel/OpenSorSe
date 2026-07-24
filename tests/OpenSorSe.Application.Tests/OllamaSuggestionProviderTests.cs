@@ -148,6 +148,43 @@ public sealed class OllamaSuggestionProviderTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal("{\"fileName\":null}", result.StructuredJson);
+        Assert.Contains("\"system\":", result.Diagnostics!.RequestJson, StringComparison.Ordinal);
+        Assert.Contains("\"format\":{\"type\":\"object\"", result.Diagnostics.RequestJson, StringComparison.Ordinal);
+        Assert.Equal("""{"response":"{\"fileName\":null}"}""", result.Diagnostics.RawHttpResponse);
+        Assert.Equal("{\"fileName\":null}", result.Diagnostics.ExtractedAssistantResponse);
+    }
+
+    /// <summary>Verifies the live collector separates the exact payload, raw envelope, and assistant content.</summary>
+    [Fact]
+    public async Task GenerateAsync_DiagnosticsEnabled_CapturesActualTransportArtifacts()
+    {
+        var collector = new AiDiagnosticsCollector();
+        collector.Configure(true, true);
+        var id = collector.Begin(AiSuggestionKind.FileRename, "model", "http://127.0.0.1:11434")!;
+        using var logging = new LoggingService();
+        logging.Initialize(Microsoft.Extensions.Logging.LogLevel.Trace);
+        string? sent = null;
+        using var client = new HttpClient(new StubHandler(async (request, cancellationToken) =>
+        {
+            sent = await request.Content!.ReadAsStringAsync(cancellationToken);
+            return Json(HttpStatusCode.OK, """{"response":"{\"taskId\":\"file-rename-v1\",\"status\":\"no_suggestion\",\"reason\":\"No change\"}"}""");
+        }));
+        var provider = new OllamaSuggestionProvider(client, logging, collector);
+        var request = new AiProviderGenerationRequest(
+            AiSuggestionKind.FileRename, "http://127.0.0.1:11434", "model", """{"input":"final"}""",
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds)) { DiagnosticRequestId = id };
+
+        var result = await provider.GenerateAsync(request, CancellationToken.None);
+
+        var session = Assert.Single(collector.GetRecent());
+        Assert.Equal(sent, session.RequestJson);
+        Assert.Equal(result.Diagnostics!.RawHttpResponse, session.RawHttpResponse);
+        Assert.Equal(result.StructuredJson, session.ExtractedAssistantResponse);
+        Assert.Contains(session.Stages, stage => stage.Name == "Response headers received");
+        Assert.DoesNotContain(logging.GetRecentEvents(), item =>
+            item.Summary.Contains("""{"input":"final"}""", StringComparison.Ordinal) ||
+            item.Summary.Contains("No change", StringComparison.Ordinal) ||
+            item.ExceptionSummary?.Contains("No change", StringComparison.Ordinal) == true);
     }
 
     /// <summary>Verifies model and structured-output HTTP failures receive distinct actionable outcomes.</summary>

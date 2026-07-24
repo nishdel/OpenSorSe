@@ -276,6 +276,27 @@ public sealed class SettingsViewModelTests
         Assert.True(configuration.Current.Ai.RequestDiagnosticsEnabled);
     }
 
+    /// <summary>Saving diagnostics applies redaction mode and disabling clears live history.</summary>
+    [Fact]
+    public async Task SaveAsync_LiveAiDiagnostics_AppliesPrivacyAndClearsWhenDisabled()
+    {
+        var configuration = new TestConfigurationService(settings: AiAdvancedSettings());
+        var collector = new AiDiagnosticsCollector();
+        using var viewModel = new SettingsViewModel(configuration, aiDiagnosticsCollector: collector);
+        viewModel.Draft.AiRequestDiagnosticsEnabled = true;
+        viewModel.Draft.ShowUnredactedAiDiagnosticContent = true;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+        Assert.True(collector.IsEnabled);
+        Assert.True(collector.ShowUnredactedContent);
+        Assert.NotNull(collector.Begin(AiSuggestionKind.FileRename, "model", "http://127.0.0.1:11434"));
+
+        viewModel.Draft.AiRequestDiagnosticsEnabled = false;
+        await viewModel.SaveCommand.ExecuteAsync(null);
+        Assert.False(collector.IsEnabled);
+        Assert.Empty(collector.GetRecent());
+    }
+
     private static ApplicationSettings AiAdvancedSettings() => new()
     {
         Features = new FeatureSettings { ShowAdvancedFeatures = true },

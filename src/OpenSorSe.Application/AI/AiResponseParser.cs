@@ -534,16 +534,24 @@ public sealed class AiResponseParser : IAiResponseParser
     {
         value = string.Empty;
         error = string.Empty;
-        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+        if (!element.TryGetProperty(propertyName, out var property))
         {
-            error = $"The AI response is missing the required '{propertyName}' string. No suggestion was used.";
+            error = $"Expected `{propertyName}` to be a non-empty string, but the property was missing. No suggestion was used.";
+            return false;
+        }
+
+        if (property.ValueKind != JsonValueKind.String)
+        {
+            error = $"Expected `{propertyName}` to be a non-empty string, but received {property.ValueKind.ToString().ToLowerInvariant()}. No suggestion was used.";
             return false;
         }
 
         var candidate = property.GetString();
         if (string.IsNullOrWhiteSpace(candidate) || candidate.Length > maximumLength || candidate.Any(char.IsControl))
         {
-            error = $"The AI response contains an invalid '{propertyName}' value. No suggestion was used.";
+            error = string.IsNullOrWhiteSpace(candidate)
+                ? $"Expected `{propertyName}` to be a non-empty string, but received an empty string. No suggestion was used."
+                : $"Expected `{propertyName}` to be a string no longer than {maximumLength} characters without control characters. No suggestion was used.";
             return false;
         }
 

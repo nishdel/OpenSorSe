@@ -80,7 +80,10 @@ Focused optional-AI and interface-complexity refinement; this is not the v1.0 mi
 - Review, edit, accept, and reject proposal workflow that records local decisions without executing them.
 - Typed Ollama missing-model, timeout, cancellation, unsupported-response, malformed/empty/oversized-response, and connection failure handling.
 - A bounded, newest-first 500-event process-session diagnostic viewer with severity/category filters, safe details, and copy support.
-- Optional session-only AI request diagnostics, bounded to 20 redacted records and available only when AI, advanced mode, and the explicit diagnostic switch are all enabled.
+- Optional live AI request diagnostics in a separate non-modal window, bounded to 20 memory-only records and available only when AI, advanced mode, and the explicit diagnostic switch are all enabled.
+- Separate default-off unredacted diagnostic-content opt-in; redacted display retention remains the default and disabling diagnostics clears history.
+- Ollama generation now sends a capability-specific JSON Schema aligned with prompt and C# validation contracts, while retaining raw HTTP envelopes separately from extracted assistant content.
+- Precise structured-response diagnostics now report actual JSON types, including the former generic invalid-`reason` failure.
 - Contextual Help from every major page, with topic-specific workflow, safety, error, and related-topic guidance.
 - A responsive **Duplicate View** with per-file details and explicitly requested, capped opening of known files or containing folders through a testable launcher abstraction.
 - Reusable severity-labelled status presentation for Settings, AI, Diagnostics, Catalog Search, and Duplicate View.

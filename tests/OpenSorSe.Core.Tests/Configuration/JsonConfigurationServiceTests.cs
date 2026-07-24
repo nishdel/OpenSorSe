@@ -264,6 +264,7 @@ public sealed class JsonConfigurationServiceTests
                 FileRenameSuggestionsEnabled = true,
                 FolderStructureSuggestionsEnabled = false,
                 RequestDiagnosticsEnabled = true,
+                ShowUnredactedDiagnosticContent = true,
                 Endpoint = "http://127.0.0.1:11434",
                 SelectedModel = "llama3:latest",
                 RequestTimeoutSeconds = 45,
@@ -316,6 +317,7 @@ public sealed class JsonConfigurationServiceTests
             Assert.True(reader.Current.Ai.FileRenameSuggestionsEnabled);
             Assert.False(reader.Current.Ai.FolderStructureSuggestionsEnabled);
             Assert.True(reader.Current.Ai.RequestDiagnosticsEnabled);
+            Assert.True(reader.Current.Ai.ShowUnredactedDiagnosticContent);
             Assert.Equal("llama3:latest", reader.Current.Ai.SelectedModel);
             Assert.Equal(45, reader.Current.Ai.RequestTimeoutSeconds);
             Assert.False(reader.Current.Ai.PreferenceAdaptationEnabled);

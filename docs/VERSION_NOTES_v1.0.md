@@ -10,6 +10,7 @@ OpenSorSe 1.0.0 is the first integrated local-understanding release candidate.
 - Files uses one search field, a filter drawer, and a right panel that appears only after a file is selected.
 - A persistent status bar reports scan, Meaning Search, and File Assistant activity and offers cancellation when supported.
 - The File Assistant has explicit Ollama/model readiness, connection retry, exact model switching, actual-model display, and recovery after failure or cancellation.
+- Advanced testers can opt into a live, non-modal Ollama diagnostics window with exact stage timing, request/response separation, schema validation details, copy/export actions, and a separate unredacted-content warning switch.
 - Home uses friendly, understandable metric tiles and the UI uses reusable light/dark semantic color resources.
 - Results filtering remains visible while rows scroll.
 - Duplicate details open in a responsive right drawer.

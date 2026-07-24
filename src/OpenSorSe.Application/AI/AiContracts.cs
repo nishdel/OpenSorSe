@@ -41,6 +41,10 @@ public enum AiAvailabilityState
 /// </summary>
 public enum AiSuggestionKind
 {
+    /// <summary>Tests the configured Ollama endpoint without generation.</summary>
+    ConnectionTest,
+    /// <summary>Discovers installed Ollama models without generation.</summary>
+    ModelDiscovery,
     /// <summary>Suggests a safe replacement filename for one known file.</summary>
     FileRename,
     /// <summary>Suggests a preview-only logical hierarchy for bounded known metadata.</summary>
@@ -278,6 +282,15 @@ public sealed record AiProviderGenerationRequest(
     string Prompt,
     TimeSpan Timeout)
 {
+    /// <summary>Gets the exact system prompt sent to the provider.</summary>
+    public string SystemPrompt { get; init; } = AiStructuredOutputContracts.SystemPrompt;
+
+    /// <summary>Gets the exact user prompt sent to the provider.</summary>
+    public string UserPrompt => Prompt;
+
+    /// <summary>Gets the optional live diagnostic request identity.</summary>
+    public string? DiagnosticRequestId { get; init; }
+
     /// <summary>Gets optional typed progress reporting owned by the current explicit request.</summary>
     public IProgress<AiRequestProgress>? Progress { get; init; }
 }
@@ -289,7 +302,20 @@ public sealed record AiProviderRequestDiagnostics(
     TimeSpan Elapsed,
     int ResponseCharacterCount,
     int ResponseByteCount,
-    string RawResponse);
+    string RawResponse)
+{
+    /// <summary>Gets the complete raw HTTP envelope body before parsing.</summary>
+    public string RawHttpResponse { get; init; } = RawResponse;
+
+    /// <summary>Gets the assistant content extracted from the envelope.</summary>
+    public string ExtractedAssistantResponse { get; init; } = string.Empty;
+
+    /// <summary>Gets the exact serialized request JSON.</summary>
+    public string RequestJson { get; init; } = string.Empty;
+
+    /// <summary>Gets the safe response content type.</summary>
+    public string ContentType { get; init; } = string.Empty;
+}
 
 /// <summary>Contains a provider-neutral generation response before application-owned validation.</summary>
 public sealed record AiProviderGenerationResult(
@@ -311,8 +337,16 @@ public interface IAiSuggestionProvider
     Task<AiConnectionResult> CheckConnectionAsync(AiSettings settings, CancellationToken cancellationToken) =>
         GetConnectionAsync(settings, cancellationToken);
 
+    /// <summary>Checks endpoint reachability while optionally publishing into an existing diagnostic session.</summary>
+    Task<AiConnectionResult> CheckConnectionAsync(AiSettings settings, string? diagnosticRequestId, CancellationToken cancellationToken) =>
+        CheckConnectionAsync(settings, cancellationToken);
+
     /// <summary>Checks provider availability and lists installed models.</summary>
     Task<AiConnectionResult> GetConnectionAsync(AiSettings settings, CancellationToken cancellationToken);
+
+    /// <summary>Discovers models while optionally publishing into an existing diagnostic session.</summary>
+    Task<AiConnectionResult> GetConnectionAsync(AiSettings settings, string? diagnosticRequestId, CancellationToken cancellationToken) =>
+        GetConnectionAsync(settings, cancellationToken);
 
     /// <summary>Requests one structured provider response without parsing it into application models.</summary>
     Task<AiProviderGenerationResult> GenerateAsync(AiProviderGenerationRequest request, CancellationToken cancellationToken);

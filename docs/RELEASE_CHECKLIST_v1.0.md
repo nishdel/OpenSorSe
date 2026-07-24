@@ -93,6 +93,7 @@ This checklist covers preparation of the local v1.0 release candidate. It does n
 - [ ] Scanning is exercised from the packaged executable.
 - [ ] Live OCR is exercised on the intended release machine.
 - [ ] Live Ollama/File Assistant behavior is exercised with an installed model.
+- [ ] Live AI Request Diagnostics is exercised in redacted and explicitly unredacted modes, including copy/export, failure detail, close-without-cancel, and clear-on-disable.
 - [ ] Meaning Search, Saved scans, folder plans, and settings persistence are exercised from the package.
 - [ ] Supported non-Windows behavior is tested or its limitation remains documented.
 - [ ] Manual testing is complete before considering merge into `main` or remote release publication.

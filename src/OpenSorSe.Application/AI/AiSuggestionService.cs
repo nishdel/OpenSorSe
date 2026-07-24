@@ -20,6 +20,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
     private readonly IAiSuggestionProvider _provider;
     private readonly IAiResponseParser _responseParser;
     private readonly IAiRequestDiagnosticsStore? _requestDiagnosticsStore;
+    private readonly IAiDiagnosticsCollector? _diagnosticsCollector;
     private readonly TimeProvider _timeProvider;
 
     /// <summary>Initializes the coordinator with default application-owned prompt and response components.</summary>
@@ -28,8 +29,9 @@ public sealed class AiSuggestionService : IAiSuggestionService
         IDecisionHistoryStore decisionHistoryStore,
         ILoggingService loggingService,
         TimeProvider? timeProvider = null,
-        IAiRequestDiagnosticsStore? requestDiagnosticsStore = null)
-        : this(provider, decisionHistoryStore, new AiPromptBuilder(), new AiResponseParser(), loggingService, timeProvider, requestDiagnosticsStore)
+        IAiRequestDiagnosticsStore? requestDiagnosticsStore = null,
+        IAiDiagnosticsCollector? diagnosticsCollector = null)
+        : this(provider, decisionHistoryStore, new AiPromptBuilder(), new AiResponseParser(), loggingService, timeProvider, requestDiagnosticsStore, diagnosticsCollector)
     {
     }
 
@@ -41,7 +43,8 @@ public sealed class AiSuggestionService : IAiSuggestionService
         IAiResponseParser responseParser,
         ILoggingService loggingService,
         TimeProvider? timeProvider = null,
-        IAiRequestDiagnosticsStore? requestDiagnosticsStore = null)
+        IAiRequestDiagnosticsStore? requestDiagnosticsStore = null,
+        IAiDiagnosticsCollector? diagnosticsCollector = null)
     {
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _decisionHistoryStore = decisionHistoryStore ?? throw new ArgumentNullException(nameof(decisionHistoryStore));
@@ -50,6 +53,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
         _logger = (loggingService ?? throw new ArgumentNullException(nameof(loggingService))).CreateLogger(nameof(AiSuggestionService));
         _timeProvider = timeProvider ?? TimeProvider.System;
         _requestDiagnosticsStore = requestDiagnosticsStore;
+        _diagnosticsCollector = AiDiagnosticsIsolation.Protect(diagnosticsCollector);
     }
 
     /// <inheritdoc />
@@ -81,7 +85,8 @@ public sealed class AiSuggestionService : IAiSuggestionService
             AiSuggestionKind.FileRename,
             request.File is null ? 0 : 1,
             progress,
-            _timeProvider);
+            _timeProvider,
+            _diagnosticsCollector);
         diagnostic.Report(AiRequestStage.CheckingSettings, "Checking AI settings and rename capability.");
         if (!TryValidateReadySettings(settings, AiCapability.FileRenameSuggestions, out var state, out var message))
         {
@@ -107,7 +112,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
         }
 
         diagnostic.Report(AiRequestStage.Connecting, "Connecting to Ollama using the configured endpoint.");
-        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, cancellationToken).ConfigureAwait(false);
+        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, diagnostic.RequestId, cancellationToken).ConfigureAwait(false);
         diagnostic.SetConnection(modelCheck);
         diagnostic.Report(AiRequestStage.ValidatingModel, "Validating the exact selected Ollama model identifier.");
         if (modelCheck.State != AiAvailabilityState.ModelSelected)
@@ -130,6 +135,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
                 TimeSpan.FromSeconds(settings.RequestTimeoutSeconds))
             {
                 Progress = diagnostic,
+                DiagnosticRequestId = diagnostic.RequestId,
             },
             cancellationToken).ConfigureAwait(false);
         diagnostic.SetProviderResult(providerResult);
@@ -203,7 +209,8 @@ public sealed class AiSuggestionService : IAiSuggestionService
             AiSuggestionKind.FolderStructure,
             request.Files.Count,
             progress,
-            _timeProvider);
+            _timeProvider,
+            _diagnosticsCollector);
         diagnostic.Report(AiRequestStage.CheckingSettings, "Checking AI settings and folder-structure capability.");
         if (!TryValidateReadySettings(settings, AiCapability.FolderStructureSuggestions, out var state, out var message))
         {
@@ -229,7 +236,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
         }
 
         diagnostic.Report(AiRequestStage.Connecting, "Connecting to Ollama using the configured endpoint.");
-        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, cancellationToken).ConfigureAwait(false);
+        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, diagnostic.RequestId, cancellationToken).ConfigureAwait(false);
         diagnostic.SetConnection(modelCheck);
         diagnostic.Report(AiRequestStage.ValidatingModel, "Validating the exact selected Ollama model identifier.");
         if (modelCheck.State != AiAvailabilityState.ModelSelected)
@@ -252,6 +259,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
                 TimeSpan.FromSeconds(settings.RequestTimeoutSeconds))
             {
                 Progress = diagnostic,
+                DiagnosticRequestId = diagnostic.RequestId,
             },
             cancellationToken).ConfigureAwait(false);
         diagnostic.SetProviderResult(providerResult);
@@ -318,7 +326,8 @@ public sealed class AiSuggestionService : IAiSuggestionService
             AiSuggestionKind.DocumentTextInterpretation,
             1,
             null,
-            _timeProvider);
+            _timeProvider,
+            _diagnosticsCollector);
         diagnostic.Report(AiRequestStage.CheckingSettings, "Checking AI and extracted-text capability settings.");
         if (!TryValidateReadySettings(
                 settings,
@@ -349,7 +358,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
         }
 
         diagnostic.Report(AiRequestStage.Connecting, "Connecting to the configured Ollama-compatible endpoint.");
-        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, cancellationToken).ConfigureAwait(false);
+        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, diagnostic.RequestId, cancellationToken).ConfigureAwait(false);
         diagnostic.SetConnection(modelCheck);
         if (modelCheck.State != AiAvailabilityState.ModelSelected)
         {
@@ -369,6 +378,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
                 TimeSpan.FromSeconds(settings.RequestTimeoutSeconds))
             {
                 Progress = diagnostic,
+                DiagnosticRequestId = diagnostic.RequestId,
             },
             cancellationToken).ConfigureAwait(false);
         diagnostic.SetProviderResult(providerResult);
@@ -527,22 +537,43 @@ public sealed class AiSuggestionService : IAiSuggestionService
             return new AiConnectionResult(AiAvailabilityState.Unavailable, "AI settings are invalid.", Array.Empty<AiModel>());
         }
 
+        var diagnosticsStarted = _timeProvider.GetUtcNow();
+        var diagnosticId = settings.Ai.RequestDiagnosticsEnabled && _diagnosticsCollector?.IsEnabled == true
+            ? _diagnosticsCollector.Begin(
+                discoverModels ? AiSuggestionKind.ModelDiscovery : AiSuggestionKind.ConnectionTest,
+                settings.Ai.SelectedModel ?? string.Empty,
+                settings.Ai.Endpoint)
+            : null;
+        _diagnosticsCollector?.ReportStage(diagnosticId, "Connecting to Ollama", AiDiagnosticState.Active, TimeSpan.Zero);
         AiConnectionResult connection;
         try
         {
             connection = discoverModels
-                ? await _provider.GetConnectionAsync(settings.Ai, cancellationToken).ConfigureAwait(false)
-                : await _provider.CheckConnectionAsync(settings.Ai, cancellationToken).ConfigureAwait(false);
+                ? await _provider.GetConnectionAsync(settings.Ai, diagnosticId, cancellationToken).ConfigureAwait(false)
+                : await _provider.CheckConnectionAsync(settings.Ai, diagnosticId, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            _diagnosticsCollector?.Complete(diagnosticId, AiDiagnosticState.Cancelled, true, _timeProvider.GetUtcNow() - diagnosticsStarted, "The connection operation was cancelled.");
             return new AiConnectionResult(AiAvailabilityState.RequestCancelled, "The Ollama connection test was cancelled.", Array.Empty<AiModel>());
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or JsonException or InvalidDataException or NotSupportedException)
         {
             _logger.LogWarning(exception, "The AI provider failed during a connection test.");
+            _diagnosticsCollector?.Complete(diagnosticId, AiDiagnosticState.Failed, false, _timeProvider.GetUtcNow() - diagnosticsStarted, $"{exception.GetType().Name}: {exception.Message}");
             return new AiConnectionResult(AiAvailabilityState.Unavailable, "Ollama is unavailable at the configured endpoint.", Array.Empty<AiModel>());
         }
+
+        _diagnosticsCollector?.SetTransport(diagnosticId, connection.HttpStatusCode, "application/json", null, 0, true, false);
+        _diagnosticsCollector?.ReportStage(diagnosticId, "Response headers received", AiDiagnosticState.Succeeded, _timeProvider.GetUtcNow() - diagnosticsStarted);
+        _diagnosticsCollector?.Complete(
+            diagnosticId,
+            connection.State is AiAvailabilityState.Connected or AiAvailabilityState.ModelSelected or AiAvailabilityState.NoModelsAvailable
+                ? AiDiagnosticState.Succeeded
+                : AiDiagnosticState.Failed,
+            connection.State == AiAvailabilityState.RequestCancelled,
+            _timeProvider.GetUtcNow() - diagnosticsStarted,
+            connection.State is AiAvailabilityState.Connected or AiAvailabilityState.ModelSelected or AiAvailabilityState.NoModelsAvailable ? null : connection.Message);
 
         if (connection.State is not (AiAvailabilityState.Connected or AiAvailabilityState.ModelSelected or AiAvailabilityState.NoModelsAvailable))
         {
@@ -570,12 +601,13 @@ public sealed class AiSuggestionService : IAiSuggestionService
 
     private async Task<AiConnectionResult> GetSelectedModelAvailabilityAsync(
         AiSettings settings,
+        string? diagnosticRequestId,
         CancellationToken cancellationToken)
     {
         AiConnectionResult connection;
         try
         {
-            connection = await _provider.GetConnectionAsync(settings, cancellationToken).ConfigureAwait(false);
+            connection = await _provider.GetConnectionAsync(settings, diagnosticRequestId, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -767,6 +799,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
         private readonly DateTimeOffset _startedAtUtc;
         private readonly List<AiRequestStageEntry> _stages = [];
         private readonly int _totalInputCount;
+        private readonly IAiDiagnosticsCollector? _collector;
         private AiPromptPackage? _prompt;
         private AiConnectionResult? _connection;
         private AiProviderGenerationResult? _providerResult;
@@ -778,7 +811,8 @@ public sealed class AiSuggestionService : IAiSuggestionService
             AiSuggestionKind kind,
             int totalInputCount,
             IProgress<AiRequestProgress>? outerProgress,
-            TimeProvider timeProvider)
+            TimeProvider timeProvider,
+            IAiDiagnosticsCollector? collector)
         {
             _store = store;
             _settings = settings;
@@ -787,12 +821,24 @@ public sealed class AiSuggestionService : IAiSuggestionService
             _outerProgress = outerProgress;
             _timeProvider = timeProvider;
             _startedAtUtc = timeProvider.GetUtcNow();
+            _collector = collector;
+            RequestId = settings.RequestDiagnosticsEnabled && collector?.IsEnabled == true
+                ? collector.Begin(kind, settings.SelectedModel ?? string.Empty, settings.Endpoint)
+                : null;
         }
+
+        public string? RequestId { get; }
 
         public void Report(AiRequestProgress value)
         {
             ArgumentNullException.ThrowIfNull(value);
             _stages.Add(new AiRequestStageEntry(value.Stage, _timeProvider.GetUtcNow(), Bound(value.Message, 500)));
+            _collector?.ReportStage(
+                RequestId,
+                StageName(value.Stage),
+                StageState(value.Stage),
+                value.Elapsed,
+                value.Stage is AiRequestStage.RequestFailed or AiRequestStage.RequestTimedOut ? value.Message : null);
             _outerProgress?.Report(value);
         }
 
@@ -802,7 +848,14 @@ public sealed class AiSuggestionService : IAiSuggestionService
             Report(new AiRequestProgress(stage, message, elapsed < TimeSpan.Zero ? TimeSpan.Zero : elapsed));
         }
 
-        public void SetPrompt(AiPromptPackage prompt) => _prompt = prompt;
+        public void SetPrompt(AiPromptPackage prompt)
+        {
+            _prompt = prompt;
+            _collector?.ReportStage(RequestId, "Building system prompt", AiDiagnosticState.Succeeded, Elapsed());
+            _collector?.Capture(RequestId, AiDiagnosticContentKind.SystemPrompt, AiStructuredOutputContracts.SystemPrompt);
+            _collector?.ReportStage(RequestId, "Building user prompt", AiDiagnosticState.Succeeded, Elapsed());
+            _collector?.Capture(RequestId, AiDiagnosticContentKind.UserPrompt, prompt.Prompt);
+        }
 
         public void SetConnection(AiConnectionResult connection) => _connection = connection;
 
@@ -821,6 +874,23 @@ public sealed class AiSuggestionService : IAiSuggestionService
 
             _completed = true;
             _providerResult = providerResult ?? _providerResult;
+            var inspected = AiDiagnosticValidationInspector.Inspect(
+                _providerResult?.StructuredJson,
+                _prompt?.TaskId ?? string.Empty);
+            var detailedIssues = validationIssues
+                .Concat(inspected.Checks.Where(check => !check.Passed).Select(check => check.Message))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            _collector?.SetValidation(RequestId, inspected.ParsedJson, inspected.Checks, detailedIssues);
+            var finalState = _providerResult?.FailureKind switch
+            {
+                AiProviderFailureKind.Cancelled => AiDiagnosticState.Cancelled,
+                AiProviderFailureKind.None when validationOutcome is "Accepted" or "Valid no-suggestion" => AiDiagnosticState.Succeeded,
+                AiProviderFailureKind.None => AiDiagnosticState.Rejected,
+                null when validationOutcome == "Context rejected" => AiDiagnosticState.Rejected,
+                _ => AiDiagnosticState.Failed,
+            };
+            _collector?.Complete(RequestId, finalState, finalState == AiDiagnosticState.Cancelled, Elapsed(), detailedIssues.FirstOrDefault());
             if (!_settings.RequestDiagnosticsEnabled || _store?.IsEnabled != true)
             {
                 return;
@@ -869,5 +939,33 @@ public sealed class AiSuggestionService : IAiSuggestionService
 
         private static string Bound(string value, int maximumLength) =>
             value.Length <= maximumLength ? value : value[..maximumLength];
+
+        private TimeSpan Elapsed()
+        {
+            var value = _timeProvider.GetUtcNow() - _startedAtUtc;
+            return value < TimeSpan.Zero ? TimeSpan.Zero : value;
+        }
+
+        private static string StageName(AiRequestStage stage) => stage switch
+        {
+            AiRequestStage.CheckingSettings or AiRequestStage.PreparingMetadata => "Preparing file context",
+            AiRequestStage.Connecting => "Connecting to Ollama",
+            AiRequestStage.ValidatingModel => "Validating model",
+            AiRequestStage.SendingRequest => "Request sent",
+            AiRequestStage.WaitingForModel => "Waiting for model",
+            AiRequestStage.ReceivingResponse => "Response body received",
+            AiRequestStage.ValidatingSuggestion => "Validating response",
+            AiRequestStage.SuggestionReady => "Completed",
+            AiRequestStage.RequestCancelled => "Cancelled",
+            AiRequestStage.RequestTimedOut => "Timed out",
+            _ => "Failed",
+        };
+
+        private static AiDiagnosticState StageState(AiRequestStage stage) => stage switch
+        {
+            AiRequestStage.RequestCancelled => AiDiagnosticState.Cancelled,
+            AiRequestStage.RequestFailed or AiRequestStage.RequestTimedOut => AiDiagnosticState.Failed,
+            _ => AiDiagnosticState.Succeeded,
+        };
     }
 }

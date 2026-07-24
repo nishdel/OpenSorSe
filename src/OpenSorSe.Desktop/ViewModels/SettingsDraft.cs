@@ -19,6 +19,7 @@ public sealed class SettingsDraft : ViewModelBase
     private bool _fileRenameSuggestionsEnabled;
     private bool _folderStructureSuggestionsEnabled;
     private bool _aiRequestDiagnosticsEnabled;
+    private bool _showUnredactedAiDiagnosticContent;
     private string _aiEndpoint = "http://127.0.0.1:11434";
     private string? _selectedAiModel;
     private int _aiRequestTimeoutSeconds = 30;
@@ -119,6 +120,13 @@ public sealed class SettingsDraft : ViewModelBase
     {
         get => _aiRequestDiagnosticsEnabled;
         set => SetProperty(ref _aiRequestDiagnosticsEnabled, value);
+    }
+
+    /// <summary>Gets or sets whether the live diagnostics window may retain exact prompt and response text.</summary>
+    public bool ShowUnredactedAiDiagnosticContent
+    {
+        get => _showUnredactedAiDiagnosticContent;
+        set => SetProperty(ref _showUnredactedAiDiagnosticContent, value);
     }
 
     /// <summary>Gets or sets the user-configured Ollama-compatible endpoint.</summary>
@@ -308,6 +316,7 @@ public sealed class SettingsDraft : ViewModelBase
             FileRenameSuggestionsEnabled = settings.Ai.FileRenameSuggestionsEnabled,
             FolderStructureSuggestionsEnabled = settings.Ai.FolderStructureSuggestionsEnabled,
             AiRequestDiagnosticsEnabled = settings.Ai.RequestDiagnosticsEnabled,
+            ShowUnredactedAiDiagnosticContent = settings.Ai.ShowUnredactedDiagnosticContent,
             AiEndpoint = settings.Ai.Endpoint,
             SelectedAiModel = settings.Ai.SelectedModel,
             AiRequestTimeoutSeconds = settings.Ai.RequestTimeoutSeconds,
@@ -365,6 +374,7 @@ public sealed class SettingsDraft : ViewModelBase
             FileRenameSuggestionsEnabled = FileRenameSuggestionsEnabled,
             FolderStructureSuggestionsEnabled = FolderStructureSuggestionsEnabled,
             RequestDiagnosticsEnabled = AiRequestDiagnosticsEnabled,
+            ShowUnredactedDiagnosticContent = ShowUnredactedAiDiagnosticContent,
             Endpoint = AiEndpoint?.Trim() ?? string.Empty,
             SelectedModel = string.IsNullOrWhiteSpace(SelectedAiModel) ? null : SelectedAiModel.Trim(),
             RequestTimeoutSeconds = timeoutSeconds,
