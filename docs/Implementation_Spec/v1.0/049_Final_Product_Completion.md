@@ -5,7 +5,7 @@
 | Components | PDF OCR, OCR capability/settings/cache, optional AI text interpretation, semantic ranking, tags, UI polish, migration, licensing |
 | Target | OpenSorSe 1.0.0 final manual-validation candidate |
 | Baseline | Completed specification 048 implementation at commit `4eb78b3` |
-| Status | Approved for implementation on local `v1.0` |
+| Status | Implemented on local `v1.0`; manual OCR/GUI/platform verification pending |
 
 ## 1. Objective
 
@@ -31,7 +31,7 @@ Out of scope:
 
 ## 3. FOSS dependency decision
 
-`PDFtoImage` 5.2.1 is selected for rendering because it is MIT licensed, targets .NET 8, uses PDFium native binaries published through the `bblanchon.PDFium.*` packages, and uses SkiaSharp already present through Avalonia. PDFium and the binary-distribution packages are permissively licensed; their notices are retained in the dependency inventory and third-party notice file.
+`PdfPig` 0.1.15 is selected for page-aware native PDF text because it is Apache-2.0 licensed and exposes bounded read-only page access without invoking an external process. `PDFtoImage` 5.2.1 is selected for rendering because it is MIT licensed, targets .NET 8, uses PDFium native binaries published through the `bblanchon.PDFium.*` packages, and uses SkiaSharp already present through Avalonia. PDFium and the binary-distribution packages are permissively licensed; their notices are retained in the dependency inventory and third-party notice file.
 
 Tesseract remains an externally detected Apache-2.0 executable. OpenSorSe does not download or bundle Tesseract or language packs. `AvaloniaUI.DiagnosticsSupport` is removed because its resolved package manifest contains no license declaration; release diagnostics continue through OpenSorSe's own FOSS logging and diagnostic views.
 
@@ -55,9 +55,9 @@ flowchart TD
     Cache --> Index["Semantic Search Beta index"]
 ```
 
-`IPdfTextExtractor` returns page count and bounded page records. `IPdfPageRenderer` renders one numbered page into a uniquely named application temp workspace. `IPdfOcrCoordinator` applies page-level decisions, calls `IOcrEngine` for rendered images, deletes each image after use, and deletes the workspace on success, failure, timeout, or cancellation. `IDocumentTextPipeline` selects PDF coordination or the ordinary metadata/OCR path.
+`PdfMetadataExtractor` returns page count and bounded `PdfPageText` records through the existing metadata boundary. `IPdfPageRasterizer` renders one numbered page into a uniquely named application temp workspace. `TesseractCliOcrEngine` applies page-level decisions, calls its injected process runner for rendered images, deletes each image after use, and deletes the workspace on success, failure, timeout, or cancellation. `MetadataExtractionPipeline`, `OcrService`, and `ContentIndexingService` coordinate the ordinary and PDF-specific paths without adding UI or filesystem mutation concerns.
 
-Each page records `NativeText`, `Ocr`, `NativeAndOcrFallback`, `Skipped`, or `Failed`; confidence, warnings, engine/rasterizer identity, and duration remain optional/bounded. Whole-document results distinguish completed, partially completed, unavailable, failed, timed out, and cancelled.
+Each page records `NativeText`, `Ocr`, `NativeAndOcrFallback`, `Skipped`, or `Failed`; confidence, warnings, engine/rasterizer identity, and duration remain optional/bounded. Whole-document results distinguish completed, partially completed, unavailable, failed, timed out, and text-discarded-by-bound states; caller cancellation propagates while cleanup still runs.
 
 ## 5. Page-level decision policy
 

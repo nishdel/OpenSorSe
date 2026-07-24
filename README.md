@@ -4,12 +4,12 @@
 
 ## Project status
 
-OpenSorSe 1.0.0 is implemented on the local `v1.0` branch as an integrated release candidate. It builds on the completed v0.9.1 baseline and adds local metadata extraction, optional OCR Beta, provenance-aware tags, local Semantic Search Beta, and durable folder-structure history.
+OpenSorSe 1.0.0 is implemented on the local `v1.0` branch as a final manual-validation candidate. It builds on the completed v0.9.1 baseline and adds local metadata extraction, page-aware optional OCR Beta for images and PDFs, provenance-aware tags, local Semantic Search Beta, and durable folder-structure history.
 
 - AI and Advanced interface features remain independently disabled by default.
 - OCR and Semantic Search are separate opt-ins; neither requires or activates AI.
 - Scanning, duplicate review, extraction, indexing, diagrams, and AI suggestions do not modify source files.
-- AI remains metadata-only, suggestion-only, and blocked from provider communication when disabled.
+- AI remains suggestion-only and blocked from provider communication when disabled. Rename/folder prompts are metadata-only; extracted document text requires a separate default-off capability and an explicit one-file request.
 - The only new source-file mutation is a deterministic folder-restructuring plan that the user previews and then confirms separately. It is confined to one root, bounded, conflict checked, never overwrites or deletes, and records its result.
 - Restore, build, test, and environment results are recorded in [Release Status](docs/RELEASE_STATUS.md).
 
@@ -23,11 +23,11 @@ Do not merge the release candidate into `main` until the inherited v0.9.1 and co
 | Results | Keep search/filter/status controls fixed while independently scrolling bounded result rows; retain sorting, filters, paging, details, tags, and match explanations. |
 | Duplicate View | Keep duplicate groups visible while selected-group details open in a responsive right drawer. Known paths can be opened through a capped launcher; no delete or cleanup command exists. |
 | Metadata | Extract bounded filesystem metadata, defensive PDF fields/native text, Open XML document metadata/native text, and image dimensions with provenance. Malformed files fail per item. |
-| OCR Beta | Optionally use a detected local Tesseract CLI for bounded PNG, JPEG, and TIFF OCR. Reliable native text skips OCR. Scanned-PDF OCR honestly reports unavailable because no PDF rasterizer is bundled. |
+| OCR Beta | Use built-in bounded PDFium rendering plus an optional detected local Tesseract CLI for PNG, JPEG, TIFF, scanned PDFs, and only the insufficient pages of mixed PDFs. Native PDF text is extracted page by page and retained when reliable. |
 | Tags | Distinguish user-approved, deterministic, embedded-metadata, OCR, semantic, file-type, date, folder-context, AI, and preference provenance. Generated candidates can be accepted or rejected locally. |
 | Semantic Search Beta | Build a bounded, local, rebuildable index using deterministic feature hashing and hybrid filename/tag/metadata/native-text/OCR signals. Results explain why they matched; indexes never modify source files. |
 | Saved catalog | Opt in to bounded historical snapshots, names, source scope, accepted tags, saved searches, and deterministic snapshot comparison. |
-| Optional AI | Explicitly enable metadata-only rename or logical folder-structure suggestions through an externally managed Ollama-compatible endpoint. Strict structured validation keeps every result unverified and review-only. |
+| Optional AI | Explicitly enable metadata-only rename/folder proposals or, through a separate default-off control, bounded extracted-text interpretation for one selected indexed document. Strict structured validation keeps every result unverified and review-only. |
 | Structure history | Preview deterministic extension-group proposals, review source/proposed/applied/current structures, inspect Added/Removed/Moved/Renamed/Unchanged labels, and retain bounded local history. |
 | Repeat protection | Only a successful confirmed restructuring apply suppresses a redundant full proposal. New root-level files receive an incremental proposal; material changes are reported; an explicit override remains available. |
 | Interface modes | Global shell switches keep AI and Advanced controls available from every page. Advanced mode adds comparison, diagnostics, operation internals, and Structure history without resetting hidden values. |
@@ -40,22 +40,24 @@ OpenSorSe prefers metadata-only, local processing and treats model output and ma
 - AI is disabled by default. Disabled AI blocks provider discovery and requests at the service boundary.
 - OCR, extracted text, semantic vectors, and structure history stay in OpenSorSe application data.
 - Ordinary logs do not include raw OCR/document text, vectors, credentials, or raw AI payloads.
-- A custom Ollama endpoint can be remote; only the documented bounded filename/metadata request is sent after explicit enablement.
+- A custom Ollama endpoint can be remote. Rename/folder requests contain bounded metadata; extracted text is sent only after the separate document-text capability and an explicit one-file request are enabled.
 - AI suggestions never enter the restructuring executor. Folder restructuring is deterministic and separately confirmed.
 - Every restructuring destination must remain under the selected root; traversal, reparse destinations, missing sources, changed previews, conflicts, duplicates, and overwrites are rejected.
 - Clear-index, clear-cache, clear-history, catalog, saved-search, and diagnostic actions affect only OpenSorSe-owned data.
 
-See [Safety and Privacy](docs/SAFETY_AND_PRIVACY.md) and the [v1.0 specification](docs/Implementation_Spec/v1.0/048_v1.0_Integrated_Release.md).
+See [Safety and Privacy](docs/SAFETY_AND_PRIVACY.md) and the [final v1.0 completion specification](docs/Implementation_Spec/v1.0/049_Final_Product_Completion.md).
 
 ## Technology
 
 - .NET 8 and C#.
 - Avalonia UI with MVVM and CommunityToolkit.Mvvm.
 - Microsoft dependency injection and logging.
+- PdfPig for page-aware native PDF text and PDFtoImage/PDFium for bounded page rendering.
+- An optional externally installed Tesseract 5 CLI with `eng` and/or `deu` language data.
 - Atomic bounded JSON stores for settings, catalog/search definitions, content cache, semantic index, AI decisions, and structure history.
 - xUnit tests with fake providers/engines and disposable filesystem fixtures.
 
-The SDK is pinned in [global.json](global.json). No installer or published package is included.
+The SDK is pinned in [global.json](global.json). No installer or published package is included. Dependency policy, exact resolved versions, and redistribution notes are recorded in [the FOSS policy](docs/FOSS_DEPENDENCY_POLICY.md), [machine-readable inventory](docs/dependency-licenses.json), and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Build from source
 
@@ -103,11 +105,11 @@ See the [roadmap](docs/roadmap.md), [changelog](docs/CHANGELOG.md), [version not
 
 ## Manual verification
 
-Use disposable data for restructuring tests. The [121-step v1.0 guide](docs/MANUAL_TESTING_v1.0.md) covers Results, the Duplicate drawer, global toggles, OCR, metadata, tags, semantic search, restructuring protection, diagrams, migration, and inherited regressions. Also complete the [v0.9.1 checklist](docs/MANUAL_TESTING_v0.9.1.md).
+Use disposable data for restructuring tests. The [v1.0 guide](docs/MANUAL_TESTING_v1.0.md) covers Results, the Duplicate drawer, global toggles, mixed/scanned-PDF OCR, metadata, optional AI text interpretation, tags, semantic search, restructuring protection, diagrams, migration, and inherited regressions. Also complete the [v0.9.1 checklist](docs/MANUAL_TESTING_v0.9.1.md).
 
 ## Optional Ollama
 
-Ollama is optional and externally managed. Enable AI, check the configured endpoint, discover exact installed model identifiers, select one, enable an individual capability, and save. Enabling the shell switch alone performs no provider detection or communication. Essential endpoint/model controls remain available with AI; raw request diagnostics additionally require Advanced mode and explicit opt-in.
+Ollama is optional and externally managed. Enable AI, check the configured endpoint, discover exact installed model identifiers, select one, enable an individual capability, and save. Enabling the shell switch alone performs no provider detection or communication. Essential endpoint/model controls remain available with AI; raw request diagnostics additionally require Advanced mode and explicit opt-in. The extracted-document-text capability is separate from rename/folder suggestions and warns when the configured endpoint is not local.
 
 Unavailable endpoints/models, timeout, cancellation, malformed or oversized output, and unsafe values return controlled states without affecting scanning or other non-AI features. The local deterministic Semantic Search Beta and folder restructuring service do not use Ollama.
 

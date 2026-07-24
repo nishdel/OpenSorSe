@@ -14,7 +14,7 @@ When multiple solutions are technically valid, these principles should help dete
 
 ## Current Release Boundary
 
-OpenSorSe 1.0 is a local-first, non-destructive-by-default analysis and organization application. AI and Advanced interface features remain independently disabled by default. AI is constrained to metadata-only rename and logical-folder proposals, is strictly validated, and remains suggestion-only. OCR Beta, metadata extraction, provenance tags, and Semantic Search Beta run locally and do not require AI.
+OpenSorSe 1.0 is a local-first, non-destructive-by-default analysis and organization application. AI and Advanced interface features remain independently disabled by default. AI is constrained to metadata-only rename/logical-folder proposals and a separately gated bounded extracted-text interpretation proposal; every response is strictly validated and suggestion-only. OCR Beta, metadata extraction, provenance tags, and Semantic Search Beta run locally and do not require AI.
 
 Scanning, extraction, indexing, comparisons, diagrams, duplicates, and AI never modify selected files. The sole new mutation boundary is a deterministic folder-restructuring plan that the user previews and confirms separately. It validates an unchanged explicit root, moves only the reviewed relative paths, rejects overwrite/traversal/conflicts, and records its outcome. Preview, failure, cancellation, and partial results never activate repeat protection.
 

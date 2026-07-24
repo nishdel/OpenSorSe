@@ -7,7 +7,10 @@ Integrated local-understanding and structure-history release candidate.
 ### Added
 
 - Local, bounded metadata extraction for filesystem, PDF, Open XML, and image metadata with source provenance and per-file failure isolation.
-- Optional OCR Beta through capability-detected local Tesseract CLI execution for supported images; reliable native text skips OCR and scanned-PDF OCR reports unavailable without a rasterizer.
+- Optional OCR Beta through capability-detected local Tesseract CLI execution for images and rendered PDF pages, with PdfPig native page text, built-in PDFtoImage/PDFium rasterization, mixed-document page decisions, English/German language checks, and deterministic bounds.
+- Page-level OCR provenance, engine/rasterizer-aware cache fingerprints, owned temporary-workspace cleanup, and stale-compatible cache migration.
+- A separate default-off AI document-text interpretation capability with bounded page context, strict JSON validation, non-local endpoint warning, and an unverified review-only preview.
+- Machine-readable resolved dependency/license inventory, third-party notices, and automated unknown/forbidden-license protection.
 - Provenance-aware confirmed, suggested, accepted, and rejected tags sourced from users, deterministic rules, file type/date/folder context, embedded metadata, local OCR, preferences, semantic inference, and optional AI review.
 - Default-off local Semantic Search Beta with deterministic feature-hashing vectors, hybrid exact/tag/metadata/native-text/OCR ranking, match explanations, incremental refresh, cancellation, stale-file removal, and clear/rebuild controls.
 - Versioned atomic `content-index.json`, `semantic-index.json`, and `structure-history.json` stores with explicit bounds and controlled corrupt optional-index recovery.
@@ -24,11 +27,12 @@ Integrated local-understanding and structure-history release candidate.
 - Assembly, package, informational, file, and About versions report `1.0.0`.
 - Advanced navigation now includes Structure history; Semantic Search Beta remains independently enabled and does not require AI or Advanced mode.
 - Existing v0.9.1 settings, catalog schemas, accepted tags, saved searches, and AI decisions remain readable with safe defaults for new settings.
+- English/German search normalization now folds diacritics, splits punctuation/extensions, retains ISO dates, and adds conservative suffix variants without a model.
 
 ### Safety
 
 - Scanning, OCR, extraction, indexing, duplicate review, diagrams, and AI suggestions never modify source files.
-- AI remains default-off, capability-specific, metadata-only, untrusted, and suggestion-only; no AI result enters a filesystem operation.
+- AI remains default-off, capability-specific, untrusted, and suggestion-only; bounded extracted text can leave the process only through its separate opt-in and explicit one-file request, and no AI result enters a filesystem operation.
 - The only new source-file mutation is a deterministic restructuring plan applied after a separate exact-preview confirmation. It moves only listed files under one explicit root and never overwrites or deletes.
 - Raw OCR/document text and semantic vectors are excluded from ordinary logs.
 
@@ -38,6 +42,10 @@ Integrated local-understanding and structure-history release candidate.
 - Navigation falls back safely when Advanced mode hides Structure history or any other selected advanced page.
 - Changed roots are rejected between restructuring preview and apply, preventing stale proposals from moving files.
 - Failed or preview-only restructuring records cannot activate repeat protection.
+- Mixed PDFs no longer skip scanned pages merely because another page contains enough native text.
+- Content reprocessing preserves accepted/user tags and same-source rejection decisions instead of replacing them with regenerated candidates.
+- Successful OCR capability detection is refreshable and validates every configured Tesseract language before recognition.
+- `AvaloniaUI.DiagnosticsSupport` was removed because its resolved package metadata did not declare a license; built-in OpenSorSe diagnostics remain available.
 
 ## v0.9.1
 

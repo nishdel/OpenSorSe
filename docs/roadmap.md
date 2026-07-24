@@ -6,7 +6,7 @@
 
 OpenSorSe is a local-first, review-oriented desktop application for analyzing selected folders and organizing explicitly reviewed disposable/user-approved roots. The project is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
-OpenSorSe 1.0 keeps scanning, extraction, indexing, duplicate review, diagrams, and AI suggestions non-mutating. Its only new source mutation is a deterministic, separately confirmed, root-confined restructuring plan. OCR Beta and Semantic Search Beta are local and independent of AI.
+OpenSorSe 1.0 keeps scanning, extraction, page-aware OCR, indexing, duplicate review, diagrams, and AI suggestions non-mutating. Its only new source mutation is a deterministic, separately confirmed, root-confined restructuring plan. OCR Beta and Semantic Search Beta are local and independent of AI.
 
 ## Completed releases
 
@@ -125,7 +125,9 @@ Release candidate; automated validation complete where the environment permits a
 - Duplicate details use a responsive right-side drawer while groups remain visible.
 - AI and Advanced switches are globally available from the shell.
 - Defensive local metadata extraction supports filesystem, PDF, Open XML, and image fields with provenance.
-- OCR Beta uses a detected local Tesseract CLI for supported images, skips reliable native text, and honestly reports scanned-PDF rasterization as unavailable when unsupported.
+- OCR Beta uses PdfPig plus built-in PDFtoImage/PDFium page rendering and a detected external Tesseract CLI for supported images and scanned/mixed PDFs; only pages with insufficient native text are rasterized.
+- English/German Tesseract language support, explicit capability refresh, cache fingerprints, bounded temporary storage, and page-level provenance are implemented.
+- Optional AI interpretation of bounded extracted text has a separate default-off capability and remains an unverified one-document review proposal.
 - Provenance-aware tags can be accepted or rejected without modifying embedded file metadata.
 - Semantic Search Beta builds a bounded local deterministic hybrid index and explains filename, tag, metadata, native-text, OCR, and similarity signals.
 - Structure history stores bounded source, proposed, and applied snapshots, plus per-item outcomes.
@@ -140,7 +142,7 @@ The release does not add plugins, broad localization, installers, cloud indexing
 The following are longer-term ideas, not current capabilities or committed release scope:
 
 - Rich full-fidelity document/content readers beyond the bounded 1.0 extractors.
-- Bundled scanned-PDF rasterization and OCR language/model packaging.
+- Bundled Tesseract executables or OCR language/model packaging.
 - Learned or external semantic embedding models and GPU acceleration.
 - Database-backed scan catalogs, tags, and search indexes.
 - Generic rule execution and undo integration beyond the narrow restructuring apply workflow.

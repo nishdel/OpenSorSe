@@ -6,9 +6,9 @@
 
 ## Implementation Status
 
-OpenSorSe 1.0 implements `IMetadataExtractor` and `IMetadataExtractionPipeline` for filesystem metadata, defensive PDF fields/native text, bounded DOCX/XLSX core properties/native text, and PNG/JPEG dimensions. It also provides separately enabled OCR Beta through a capability-detected local Tesseract CLI for PNG/JPEG/TIFF. Extractors are read-only, bounded, cancellable, never execute macros, and never fetch remote resources.
+OpenSorSe 1.0 implements `IMetadataExtractor` and `IMetadataExtractionPipeline` for filesystem metadata, page-aware PdfPig PDF fields/native text, bounded DOCX/XLSX core properties/native text, and PNG/JPEG dimensions. It also provides separately enabled OCR Beta through built-in PDFtoImage/PDFium page rendering and a capability-detected external Tesseract CLI for PNG/JPEG/TIFF and insufficient scanned/mixed-PDF pages. Extractors are read-only, bounded, cancellable, never execute macros, and never fetch remote resources.
 
-Scanned-PDF OCR, rich document layout, media/archive readers, formula evaluation, embedded-object execution, and full-fidelity content parsing remain future work. Format-specific documents in this directory are authoritative only where the v1.0 implementation/specification explicitly says a capability is delivered.
+Rich document layout, handwriting/table recognition, media/archive readers, formula evaluation, embedded-object execution, and full-fidelity content parsing remain future work. Format-specific documents in this directory are authoritative only where the v1.0 implementation/specification explicitly says a capability is delivered.
 
 ---
 

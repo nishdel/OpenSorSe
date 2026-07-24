@@ -19,7 +19,10 @@ This checklist covers preparation of the local v1.0 release candidate. It does n
 - [x] Duplicate details use a right-side drawer and keep groups visible.
 - [x] Shell AI and Advanced toggles remain visible and synchronize with Settings.
 - [x] Enabling AI alone never invokes a provider.
-- [x] OCR is local, capability-detected, bounded, cancellable, and honestly reports unavailable states.
+- [x] OCR is local, capability-detected, page-aware, bounded, cancellable, and honestly reports unavailable states.
+- [x] Built-in PDFium rendering handles scanned/mixed PDFs and only sends insufficient rendered pages to external Tesseract.
+- [x] Tesseract version and configured English/German language data are validated before recognition.
+- [x] AI extracted-text interpretation has a separate default-off gate and remains one-document, bounded, validated, and review-only.
 - [x] Metadata readers are defensive and preserve provenance.
 - [x] User, metadata, OCR, and generated tags remain distinguishable.
 - [x] Semantic Search Beta is local, bounded, incremental, cancellable, and explains matches.
@@ -44,9 +47,10 @@ This checklist covers preparation of the local v1.0 release candidate. It does n
 
 - [x] OCR, metadata extraction, tagging, and semantic indexing are local.
 - [x] Raw OCR/extracted text and vectors are not written to ordinary logs.
-- [x] File contents are not sent to Ollama by deterministic v1.0 features.
+- [x] Rename/folder AI requests exclude file contents; extracted text can be sent only through its separate opt-in and explicit one-file request.
 - [x] Error messages do not expose unnecessary full paths.
 - [x] Source files are opened read-only by scanners and extractors.
+- [x] PDF-render temporary workspaces are application-owned, bounded, and cleaned on success, failure, timeout, and cancellation.
 - [x] Apply operations are confined to the approved root and reject overwrite, traversal, and missing-source conditions.
 - [x] Duplicate actions do not delete or mutate files.
 
@@ -65,9 +69,10 @@ This checklist covers preparation of the local v1.0 release candidate. It does n
 - [x] Release proposal, specification, decisions, data model, migration guide, version notes, and architecture notes are current.
 - [x] README, roadmap, changelog, release status, safety/privacy, settings, Help, and implementation index describe the final behavior.
 - [x] OCR engine and PDF rasterizer availability limitations are stated accurately.
+- [x] FOSS policy, exact resolved package inventory, and third-party redistribution notices are current.
 - [x] Semantic Search is labeled Beta and described as local deterministic similarity search.
 - [x] No documentation claims autonomous AI filesystem control.
-- [x] Manual testing guide contains all 121 checks.
+- [x] Manual testing guide contains all 140 checks.
 
 ## Automated validation
 
@@ -75,7 +80,7 @@ This checklist covers preparation of the local v1.0 release candidate. It does n
 - [ ] `dotnet build .\OpenSorSe.sln --configuration Debug --no-restore` — attempted in and outside the sandbox; blocked by the same host ACLs.
 - [ ] `dotnet test .\OpenSorSe.sln --configuration Debug --no-build` — exited successfully but used the stale locked 453-test v0.9.1 output, so it is not accepted as v1.0 evidence.
 - [x] Redirected `.artifacts` restore and current-source Debug build succeeded.
-- [x] Redirected `.artifacts` current-source test suite passed 506 tests with none skipped.
+- [x] Redirected `.artifacts` current-source Debug and Release test suites each passed 531 tests with none skipped.
 - [x] Redirected `.artifacts` Release build succeeded.
 - [x] Tests run against current source, not stale binaries.
 - [x] Test count, skipped tests, warnings, and environment limitations are recorded.
@@ -85,7 +90,7 @@ This checklist covers preparation of the local v1.0 release candidate. It does n
 ## Manual validation
 
 - [ ] All checks in `docs/MANUAL_TESTING_v0.9.1.md` are complete.
-- [ ] All 121 checks in `docs/MANUAL_TESTING_v1.0.md` are complete.
+- [ ] All 140 checks in `docs/MANUAL_TESTING_v1.0.md` are complete.
 - [ ] Windows smoke test is complete.
 - [ ] Supported non-Windows behavior is tested or its limitation is documented.
 - [ ] OCR unavailable, provider unavailable, malformed content, cancellation, and partial failure paths are exercised.

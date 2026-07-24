@@ -6,9 +6,9 @@
 
 ## Implementation Status
 
-OpenSorSe 1.0 preserves the v0.9.1 optional-AI boundary. AI is disabled by default, with independent rename and folder-structure capability switches. Application-owned feature gates reject disabled, invalid, or unconfigured calls before `IAiSuggestionProvider` can run. `AiPromptBuilder` produces capability-specific, deterministic, bounded, metadata-only prompts; `AiResponseParser` and `AiSuggestionValidator` reject malformed, invented, duplicate, unsafe, or excessive output as a whole. The only results are immutable, unverified review proposals and bounded local review decisions. No AI proposal mutates a filesystem or enters restructuring.
+OpenSorSe 1.0 preserves and extends the v0.9.1 optional-AI boundary. AI is disabled by default, with independent rename, folder-structure, and document-text-interpretation capability switches. Application-owned feature gates reject disabled, invalid, or unconfigured calls before `IAiSuggestionProvider` can run. `AiPromptBuilder` produces capability-specific deterministic bounded prompts; rename/folder prompts remain metadata-only, while document interpretation accepts only bounded normalized extracted text after its separate gate and explicit one-document request. `AiResponseParser` and `AiSuggestionValidator` reject malformed, invented, duplicate, unsafe, or excessive output as a whole. The only results are immutable, unverified review proposals and bounded local review decisions. No AI proposal mutates a filesystem or enters restructuring.
 
-Essential endpoint configuration, connection testing, exact model discovery/selection, timeout, capabilities, and review-history controls appear whenever AI is enabled. Advanced mode adds technical inspection, including a separately enabled session-only raw AI request buffer. Metadata/OCR, provenance tags, deterministic Semantic Search Beta, scanning, catalog functions, and Structure history do not require AI. Cloud providers, AI content analysis, AI embeddings, monitoring, agents, plugins, and AI-driven filesystem mutation remain future architecture.
+Essential endpoint configuration, connection testing, exact model discovery/selection, timeout, capabilities, and review-history controls appear whenever AI is enabled. Advanced mode adds technical inspection, including a separately enabled session-only raw AI request buffer. Settings warns that a custom non-local endpoint can receive bounded extracted text only when document interpretation is enabled and explicitly requested. Metadata/OCR, provenance tags, deterministic Semantic Search Beta, scanning, catalog functions, and Structure history do not require AI. Additional providers, broad summarization/classification, AI embeddings, monitoring, agents, plugins, and AI-driven filesystem mutation remain future architecture.
 
 ---
 
@@ -16,13 +16,13 @@ Essential endpoint configuration, connection testing, exact model discovery/sele
 
 The AI subsystem transforms extracted document information into meaningful knowledge.
 
-Using local and optional cloud-based language models, the AI subsystem analyzes documents, generates structured insights, classifies content, produces summaries, suggests filenames and folder locations, and creates semantic representations for search.
+The implemented provider produces only the three constrained review proposals above. The broader component catalogue below is long-term architecture, not a claim that classification, summaries, AI embeddings, cloud providers, or agents ship in 1.0.
 
 The AI subsystem operates on information extracted by the Readers subsystem. It does not read files directly.
 
 ### 1.0 concrete boundary
 
-The delivered provider is optional and receives only bounded result metadata. `OpenSorSe.Application.AI` owns gates, provider-neutral contracts, deterministic request-local identities, prompt packages, exact-model preflight, parsing, validation, typed progress, session request diagnostics, and review coordination; `OpenSorSe.AI` owns normalized Ollama HTTP transport and local JSON decision history. The Desktop never calls HTTP directly. Model output remains untrusted until the complete response passes validation and becomes an application-owned preview. The local deterministic embedding provider belongs to Semantic Search and is not an AI request provider. See [v1.0 specification 048](../../Implementation_Spec/v1.0/048_v1.0_Integrated_Release.md).
+The delivered provider is optional and receives bounded result metadata or, only through the separate document-text capability, bounded normalized text with provenance. `OpenSorSe.Application.AI` owns gates, provider-neutral contracts, deterministic request-local identities, prompt packages, exact-model preflight, parsing, validation, typed progress, session request diagnostics, and review coordination; `OpenSorSe.AI` owns normalized Ollama HTTP transport and local JSON decision history. The Desktop never calls HTTP directly. Model output remains untrusted until the complete response passes validation and becomes an application-owned preview. The local deterministic embedding provider belongs to Semantic Search and is not an AI request provider. See [final v1.0 specification 049](../../Implementation_Spec/v1.0/049_Final_Product_Completion.md).
 
 ---
 

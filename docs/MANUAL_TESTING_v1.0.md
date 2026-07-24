@@ -41,8 +41,8 @@ This checklist validates the OpenSorSe 1.0 release candidate using disposable te
 ## Global toggles
 
 31. Navigate through every page.
-32. Confirm **Enable AI** remains visible in the shell.
-33. Confirm **Advanced features** remains visible in the shell.
+32. Confirm **Enable AI features** remains visible in the shell.
+33. Confirm **Show advanced features** remains visible in the shell.
 34. Toggle AI.
 35. Verify Settings updates.
 36. Toggle Advanced.
@@ -65,7 +65,7 @@ This checklist validates the OpenSorSe 1.0 release candidate using disposable te
 50. Inspect OCR status.
 51. Confirm source documents remain unchanged.
 
-If no compatible local OCR engine is detected, confirm the interface reports **Unavailable** rather than claiming OCR succeeded. Image OCR requires a compatible local engine. Scanned-PDF OCR additionally requires an available local PDF rasterization capability.
+If no compatible local Tesseract engine is detected, confirm the interface reports **Unavailable** rather than claiming OCR succeeded. PDF rendering is built in; recognition still requires the externally installed Tesseract executable and all configured language data.
 
 ## Metadata
 
@@ -156,6 +156,28 @@ Use only disposable files for the apply test.
 119. Test AI rename suggestions.
 120. Test AI folder suggestions.
 121. Confirm all suggestion workflows remain preview-only.
+
+## Final OCR and AI-text hardening
+
+122. On a system without Tesseract, use **Recheck OCR capability** and confirm the UI names Tesseract as unavailable while reporting the built-in PDF renderer separately.
+123. Install or configure a supported Tesseract 5 executable with `eng`, recheck, and confirm its version and detected languages appear.
+124. Select `deu` without German language data and confirm recognition is blocked with an actionable language message.
+125. Install `deu`, select `deu` or `deu+eng`, recheck, and recognize a representative German image.
+126. OCR a scanned multi-page PDF and confirm page boundaries/provenance are retained.
+127. OCR a mixed PDF containing reliable native-text pages and scanned pages; confirm only insufficient pages require Tesseract.
+128. Cancel mixed-PDF OCR and confirm the operation stops, normal scanning remains usable, and no `OpenSorSe/ocr/job-*` temporary workspace remains.
+129. Exercise the page, file, time, raster-edge, extracted-text, and temporary-storage bounds and confirm each returns a controlled result.
+130. Restart after changing OCR language/DPI/bounds and confirm settings persist and affected cached records are reprocessed.
+131. Confirm accepted/user tags survive reprocessing and a rejected generated tag remains suppressed for an unchanged source fingerprint.
+132. Enable AI but leave **Allow local AI to analyze extracted document text** off; confirm no document-text action appears or reaches the provider.
+133. Enable document-text interpretation and inspect the non-local endpoint warning before using a custom remote endpoint.
+134. Select one indexed document and explicitly generate a document interpretation proposal.
+135. Confirm the preview is labelled AI-generated/unverified and contains only bounded type/title/tag/date/issuer/folder suggestions, confidence, and explanation.
+136. Reject or dismiss the proposal and confirm no source file, folder, embedded metadata, or tag is changed automatically.
+137. Return malformed, fenced, unknown-source, unsafe-folder, overlong, excessive-count, and out-of-range-confidence provider fixtures and confirm whole-response rejection.
+138. Disable the global AI switch while a request is active and confirm cancellation, preview clearing, and no later provider-driven UI update.
+139. Point Ollama at an unavailable endpoint/model and confirm OCR, scanning, Results, Duplicate View, catalog, tags, saved searches, semantic search, and Structure history continue to work.
+140. Compare source-file hashes/timestamps before and after all OCR and AI interpretation checks and confirm no automatic filesystem modification occurred.
 
 ## Completion record
 

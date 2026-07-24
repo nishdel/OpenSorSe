@@ -2,7 +2,9 @@
 
 ## Extracted content
 
-`ExtractedMetadataField` stores name, bounded value, `ContentProvenance`, and confidence. `ContentRecord` stores normalized absolute path, source length/last-write fingerprint, indexed time, metadata, bounded native/OCR text, OCR state/engine, warnings, and provenance-aware tags.
+`ExtractedMetadataField` stores name, bounded value, `ContentProvenance`, and confidence. `PdfPageText` stores page number, bounded native text, and deterministic quality state. `OcrPageResult` stores page number, `NativeText`/`Ocr`/`NativeAndOcrFallback`/`Skipped`/`Failed` provenance, bounded text, optional confidence, status, and a safe message.
+
+`ContentRecord` stores normalized absolute path, source length/last-write fingerprint, indexed time, metadata, bounded native/OCR text, page-level OCR provenance, OCR state/engine, extraction fingerprint, warnings, and provenance-aware tags. The extraction fingerprint includes schema, content settings, language, engine/version, and rasterizer/version so stale records remain readable but are reprocessed.
 
 ## Tags
 

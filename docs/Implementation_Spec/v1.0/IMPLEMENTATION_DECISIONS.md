@@ -6,7 +6,7 @@ Semantic search uses a deterministic feature-hashing embedding provider bundled 
 
 ## Capability-detected OCR
 
-OCR is behind `IOcrEngine` and `IOcrService`. The final 1.0 integration uses the MIT-licensed `PDFtoImage` wrapper over permissively licensed PDFium native packages for bounded page rendering, then an explicitly configured or PATH-resolved local Tesseract CLI for character recognition. PDFium is in-process and serialized; Tesseract is external, optional, and never downloaded or started in the background. Unit tests use fakes and tiny generated fixtures and require no installed native OCR engine.
+OCR is behind `IOcrEngine` and `IOcrService`. The final 1.0 integration uses Apache-2.0 PdfPig for bounded page-aware native text, then the MIT-licensed `PDFtoImage` wrapper over permissively licensed PDFium native packages for bounded page rendering, followed by an explicitly configured or PATH-resolved local Tesseract CLI for character recognition. PDFium is in-process and serialized; Tesseract is external, optional, and never downloaded or started in the background. Unit tests use fakes and tiny generated fixtures and require no installed native OCR engine.
 
 ## FOSS-only dependency gate
 

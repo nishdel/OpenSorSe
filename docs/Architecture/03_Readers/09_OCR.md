@@ -4,6 +4,18 @@
 
 ---
 
+## OpenSorSe 1.0 implementation
+
+OCR Beta is disabled by default and remains independent of AI. `OcrService` enforces settings and cancellation before invoking `TesseractCliOcrEngine`. The engine accepts PNG/JPEG/TIFF directly. For PDFs, `PdfMetadataExtractor` first uses PdfPig to extract and quality-check bounded native text per page; `PdfPageRasterizer` uses PDFtoImage/PDFium to render only pages whose native text is insufficient.
+
+Tesseract is an optional external executable and is never downloaded, installed, or launched in the background. Capability detection uses shell-free `--version` and `--list-langs` calls, requires each configured `eng`/`deu` language, and reports the built-in rasterizer separately. Recognition is asynchronous and bounded by file size, page count, duration, raster edge/DPI, output text, process streams, and temporary storage.
+
+Each PDF page records native/OCR/fallback/skipped/failed provenance. Temporary page images are created below an OpenSorSe-owned unique `job-*` workspace, deleted after use, and deleted again in final cleanup on every outcome. Missing engines/languages, malformed/encrypted PDFs, cancellation, timeouts, nonzero exits, empty output, and oversized output return controlled states without breaking scanning or search.
+
+OCR output is untrusted text. It is normalized for local cache/tag/search use, excluded from ordinary logs, never written back to the source, and never treated as authoritative transcription.
+
+---
+
 ## Purpose
 
 The OCR component extracts machine-readable text from image-based content that does not already contain accessible textual information.
@@ -35,7 +47,7 @@ The OCR component is responsible for:
 * Screenshots
 * Photographs of documents
 * Image-based text extraction
-* Multi-page OCR processing
+* Bounded multi-page OCR processing
 
 ### Out of Scope
 
@@ -47,7 +59,7 @@ The OCR component is **not** responsible for:
 * Translation
 * Image recognition
 * Object detection
-* Search indexing
+* Search-index implementation (OCR only supplies bounded text and provenance)
 
 These responsibilities belong to downstream subsystems.
 
@@ -157,7 +169,7 @@ Failure to extract text should not prevent the document from continuing through 
 The architecture should support future enhancements, including:
 
 * Handwriting recognition.
-* Multi-language OCR.
+* Languages beyond the implemented English/German Tesseract configuration.
 * Table recognition.
 * Mathematical expression recognition.
 * Layout-aware OCR.

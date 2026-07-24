@@ -17,7 +17,7 @@ OpenSorSe 1.0 does not provide:
 - Autonomous or AI-driven filesystem control.
 - Duplicate deletion or automatic cleanup.
 - Generic rule execution/undo from the Desktop.
-- Bundled scanned-PDF rasterization, GPU acceleration, or externally learned embeddings.
+- Bundled Tesseract executables/language data, GPU acceleration, or externally learned embeddings.
 - Plugins, broad localization, packaging overhaul, live monitoring, cloud indexing, or report export.
 - Claims of cross-platform packaging validation beyond portable architecture and current Windows build/test validation.
 

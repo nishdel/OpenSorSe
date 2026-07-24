@@ -17,7 +17,9 @@
 | Testing | xUnit, Microsoft.NET.Test.Sdk, coverlet collector | Automated unit and integration test coverage. |
 | Documentation | Markdown and Mermaid | Repository documentation and architecture diagrams. |
 | Version control | Git | Local repository history and collaboration workflow. |
-| Local OCR integration | Tesseract CLI capability detection | Optional bounded PNG/JPEG/TIFF OCR Beta; the engine remains externally installed. |
+| Native PDF text | PdfPig 0.1.15 | Read-only bounded page text/metadata with deterministic quality checks. |
+| PDF page rendering | PDFtoImage 5.2.1 + PDFium native packages | Built-in bounded rendering of insufficient scanned/mixed PDF pages. |
+| Local OCR integration | Tesseract CLI capability detection | Optional bounded PNG/JPEG/TIFF and rendered-PDF OCR Beta; the engine and `eng`/`deu` data remain externally installed. |
 | Local similarity | Deterministic feature hashing | Rebuildable Semantic Search Beta vectors without a model download or network service. |
 | Local persistence | `System.Text.Json` + atomic replace | Separate bounded versioned settings/catalog/content/semantic/history stores. |
 
@@ -29,13 +31,13 @@ The 1.0 release does not use the following as implemented product capabilities:
 
 - SQLite or a database-backed full-text/vector engine.
 - Learned embedding models, cloud AI APIs, or GPU acceleration. Ollama remains the single optional provider for validated review-only suggestions; Semantic Search uses deterministic local feature hashing.
-- Bundled Tesseract models or a scanned-PDF rasterizer.
+- Bundled Tesseract executables or language/model data.
 - Plugin loading or a plugin marketplace.
 - Python, PySide, or other legacy desktop stack components.
 
 ## Future technology considerations
 
-Richer readers, additional AI providers, database indexes, learned embeddings, reports, packaging, localization, and plugins are future architectural ideas. The bounded 1.0 extractors, local image OCR integration, deterministic semantic index, and JSON structure history are implemented. A technology named in a future architecture document is not a dependency until a release specification and code add it.
+Richer readers, additional AI providers, database indexes, learned embeddings, reports, packaging, localization, and plugins are future architectural ideas. The bounded 1.0 extractors, PDF rasterization, local OCR integration, deterministic semantic index, and JSON structure history are implemented. A technology named in a future architecture document is not a dependency until a release specification and code add it.
 
 Future technology selection should continue to prioritize local-first privacy, user control, maintainability, and explicit safety boundaries for any feature that could affect user files.
 

@@ -8,7 +8,7 @@
 
 `OpenSorSe.Core` supplies the current domain models and shared abstractions used by the .NET 8 application. `OpenSorSe.Application` and the Desktop composition root provide the current lifecycle, dependency-injection, settings, diagnostics, and operation-history integration around those models.
 
-The wider dependency diagram and the detailed documents in this section describe a long-term architectural vocabulary. OpenSorSe 1.0 implements the bounded local content pipeline, optional image OCR adapter, provenance-aware tags, deterministic Semantic Search Beta, optional constrained AI, schema-compatible JSON stores, and deterministic structure-history workflow identified in the current release specification. A relational database, reports, plugins, broad localization, cloud indexing, and general-purpose automation remain future design. See the [System Overview](../00_System/00_Overview.md) for the active component map.
+The wider dependency diagram and the detailed documents in this section describe a long-term architectural vocabulary. OpenSorSe 1.0 implements the bounded local content pipeline, page-aware image/PDF OCR adapter, provenance-aware tags, deterministic Semantic Search Beta, optional constrained AI, schema-compatible JSON stores, and deterministic structure-history workflow identified in the current release specification. A relational database, reports, plugins, broad localization, cloud indexing, and general-purpose automation remain future design. See the [System Overview](../00_System/00_Overview.md) for the active component map.
 
 ---
 

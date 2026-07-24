@@ -4,7 +4,7 @@ OpenSorSe is a local-first Avalonia desktop application for understanding select
 
 ## Product boundary
 
-Scanning, exact-duplicate review, metadata extraction, OCR Beta, tag generation, Semantic Search Beta, catalog/history comparison, diagrams, and optional AI suggestions are non-mutating. AI is disabled by default, metadata-only, untrusted, and suggestion-only.
+Scanning, exact-duplicate review, metadata extraction, OCR Beta, tag generation, Semantic Search Beta, catalog/history comparison, diagrams, and optional AI suggestions are non-mutating. AI is disabled by default, capability-specific, untrusted, and suggestion-only. Rename/folder requests are metadata-only; bounded extracted text requires a separate opt-in and explicit one-document action.
 
 OpenSorSe 1.0 adds one narrow mutation boundary: a deterministic folder-restructuring proposal can be applied only after a second exact-preview confirmation. The service revalidates the unchanged explicit root, rejects traversal/reparse/conflict/overwrite/missing-source cases, moves at most 500 listed files, attempts rollback on interruption, and persists outcomes. It does not consume AI output.
 

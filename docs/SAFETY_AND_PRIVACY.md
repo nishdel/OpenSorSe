@@ -17,15 +17,19 @@ The service rejects traversal, absolute destinations, unknown/missing sources, d
 
 AI and Advanced mode are independent and disabled by default. While AI is disabled, provider detection, discovery, requests, and background communication are rejected at the application boundary.
 
-The only AI capabilities are separately enabled file-rename and logical folder-structure suggestions. Requests use bounded filenames, extensions, deterministic categories, existing logical folder names, request-local identities, and optional concise preferences. Absolute paths and file contents are excluded. A custom configured endpoint may be remote and receives that bounded metadata only after explicit enablement.
+The AI capabilities are separately enabled file-rename, logical folder-structure, and document-text interpretation suggestions. Rename/folder requests use bounded filenames, extensions, deterministic categories, existing logical folder names, request-local identities, and optional concise preferences; they exclude absolute paths and file contents.
+
+Document-text interpretation has its own default-off switch. It requires global AI, the capability, a valid endpoint/model, one explicitly selected known content record, and a direct **Generate** command. Its prompt contains bounded normalized extracted text with page/native/OCR provenance, never file bytes or an absolute path. A custom endpoint may be remote, so Settings warns before this switch is enabled. The prompt forbids exact/legal/financial transcription claims and any filesystem action.
 
 AI output is untrusted strict JSON. Whole-response validation checks identities, counts, schema, filenames, path components, confidence, and hierarchy safety. Accept/edit/reject records a local review decision only. No AI output can invoke restructuring, the historical Executor library, or another file operation.
 
 ## OCR, metadata, tags, and semantic search
 
 - Filesystem, PDF, Open XML, and image extractors open supported files read-only, apply byte/page/text bounds, do not execute macros, and do not fetch external resources.
-- OCR Beta is separately enabled and capability-detected. The integrated Tesseract CLI path supports bounded image OCR; scanned PDFs report unavailable without an integrated rasterizer.
-- Reliable native text skips OCR by default.
+- OCR Beta is separately enabled and capability-detected. PdfPig reads native PDF pages; the built-in PDFtoImage/PDFium renderer creates bounded page images only where native text is insufficient; the optional external Tesseract CLI recognizes those images.
+- Reliable native page text skips rasterization/OCR by default. Mixed PDFs preserve native/OCR provenance per page.
+- Tesseract version and configured `eng`/`deu` language data are detected before recognition. Process output, page count, duration, image dimensions, retained text, and temporary storage are bounded.
+- Temporary page images live only in validated OpenSorSe-owned `job-*` directories and are deleted per page and again on success, error, timeout, or cancellation.
 - OCR and extraction failures are isolated per file and cannot stop normal scanning/search/catalog workflows.
 - Provenance tags distinguish confirmed system/user evidence from unverified generated candidates.
 - Semantic Search Beta is separately enabled, local, deterministic, bounded to configured document/result limits, incremental, cancellable, and rebuildable.
@@ -43,7 +47,7 @@ By default, runtime files are below `Environment.SpecialFolder.LocalApplicationD
 | AI decisions | `decision-history.json` | Up to 1,000 bounded metadata-only review records. |
 | Saved catalog | `catalog.json` | Opt-in bounded historical display metadata, names, source roots, and accepted tags. |
 | Saved searches | `saved-catalog-searches.json` | Up to 25 name/query definitions; hits are not stored. |
-| Content cache | `content-index.json` | Bounded extracted metadata and native/OCR text used locally; source fingerprint enables reuse/invalidation. |
+| Content cache | `content-index.json` | Bounded extracted metadata, native/OCR text, page provenance, and extraction fingerprint used locally; source and component/settings fingerprints enable reuse/invalidation. |
 | Semantic index | `semantic-index.json` | Up to 10,000 bounded entries with normalized terms, accepted tag evidence, and deterministic vectors. |
 | Structure history | `structure-history.json` | Up to 250 records and 4,000 nodes per snapshot with relative paths, fingerprints, previews, outcomes, and applied state. |
 
