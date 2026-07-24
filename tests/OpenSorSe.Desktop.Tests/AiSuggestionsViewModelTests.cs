@@ -130,14 +130,158 @@ public sealed class AiSuggestionsViewModelTests
         Assert.False(viewModel.IsBusy);
     }
 
-    private static ApplicationSettings Settings(bool rename, bool folder) => new()
+    /// <summary>Verifies the rename action explains common user-correctable unavailable states.</summary>
+    [Fact]
+    public void RenameAvailability_ExplainsSelectionCapabilityModelAndUnsupportedItem()
+    {
+        var service = new RecordingService();
+        var configuration = new MutableConfigurationService(Settings(rename: true, folder: false));
+        using var viewModel = new AiSuggestionsViewModel(configuration, service);
+        var file = CreateFile();
+        var snapshot = CreateSnapshot(file);
+
+        viewModel.SetContext(null, snapshot, [file]);
+        Assert.Contains("Choose a file", viewModel.RenameActionAvailabilityText, StringComparison.OrdinalIgnoreCase);
+
+        configuration.Current = new ApplicationSettings();
+        viewModel.RefreshFeatureAvailability();
+        viewModel.SetContext(file, snapshot, [file]);
+        Assert.Contains("AI features are off", viewModel.RenameActionAvailabilityText, StringComparison.OrdinalIgnoreCase);
+
+        configuration.Current = Settings(rename: false, folder: true);
+        viewModel.RefreshFeatureAvailability();
+        Assert.Contains("Rename suggestions are off", viewModel.RenameActionAvailabilityText, StringComparison.OrdinalIgnoreCase);
+
+        configuration.Current = Settings(rename: true, folder: false, model: null);
+        viewModel.RefreshFeatureAvailability();
+        Assert.Contains("Choose an installed AI model", viewModel.RenameActionAvailabilityText, StringComparison.OrdinalIgnoreCase);
+
+        configuration.Current = Settings(rename: true, folder: false);
+        viewModel.RefreshFeatureAvailability();
+        var unsupported = CreateFile("file:unsafe", "..");
+        viewModel.SetContext(unsupported, CreateSnapshot(unsupported), [unsupported]);
+        Assert.Contains("not have a supported filename", viewModel.RenameActionAvailabilityText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Verifies a cancelled request returns to idle and a later request uses a fresh cancellation source.</summary>
+    [Fact]
+    public async Task Rename_CancelThenRetry_Succeeds()
+    {
+        var configuration = new MutableConfigurationService(Settings(rename: true, folder: false));
+        var service = new RecordingService();
+        service.RenameBehaviors.Enqueue(async (request, _, cancellationToken) =>
+        {
+            service.RenameStarted.TrySetResult(true);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return RenameResult(request.File.Id);
+        });
+        service.RenameBehaviors.Enqueue((request, _, _) => Task.FromResult(RenameResult(request.File.Id)));
+        using var viewModel = new AiSuggestionsViewModel(configuration, service);
+        var file = CreateFile();
+        viewModel.SetContext(file, CreateSnapshot(file), [file]);
+
+        var cancelled = viewModel.GenerateSuggestionCommand.ExecuteAsync(null);
+        await service.RenameStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        viewModel.CancelAiOperationCommand.Execute(null);
+        await cancelled;
+
+        Assert.False(viewModel.IsBusy);
+        Assert.Equal(AiReadinessState.Cancelled, viewModel.ReadinessState);
+        Assert.True(viewModel.GenerateSuggestionCommand.CanExecute(null));
+
+        await viewModel.GenerateSuggestionCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsBusy);
+        Assert.True(viewModel.HasRenameSuggestion);
+        Assert.Equal(2, service.RenameCallCount);
+        Assert.Equal(AiReadinessState.Ready, viewModel.ReadinessState);
+    }
+
+    /// <summary>Verifies failed, timed-out, and malformed results remain retryable and do not retain stale failure state.</summary>
+    [Theory]
+    [InlineData(AiAvailabilityState.Unavailable)]
+    [InlineData(AiAvailabilityState.ResponseInvalid)]
+    public async Task Rename_ControlledFailureThenRetry_Succeeds(AiAvailabilityState failureState)
+    {
+        var configuration = new MutableConfigurationService(Settings(rename: true, folder: false));
+        var service = new RecordingService();
+        service.RenameBehaviors.Enqueue((_, _, _) =>
+            Task.FromResult(new AiFileRenameResult(failureState, "Request failed safely.", null)));
+        service.RenameBehaviors.Enqueue((request, _, _) => Task.FromResult(RenameResult(request.File.Id)));
+        using var viewModel = new AiSuggestionsViewModel(configuration, service);
+        var file = CreateFile();
+        viewModel.SetContext(file, CreateSnapshot(file), [file]);
+
+        await viewModel.GenerateSuggestionCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.IsBusy);
+        Assert.False(viewModel.HasRenameSuggestion);
+        Assert.True(viewModel.GenerateSuggestionCommand.CanExecute(null));
+
+        await viewModel.GenerateSuggestionCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.HasRenameSuggestion);
+        Assert.Equal(AiReadinessState.Ready, viewModel.ReadinessState);
+    }
+
+    /// <summary>Verifies retry distinguishes server and model readiness and can recover from an unavailable server.</summary>
+    [Fact]
+    public async Task RetryConnection_UnavailableThenReady_RefreshesReadiness()
+    {
+        var configuration = new MutableConfigurationService(Settings(rename: true, folder: false));
+        var service = new RecordingService
+        {
+            ConnectionResult = new AiConnectionResult(AiAvailabilityState.Unavailable, "Not running", []),
+        };
+        using var viewModel = new AiSuggestionsViewModel(configuration, service);
+        var file = CreateFile();
+        viewModel.SetContext(file, CreateSnapshot(file), [file]);
+
+        await viewModel.RetryConnectionCommand.ExecuteAsync(null);
+        Assert.Equal(AiReadinessState.ServerUnavailable, viewModel.ReadinessState);
+        Assert.Contains("not running", viewModel.ReadinessText, StringComparison.OrdinalIgnoreCase);
+
+        service.ConnectionResult = new AiConnectionResult(AiAvailabilityState.Connected, "Connected", []);
+        service.ModelsResult = new AiConnectionResult(
+            AiAvailabilityState.Connected,
+            "Models",
+            [new AiModel("local-model", "local-model")]);
+        await viewModel.RetryConnectionCommand.ExecuteAsync(null);
+
+        Assert.Equal(AiReadinessState.Ready, viewModel.ReadinessState);
+        Assert.False(viewModel.IsBusy);
+    }
+
+    /// <summary>Verifies changing the configured model after failure affects the very next outgoing request.</summary>
+    [Fact]
+    public async Task Rename_ModelChangedAfterFailure_UsesNewModel()
+    {
+        var configuration = new MutableConfigurationService(Settings(rename: true, folder: false));
+        var service = new RecordingService();
+        service.RenameBehaviors.Enqueue((_, _, _) => throw new InvalidOperationException("Simulated failure."));
+        service.RenameBehaviors.Enqueue((request, _, _) => Task.FromResult(RenameResult(request.File.Id, "new-model")));
+        using var viewModel = new AiSuggestionsViewModel(configuration, service);
+        var file = CreateFile();
+        viewModel.SetContext(file, CreateSnapshot(file), [file]);
+        await viewModel.GenerateSuggestionCommand.ExecuteAsync(null);
+
+        configuration.Current = Settings(rename: true, folder: false, model: "new-model");
+        viewModel.RefreshFeatureAvailability();
+        await viewModel.GenerateSuggestionCommand.ExecuteAsync(null);
+
+        Assert.Equal("new-model", service.RecordedModels.Last());
+        Assert.Equal("new-model", viewModel.ActualModelUsed);
+        Assert.Equal(AiReadinessState.Ready, viewModel.ReadinessState);
+    }
+
+    private static ApplicationSettings Settings(bool rename, bool folder, string? model = "local-model") => new()
     {
         Ai = new AiSettings
         {
             Enabled = true,
             FileRenameSuggestionsEnabled = rename,
             FolderStructureSuggestionsEnabled = folder,
-            SelectedModel = "local-model",
+            SelectedModel = model,
         },
     };
 
@@ -193,16 +337,32 @@ public sealed class AiSuggestionsViewModelTests
 
         public TaskCompletionSource<AiFileRenameResult>? RenameCompletion { get; init; }
 
+        public Queue<Func<AiFileRenameRequest, AiSettings, CancellationToken, Task<AiFileRenameResult>>> RenameBehaviors { get; } = [];
+
+        public List<string?> RecordedModels { get; } = [];
+
+        public AiConnectionResult ConnectionResult { get; set; } =
+            new(AiAvailabilityState.Connected, "Connected", []);
+
+        public AiConnectionResult ModelsResult { get; set; } =
+            new(AiAvailabilityState.Connected, "Connected", []);
+
         public Task<AiConnectionResult> TestConnectionAsync(ApplicationSettings settings, CancellationToken cancellationToken) =>
-            Task.FromResult(new AiConnectionResult(AiAvailabilityState.Connected, "Connected", []));
+            Task.FromResult(ConnectionResult);
 
         public Task<AiConnectionResult> DiscoverModelsAsync(ApplicationSettings settings, CancellationToken cancellationToken) =>
-            Task.FromResult(new AiConnectionResult(AiAvailabilityState.Connected, "Connected", []));
+            Task.FromResult(ModelsResult);
 
         public async Task<AiFileRenameResult> GenerateFileRenameAsync(AiFileRenameRequest request, AiSettings settings, CancellationToken cancellationToken)
         {
             RenameCallCount++;
+            RecordedModels.Add(settings.SelectedModel);
             RenameStarted.TrySetResult(true);
+            if (RenameBehaviors.TryDequeue(out var behavior))
+            {
+                return await behavior(request, settings, cancellationToken);
+            }
+
             return RenameCompletion is null
                 ? RenameResult(request.File.Id)
                 : await RenameCompletion.Task.WaitAsync(cancellationToken);
@@ -224,8 +384,8 @@ public sealed class AiSuggestionsViewModelTests
             Task.FromResult(new AiDecisionResult(AiAvailabilityState.ModelSelected, "Reset"));
     }
 
-    private static AiFileRenameResult RenameResult(string sourceFileId) => new(
+    private static AiFileRenameResult RenameResult(string sourceFileId, string model = "local-model") => new(
         AiAvailabilityState.ModelSelected,
         "Review only",
-        new AiFileRenameSuggestion("suggestion:1", sourceFileId, "renamed.pdf", "Clearer", 0.5, "Ollama", "local-model", DateTimeOffset.UnixEpoch));
+        new AiFileRenameSuggestion("suggestion:1", sourceFileId, "renamed.pdf", "Clearer", 0.5, "Ollama", model, DateTimeOffset.UnixEpoch));
 }

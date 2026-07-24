@@ -30,6 +30,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private long _aiOperationVersion;
     private bool _isDisposed;
     private bool _hasCompletedModelDiscovery;
+    private AiReadinessState _aiReadinessState = AiReadinessState.NotConfigured;
     private string _statusText = "Ready";
     private StatusPresentation _status = StatusPresentation.Information("Ready");
     private StatusPresentation _aiStatus = StatusPresentation.Information("AI assistance is disabled until enabled and configured.");
@@ -68,6 +69,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         CancelCommand = new RelayCommand(DiscardChanges);
         TestAiConnectionCommand = new AsyncRelayCommand(TestAiConnectionAsync, CanStartAiOperation);
         DiscoverAiModelsCommand = new AsyncRelayCommand(DiscoverAiModelsAsync, CanStartAiOperation);
+        RetryAiConnectionCommand = new AsyncRelayCommand(RetryAiConnectionAsync, CanStartAiOperation);
         CancelAiOperationCommand = new RelayCommand(CancelAiOperation, () => IsAiBusy);
         RequestPreferenceHistoryResetCommand = new RelayCommand(RequestPreferenceHistoryReset, CanRequestPreferenceHistoryReset);
         ConfirmPreferenceHistoryResetCommand = new AsyncRelayCommand(ConfirmPreferenceHistoryResetAsync, CanConfirmPreferenceHistoryReset);
@@ -198,6 +200,34 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets a concise explanation of the optional AI integration state.</summary>
     public string AiStatusText { get; private set; } = "AI assistance is disabled until enabled and configured.";
 
+    /// <summary>Gets the plain-language local-AI readiness state.</summary>
+    public AiReadinessState AiReadinessState
+    {
+        get => _aiReadinessState;
+        private set
+        {
+            if (SetProperty(ref _aiReadinessState, value))
+            {
+                OnPropertyChanged(nameof(AiReadinessText));
+            }
+        }
+    }
+
+    /// <summary>Gets concise next-step guidance for the current local-AI state.</summary>
+    public string AiReadinessText => AiReadinessState switch
+    {
+        AiReadinessState.NotConfigured => "Local AI is not configured yet.",
+        AiReadinessState.NotChecked => "Settings changed. Retry the connection to check the selected model.",
+        AiReadinessState.ServerUnavailable => "Your local AI is not running. Start Ollama, then retry.",
+        AiReadinessState.ServerAvailable => "Ollama is available. Discover models and choose one.",
+        AiReadinessState.ModelMissing => "The selected model is not installed. Choose an installed model.",
+        AiReadinessState.Ready => $"Ready to use '{Draft.SelectedAiModel}'.",
+        AiReadinessState.Running => "Checking your local AI...",
+        AiReadinessState.Failed => "The last check failed safely. Retry when ready.",
+        AiReadinessState.Cancelled => "The check was cancelled. Retry when ready.",
+        _ => "Local AI status is unavailable.",
+    };
+
     /// <summary>Gets consistent provider/setup status presentation.</summary>
     public StatusPresentation AiStatus
     {
@@ -307,6 +337,9 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the command that retrieves installed models from the current draft endpoint.</summary>
     public IAsyncRelayCommand DiscoverAiModelsCommand { get; }
 
+    /// <summary>Gets the command that retries connection, model discovery, and exact-model validation.</summary>
+    public IAsyncRelayCommand RetryAiConnectionCommand { get; }
+
     /// <summary>Gets the command that explicitly cancels active optional AI work.</summary>
     public IRelayCommand CancelAiOperationCommand { get; }
 
@@ -347,6 +380,10 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             _configurationService.Current.Ai.Enabled
                 ? "AI settings loaded. Test the connection before requesting suggestions."
                 : "AI assistance is disabled until enabled and configured.");
+        AiReadinessState = !_configurationService.Current.Ai.Enabled ||
+                           string.IsNullOrWhiteSpace(_configurationService.Current.Ai.SelectedModel)
+            ? AiReadinessState.NotConfigured
+            : AiReadinessState.NotChecked;
     }
 
     private async Task SaveAsync()
@@ -393,6 +430,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         StatusText = "Default settings restored. Save to persist them.";
         Status = StatusPresentation.Information(StatusText);
         SetAiStatus(AiAvailabilityState.Disabled, "AI assistance is disabled until enabled and configured.");
+        AiReadinessState = AiReadinessState.NotConfigured;
     }
 
     private void DiscardChanges()
@@ -569,6 +607,64 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private async Task RetryAiConnectionAsync()
+    {
+        if (_aiSuggestionService is null)
+        {
+            return;
+        }
+
+        var (cancellation, version) = BeginAiOperation();
+        try
+        {
+            SetAiStatus(AiAvailabilityState.Connecting, "Checking your local AI...");
+            var settings = Draft.ToSettings();
+            var connection = await _aiSuggestionService.TestConnectionAsync(settings, cancellation.Token);
+            if (!IsCurrentAiOperation(cancellation, version))
+            {
+                return;
+            }
+
+            if (connection.State != AiAvailabilityState.Connected)
+            {
+                PublishAiConnection(connection, publishModels: false);
+                return;
+            }
+
+            AiReadinessState = AiReadinessState.ServerAvailable;
+            var models = await _aiSuggestionService.DiscoverModelsAsync(settings, cancellation.Token);
+            if (IsCurrentAiOperation(cancellation, version))
+            {
+                PublishAiConnection(models, publishModels: true);
+            }
+        }
+        catch (ConfigurationValidationException)
+        {
+            SetAiStatus(AiAvailabilityState.Unavailable, "AI settings are invalid. Correct the endpoint or timeout and retry.");
+            AiReadinessState = AiReadinessState.NotConfigured;
+        }
+        catch (OperationCanceledException)
+        {
+            if (version == Volatile.Read(ref _aiOperationVersion))
+            {
+                SetAiStatus(AiAvailabilityState.RequestCancelled, "Connection check cancelled. You can retry.");
+                AiReadinessState = AiReadinessState.Cancelled;
+            }
+        }
+        catch (Exception)
+        {
+            if (version == Volatile.Read(ref _aiOperationVersion))
+            {
+                SetAiStatus(AiAvailabilityState.Unavailable, "Your local AI could not be checked. Start Ollama and retry.");
+                AiReadinessState = AiReadinessState.Failed;
+            }
+        }
+        finally
+        {
+            EndAiOperation(cancellation, version);
+        }
+    }
+
     private void RequestPreferenceHistoryReset()
     {
         IsPreferenceHistoryResetPending = true;
@@ -636,7 +732,8 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         Interlocked.Increment(ref _aiOperationVersion);
         cancellation.Cancel();
         IsAiBusy = false;
-        SetAiStatus(AiAvailabilityState.RequestCancelled, "The active optional AI operation was cancelled.");
+        SetAiStatus(AiAvailabilityState.RequestCancelled, "Connection check cancelled. You can retry.");
+        AiReadinessState = AiReadinessState.Cancelled;
     }
 
     private (CancellationTokenSource Cancellation, long Version) BeginAiOperation()
@@ -647,6 +744,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         previous?.Cancel();
         var version = Interlocked.Increment(ref _aiOperationVersion);
         IsAiBusy = true;
+        AiReadinessState = AiReadinessState.Running;
         return (cancellation, version);
     }
 
@@ -705,7 +803,39 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             }
         }
 
-        SetAiStatus(result.State, result.Message);
+        if (publishModels && result.State is AiAvailabilityState.Connected or AiAvailabilityState.NoModelsAvailable)
+        {
+            if (string.IsNullOrWhiteSpace(Draft.SelectedAiModel))
+            {
+                AiReadinessState = AiReadinessState.NotConfigured;
+                SetAiStatus(AiAvailabilityState.Connected, "Ollama is available. Choose an installed model.");
+            }
+            else if (_installedAiModelIds.Contains(Draft.SelectedAiModel))
+            {
+                AiReadinessState = AiReadinessState.Ready;
+                SetAiStatus(AiAvailabilityState.ModelSelected, $"Local AI is ready with '{Draft.SelectedAiModel}'.");
+            }
+            else
+            {
+                AiReadinessState = AiReadinessState.ModelMissing;
+                SetAiStatus(AiAvailabilityState.ModelUnavailable, $"The selected model '{Draft.SelectedAiModel}' is not installed.");
+            }
+        }
+        else
+        {
+            AiReadinessState = result.State switch
+            {
+                AiAvailabilityState.Disabled => AiReadinessState.NotConfigured,
+                AiAvailabilityState.Connected => AiReadinessState.ServerAvailable,
+                AiAvailabilityState.ModelSelected => AiReadinessState.Ready,
+                AiAvailabilityState.NoModelsAvailable or AiAvailabilityState.ModelUnavailable => AiReadinessState.ModelMissing,
+                AiAvailabilityState.RequestCancelled => AiReadinessState.Cancelled,
+                AiAvailabilityState.Unavailable => AiReadinessState.ServerUnavailable,
+                AiAvailabilityState.Connecting or AiAvailabilityState.RequestRunning => AiReadinessState.Running,
+                _ => AiReadinessState.Failed,
+            };
+            SetAiStatus(result.State, FriendlyAiMessage(result.State, result.Message));
+        }
         NotifyAiReadinessChanged();
     }
 
@@ -735,6 +865,10 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             }
 
             NotifyFeatureVisibilityChanged();
+            if (!Draft.AiEnabled)
+            {
+                AiReadinessState = AiReadinessState.NotConfigured;
+            }
         }
 
         if (eventArgs.PropertyName is nameof(SettingsDraft.SelectedAiModel)
@@ -742,6 +876,18 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             or nameof(SettingsDraft.FolderStructureSuggestionsEnabled)
             or nameof(SettingsDraft.AiRequestTimeoutText))
         {
+            if (eventArgs.PropertyName is nameof(SettingsDraft.SelectedAiModel))
+            {
+                AiReadinessState = string.IsNullOrWhiteSpace(Draft.SelectedAiModel)
+                    ? AiReadinessState.NotConfigured
+                    : AiReadinessState.NotChecked;
+                SetAiStatus(
+                    string.IsNullOrWhiteSpace(Draft.SelectedAiModel) ? AiAvailabilityState.Connected : AiAvailabilityState.Connected,
+                    string.IsNullOrWhiteSpace(Draft.SelectedAiModel)
+                        ? "Choose an installed model."
+                        : $"Model changed to '{Draft.SelectedAiModel}'. Save settings, then retry the connection.");
+            }
+
             NotifyAiReadinessChanged();
         }
     }
@@ -754,6 +900,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsAdvancedAiSettingsVisible));
         TestAiConnectionCommand.NotifyCanExecuteChanged();
         DiscoverAiModelsCommand.NotifyCanExecuteChanged();
+        RetryAiConnectionCommand.NotifyCanExecuteChanged();
         RequestPreferenceHistoryResetCommand.NotifyCanExecuteChanged();
         ConfirmPreferenceHistoryResetCommand.NotifyCanExecuteChanged();
         NotifyAiReadinessChanged();
@@ -768,7 +915,17 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsAiSetupReady));
         OnPropertyChanged(nameof(AiSetupReadinessText));
         OnPropertyChanged(nameof(AiRequestTimeoutValidation));
+        OnPropertyChanged(nameof(AiReadinessText));
     }
+
+    private static string FriendlyAiMessage(AiAvailabilityState state, string fallback) => state switch
+    {
+        AiAvailabilityState.Unavailable => "Your local AI is not running. Start Ollama, then retry.",
+        AiAvailabilityState.RequestCancelled => "Connection check cancelled. You can retry.",
+        AiAvailabilityState.NoModelsAvailable => "Ollama is running, but no installed models were found.",
+        AiAvailabilityState.ModelUnavailable => "The selected model is not installed.",
+        _ => fallback,
+    };
 
     private static bool LoggingChanged(LoggingSettings previous, LoggingSettings current) =>
         previous.FileLoggingEnabled != current.FileLoggingEnabled ||

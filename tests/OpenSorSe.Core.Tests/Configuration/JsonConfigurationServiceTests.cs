@@ -46,6 +46,9 @@ public sealed class JsonConfigurationServiceTests
 
         Assert.Equal(LogLevel.Information, service.Current.Logging.MinimumLevel);
         Assert.False(service.Current.Features.ShowAdvancedFeatures);
+        Assert.Equal(
+            FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio,
+            service.Current.Features.FilesPageDetailsPanelWidthRatio);
         Assert.False(service.Current.Ai.Enabled);
         Assert.False(service.Current.Ai.FileRenameSuggestionsEnabled);
         Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
@@ -83,6 +86,9 @@ public sealed class JsonConfigurationServiceTests
             Assert.False(service.Current.Ai.RequestDiagnosticsEnabled);
             Assert.False(service.Current.Ai.DocumentTextInterpretationEnabled);
             Assert.False(service.Current.Features.ShowAdvancedFeatures);
+            Assert.Equal(
+                FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio,
+                service.Current.Features.FilesPageDetailsPanelWidthRatio);
             Assert.True(service.Current.Content.MetadataExtractionEnabled);
             Assert.False(service.Current.Content.OcrEnabled);
             Assert.False(service.Current.SemanticSearch.Enabled);
@@ -244,6 +250,7 @@ public sealed class JsonConfigurationServiceTests
             Features = new FeatureSettings
             {
                 ShowAdvancedFeatures = true,
+                FilesPageDetailsPanelWidthRatio = 0.41,
             },
             Logging = new LoggingSettings
             {
@@ -305,6 +312,7 @@ public sealed class JsonConfigurationServiceTests
             Assert.Equal(3, reader.Current.Logging.RetainedFileCount);
             Assert.True(reader.Current.Ai.Enabled);
             Assert.True(reader.Current.Features.ShowAdvancedFeatures);
+            Assert.Equal(0.41, reader.Current.Features.FilesPageDetailsPanelWidthRatio);
             Assert.True(reader.Current.Ai.FileRenameSuggestionsEnabled);
             Assert.False(reader.Current.Ai.FolderStructureSuggestionsEnabled);
             Assert.True(reader.Current.Ai.RequestDiagnosticsEnabled);
@@ -374,5 +382,31 @@ public sealed class JsonConfigurationServiceTests
         };
 
         Assert.Throws<ConfigurationValidationException>(settings.Validate);
+    }
+
+    /// <summary>Verifies a corrupt Files-page proportion activates the established safe-default recovery path.</summary>
+    [Fact]
+    public async Task InitializeAsync_InvalidFilesPanelRatio_UsesDefaultsAndPreservesFile()
+    {
+        var settingsFilePath = Path.Combine(Path.GetTempPath(), $"opensorse-{Guid.NewGuid():N}.json");
+        const string invalidSettings = """{"Features":{"FilesPageDetailsPanelWidthRatio":0.95}}""";
+        await File.WriteAllTextAsync(settingsFilePath, invalidSettings);
+
+        try
+        {
+            var service = new JsonConfigurationService(settingsFilePath, _ => null);
+
+            await service.InitializeAsync(CancellationToken.None);
+
+            Assert.Equal(
+                FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio,
+                service.Current.Features.FilesPageDetailsPanelWidthRatio);
+            Assert.NotNull(service.InitializationWarning);
+            Assert.Equal(invalidSettings, await File.ReadAllTextAsync(settingsFilePath));
+        }
+        finally
+        {
+            File.Delete(settingsFilePath);
+        }
     }
 }

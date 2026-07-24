@@ -7,28 +7,32 @@
     <ScrollViewer x:Name="SettingsScrollViewer">
         <StackPanel Spacing="12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" />
+                <StackPanel Spacing="3">
+                    <TextBlock Classes="page-title" Text="Settings" />
+                    <TextBlock Classes="page-subtitle" Text="Make OpenSorSe yours." />
+                </StackPanel>
                 <Button Grid.Column="1"
-                        Content="Help"
+                        Classes="help"
+                        Content="?"
                         Command="{Binding HelpCommand}"
                         ToolTip.Tip="Open Settings help"
                         AutomationProperties.Name="Help for Settings" />
             </Grid>
 
-            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+            <Border Classes="card">
                 <StackPanel Spacing="4">
                     <TextBlock Text="General settings" FontSize="18" FontWeight="SemiBold" />
-                    <CheckBox Content="Keep bounded completed scan snapshots locally"
+                    <CheckBox Content="Keep completed scan information locally"
                               IsChecked="{Binding Draft.CatalogEnabled, Mode=TwoWay}" />
-                    <TextBlock Text="Off by default. Saved snapshots contain display-safe metadata and accepted tags in OpenSorSe application data; selected files are never changed."
+                    <TextBlock Text="Off by default. Saved scans keep display-safe information and accepted tags in OpenSorSe application data; selected files are never changed."
                                TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
-            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+            <Border Classes="card">
                 <StackPanel Spacing="7">
-                    <TextBlock Text="Semantic Search (Beta)" FontSize="18" FontWeight="SemiBold" />
-                    <CheckBox Content="Enable local Semantic Search Beta"
+                    <TextBlock Text="Meaning Search (Beta)" FontSize="18" FontWeight="SemiBold" />
+                    <CheckBox Content="Enable local Meaning Search Beta"
                               IsChecked="{Binding Draft.SemanticSearchEnabled, Mode=TwoWay}" />
                     <TextBlock Text="Off by default. Uses a deterministic local feature-hashing index over filenames, confirmed and suggested tags, metadata, native text, and bounded OCR text. It does not require AI and never sends content to a model."
                                TextWrapping="Wrap" />
@@ -47,9 +51,9 @@
                 </StackPanel>
             </Border>
 
-            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+            <Border Classes="card">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="Local content and OCR (Beta)" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="Text Recognition (Beta)" FontSize="18" FontWeight="SemiBold" />
                     <CheckBox Content="Extract bounded document metadata and native text"
                               IsChecked="{Binding Draft.MetadataExtractionEnabled, Mode=TwoWay}" />
                     <CheckBox Content="Enable local OCR"
@@ -122,7 +126,8 @@
                     </Grid>
                     <WrapPanel>
                         <Button Margin="0,0,8,8"
-                                Content="Check local OCR capability"
+                                Classes="secondary"
+                                Content="Check Text Recognition"
                                 Command="{Binding CheckOcrCapabilityCommand}" />
                         <Button Margin="0,0,8,8"
                                 Content="Clear cache / reprocess next scan"
@@ -140,7 +145,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+            <Border Classes="card">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Optional AI assistance" FontSize="18" FontWeight="SemiBold" />
                     <CheckBox Content="Enable AI features"
@@ -149,19 +154,32 @@
                                TextWrapping="Wrap" />
 
                     <StackPanel IsVisible="{Binding IsAiCapabilitySettingsVisible}" Spacing="8">
-                        <TextBlock Text="AI setup" FontWeight="SemiBold" />
-                        <TextBlock Text="Ollama is externally managed. The default endpoint is local. A custom endpoint receives the bounded filename metadata described below."
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="Ollama endpoint" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding Draft.AiEndpoint, Mode=TwoWay}"
-                                 ToolTip.Tip="Default: http://127.0.0.1:11434"
-                                 AutomationProperties.Name="Ollama endpoint" />
+                        <TextBlock Text="File Assistant setup" FontWeight="SemiBold" />
+                        <StackPanel IsVisible="{Binding IsAdvancedSettingsVisible}" Spacing="4">
+                            <TextBlock Text="Ollama endpoint" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.AiEndpoint, Mode=TwoWay}"
+                                     ToolTip.Tip="Default: http://127.0.0.1:11434"
+                                     AutomationProperties.Name="Ollama endpoint" />
+                        </StackPanel>
 
                         <WrapPanel>
-                            <Button Margin="0,0,8,8" Content="Check connection" Command="{Binding TestAiConnectionCommand}" />
-                            <Button Margin="0,0,8,8" Content="Discover / refresh models" Command="{Binding DiscoverAiModelsCommand}" />
-                            <Button Margin="0,0,8,8" IsVisible="{Binding IsAiBusy}" Content="Cancel AI operation" Command="{Binding CancelAiOperationCommand}" />
+                            <Button Margin="0,0,8,8"
+                                    Classes="primary"
+                                    Content="Retry connection"
+                                    Command="{Binding RetryAiConnectionCommand}" />
+                            <Button Margin="0,0,8,8"
+                                    Classes="secondary"
+                                    Content="Refresh installed models"
+                                    Command="{Binding DiscoverAiModelsCommand}" />
+                            <Button Margin="0,0,8,8"
+                                    IsVisible="{Binding IsAiBusy}"
+                                    Classes="secondary"
+                                    Content="Cancel"
+                                    Command="{Binding CancelAiOperationCommand}" />
                         </WrapPanel>
+                        <TextBlock Text="{Binding AiReadinessText}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
                         <views:StatusBanner DataContext="{Binding AiStatus}" />
 
                         <TextBlock Text="Installed model" FontWeight="SemiBold" />
@@ -174,10 +192,12 @@
                                    TextWrapping="Wrap" />
                         <TextBlock Text="{Binding SelectedModelStatusText}" TextWrapping="Wrap" />
 
-                        <TextBlock Text="Request timeout (seconds)" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding Draft.AiRequestTimeoutText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 AutomationProperties.Name="AI request timeout in seconds" />
-                        <TextBlock Text="{Binding AiRequestTimeoutValidation}" TextWrapping="Wrap" />
+                        <StackPanel IsVisible="{Binding IsAdvancedSettingsVisible}" Spacing="4">
+                            <TextBlock Text="Request timeout (seconds)" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.AiRequestTimeoutText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="AI request timeout in seconds" />
+                            <TextBlock Text="{Binding AiRequestTimeoutValidation}" TextWrapping="Wrap" />
+                        </StackPanel>
 
                         <TextBlock Text="AI capabilities" FontWeight="SemiBold" />
                         <CheckBox Content="Enable file rename suggestions"
@@ -195,7 +215,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+            <Border Classes="card">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Interface complexity" FontSize="18" FontWeight="SemiBold" />
                     <CheckBox Content="Show advanced features"

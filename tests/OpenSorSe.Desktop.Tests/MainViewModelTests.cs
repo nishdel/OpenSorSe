@@ -28,7 +28,7 @@ public sealed class MainViewModelTests
         var viewModel = new MainViewModel();
 
         Assert.Equal(NavigationDestination.Dashboard, viewModel.SelectedDestination);
-        Assert.Equal("Dashboard", viewModel.CurrentPageTitle);
+        Assert.Equal("Home", viewModel.CurrentPageTitle);
         Assert.Equal("Ready", viewModel.StatusText);
         Assert.DoesNotContain(NavigationDestination.CatalogComparison, viewModel.Destinations);
         Assert.DoesNotContain(NavigationDestination.StructureHistory, viewModel.Destinations);
@@ -37,7 +37,8 @@ public sealed class MainViewModelTests
         Assert.Contains(NavigationDestination.Scan, viewModel.Destinations);
         Assert.Contains(NavigationDestination.Results, viewModel.Destinations);
         Assert.Contains(NavigationDestination.Catalog, viewModel.Destinations);
-        Assert.Contains(NavigationDestination.CatalogSearch, viewModel.Destinations);
+        Assert.Contains(NavigationDestination.Duplicates, viewModel.Destinations);
+        Assert.DoesNotContain(NavigationDestination.CatalogSearch, viewModel.Destinations);
         Assert.DoesNotContain(NavigationDestination.SemanticSearch, viewModel.Destinations);
     }
 
@@ -131,14 +132,18 @@ public sealed class MainViewModelTests
     {
         using var viewModel = new MainViewModel(new TestConfigurationService(advancedEnabled: true), new TestLoggingService());
 
-        Assert.Contains(viewModel.NavigationItems, item => item.Destination == NavigationDestination.CatalogComparison && item.Label == "Compare snapshots");
-        Assert.Contains(viewModel.NavigationItems, item => item.Destination == NavigationDestination.StructureHistory && item.Label == "Structure history");
+        Assert.DoesNotContain(viewModel.NavigationItems, item => item.Destination == NavigationDestination.CatalogComparison);
+        Assert.Contains(viewModel.NavigationItems, item => item.Destination == NavigationDestination.StructureHistory && item.Label == "Folder plans");
+        Assert.Equal(
+            ["Home", "Scan", "Files", "Duplicates", "Saved scans", "Settings"],
+            viewModel.PrimaryNavigationItems.Select(item => item.Label));
         Assert.DoesNotContain(viewModel.NavigationItems, item => item.Label == nameof(NavigationDestination.CatalogComparison));
 
         viewModel.Navigate(NavigationDestination.CatalogSearch);
 
-        Assert.Equal(NavigationDestination.CatalogSearch, viewModel.SelectedNavigationItem.Destination);
-        Assert.Equal("Catalog search", viewModel.SelectedNavigationItem.Label);
+        Assert.Equal(NavigationDestination.Catalog, viewModel.SelectedNavigationItem.Destination);
+        Assert.Equal("Saved scans", viewModel.SelectedNavigationItem.Label);
+        Assert.True(viewModel.IsSavedScansAreaSelected);
     }
 
     /// <summary>Verifies Structure history is an advanced hosted page with a controlled unavailable state in preview composition.</summary>
@@ -153,7 +158,7 @@ public sealed class MainViewModelTests
 
         Assert.True(viewModel.IsStructureHistorySelected);
         Assert.False(viewModel.IsFeaturePageSelected);
-        Assert.Equal("Structure history", viewModel.CurrentPageTitle);
+        Assert.Equal("Folder plans", viewModel.CurrentPageTitle);
         Assert.Contains("unavailable", viewModel.StructureHistory.StatusText, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -167,24 +172,27 @@ public sealed class MainViewModelTests
 
         Assert.True(viewModel.IsCatalogComparisonSelected);
         Assert.False(viewModel.IsFeaturePageSelected);
-        Assert.Equal("Compare snapshots", viewModel.CurrentPageTitle);
+        Assert.Equal("Compare scans", viewModel.CurrentPageTitle);
+        Assert.Equal(SavedScansSection.Compare, viewModel.SelectedSavedScansSection);
         Assert.NotNull(viewModel.CatalogComparison);
     }
 
     /// <summary>Verifies Semantic Search Beta is independently gated and does not require AI or advanced mode.</summary>
     [Fact]
-    public void Constructor_SemanticSearchEnabled_ShowsRegularBetaDestination()
+    public void Constructor_SemanticSearchEnabled_ExposesMeaningSearchFromFiles()
     {
         using var viewModel = new MainViewModel(
             new TestConfigurationService(semanticSearchEnabled: true),
             new TestLoggingService());
 
-        Assert.Contains(NavigationDestination.SemanticSearch, viewModel.Destinations);
+        Assert.DoesNotContain(NavigationDestination.SemanticSearch, viewModel.Destinations);
+        Assert.True(viewModel.Results.IsMeaningSearchEnabled);
         Assert.False(viewModel.EnableAi);
         Assert.False(viewModel.ShowAdvancedFeatures);
-        viewModel.Navigate(NavigationDestination.SemanticSearch);
+        viewModel.Results.OpenMeaningSearchCommand.Execute(null);
         Assert.True(viewModel.IsSemanticSearchSelected);
-        Assert.Equal("Semantic Search (Beta)", viewModel.CurrentPageTitle);
+        Assert.Equal("Meaning Search (Beta)", viewModel.CurrentPageTitle);
+        Assert.Equal(NavigationDestination.Results, viewModel.SelectedNavigationItem.Destination);
     }
 
     /// <summary>Verifies sidebar-style navigation awaits the destination refresh instead of abandoning background work.</summary>

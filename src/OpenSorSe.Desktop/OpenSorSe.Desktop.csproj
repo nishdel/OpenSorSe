@@ -2,9 +2,19 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>OpenSorSe</AssemblyName>
     <Version>1.0.0</Version>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\opensorse-app-icon.ico</ApplicationIcon>
+    <Title>OpenSorSe</Title>
+    <Product>OpenSorSe</Product>
+    <Description>Local-first file organization, search, duplicate review, OCR, and optional AI-assisted suggestions.</Description>
+    <Authors>OpenSorSe contributors</Authors>
+    <Company>OpenSorSe contributors</Company>
+    <Copyright>Copyright © OpenSorSe contributors</Copyright>
+    <RepositoryUrl>https://github.com/nishdel/OpenSorSe</RepositoryUrl>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>

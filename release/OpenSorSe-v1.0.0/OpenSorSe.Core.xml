@@ -1,0 +1,939 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OpenSorSe.Core</name>
+    </assembly>
+    <members>
+        <member name="T:OpenSorSe.Core.Configuration.ApplicationSettings">
+            <summary>
+            Represents the validated settings available to the running application.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ApplicationSettings.Features">
+            <summary>
+            Gets or initializes application-wide feature-presentation settings.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ApplicationSettings.Logging">
+            <summary>
+            Gets or initializes the logging settings.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ApplicationSettings.Ai">
+            <summary>
+            Gets or initializes the optional local AI-provider settings.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ApplicationSettings.Catalog">
+            <summary>
+            Gets or initializes settings for the opt-in local results catalog.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ApplicationSettings.Content">
+            <summary>Gets or initializes bounded local content-extraction settings.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ApplicationSettings.SemanticSearch">
+            <summary>Gets or initializes local Semantic Search Beta settings.</summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.ApplicationSettings.WithShellFeatureSwitches(System.Boolean,System.Boolean)">
+            <summary>
+            Creates a settings snapshot with only the two shell-wide feature switches changed.
+            All detailed provider, capability, catalog, and logging values are preserved.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.ApplicationSettings.WithFilesPageDetailsPanelWidthRatio(System.Double)">
+            <summary>
+            Creates a settings snapshot with only the Files-page details-panel proportion changed.
+            </summary>
+            <param name="ratio">The validated proportion of available Files-page width assigned to details.</param>
+            <returns>A settings snapshot that preserves every unrelated value.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.ApplicationSettings.Validate">
+            <summary>
+            Validates settings before they are made available to the application.
+            </summary>
+            <exception cref="T:OpenSorSe.Core.Configuration.ConfigurationValidationException">
+            Thrown when a required settings group is missing.
+            </exception>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.SemanticSearchSettings">
+            <summary>Defines bounded local deterministic Semantic Search Beta behavior.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.SemanticSearchSettings.Enabled">
+            <summary>Gets or initializes whether local semantic indexing and navigation are enabled.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.SemanticSearchSettings.MaximumDocumentCount">
+            <summary>Gets or initializes the maximum indexed-document count.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.SemanticSearchSettings.MaximumResultCount">
+            <summary>Gets or initializes the maximum displayed result count.</summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.SemanticSearchSettings.Validate">
+            <summary>Validates local semantic-search bounds.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.ContentSettings">
+            <summary>Defines bounded local metadata extraction and OCR Beta behavior.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MetadataExtractionEnabled">
+            <summary>Gets or initializes whether defensive local metadata and native-text extraction runs after scanning.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.OcrEnabled">
+            <summary>Gets or initializes whether local OCR Beta may run.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.OcrOnlyWhenNativeTextUnavailable">
+            <summary>Gets or initializes whether OCR is skipped when reliable native text is available.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MaximumPagesPerDocument">
+            <summary>Gets or initializes the maximum supported document pages.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MaximumFileSizeMiB">
+            <summary>Gets or initializes the maximum input size in mebibytes.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.OcrLanguage">
+            <summary>Gets or initializes the local OCR language identifier.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MaximumOcrDurationSeconds">
+            <summary>Gets or initializes the maximum OCR duration per file.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.PdfRasterizationDpi">
+            <summary>Gets or initializes PDF rasterization resolution used for local OCR.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MaximumRasterDimension">
+            <summary>Gets or initializes the maximum width or height of a rendered OCR page.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MaximumOcrTextCharacters">
+            <summary>Gets or initializes the maximum combined OCR text retained per document.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.MaximumTemporaryStorageMiB">
+            <summary>Gets or initializes the temporary page-image budget per document in mebibytes.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.TesseractExecutablePath">
+            <summary>Gets or initializes an optional absolute Tesseract executable path; null uses PATH.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.ContentSettings.BackgroundProcessingEnabled">
+            <summary>Gets or initializes whether content extraction may continue outside the immediate scan stage.</summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.ContentSettings.Validate">
+            <summary>Validates bounded content settings.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.FeatureSettings">
+            <summary>
+            Defines application-wide interface-complexity choices independently from AI enablement.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio">
+            <summary>Gets the default proportion of Files-page width assigned to selected-file details.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.FeatureSettings.MinimumFilesPageDetailsPanelWidthRatio">
+            <summary>Gets the smallest supported Files-page details-panel proportion.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.FeatureSettings.MaximumFilesPageDetailsPanelWidthRatio">
+            <summary>Gets the largest supported Files-page details-panel proportion.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.FeatureSettings.ShowAdvancedFeatures">
+            <summary>Gets or initializes whether specialist and troubleshooting features are shown.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.FeatureSettings.FilesPageDetailsPanelWidthRatio">
+            <summary>
+            Gets or initializes the proportion of available Files-page width assigned to selected-file details.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.FeatureSettings.Validate">
+            <summary>Validates bounded interface-presentation settings.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.AiCapability">
+            <summary>
+            Identifies an independently enabled AI capability.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.AiCapability.FileRenameSuggestions">
+            <summary>Review-only suggestions for one known file name.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.AiCapability.FolderStructureSuggestions">
+            <summary>Review-only logical folder hierarchies for known file metadata.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.AiCapability.DocumentTextInterpretation">
+            <summary>Review-only interpretation of bounded locally extracted document text.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.CatalogSettings">
+            <summary>
+            Defines user control over the bounded, application-owned local results catalog.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.CatalogSettings.Enabled">
+            <summary>
+            Gets or initializes whether completed display-safe scan snapshots may be stored in OpenSorSe application data.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.CatalogSettings.Validate">
+            <summary>
+            Validates catalog settings reserved for future compatible expansion.
+            </summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.AiSettings">
+            <summary>
+            Defines the optional, user-controlled local Ollama integration settings.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.AiSettings.MaximumModelIdentifierLength">
+            <summary>Gets the maximum supported model identifier length.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.AiSettings.MinimumRequestTimeoutSeconds">
+            <summary>Gets the minimum supported finite request timeout.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.AiSettings.MaximumRequestTimeoutSeconds">
+            <summary>Gets the maximum supported finite request timeout.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.Enabled">
+            <summary>
+            Gets or initializes whether AI suggestion requests are permitted.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.FileRenameSuggestionsEnabled">
+            <summary>Gets or initializes whether review-only file-rename suggestions are enabled.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.FolderStructureSuggestionsEnabled">
+            <summary>Gets or initializes whether review-only folder-structure suggestions are enabled.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.RequestDiagnosticsEnabled">
+            <summary>Gets or initializes opt-in, session-only raw AI request diagnostics.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.Endpoint">
+            <summary>
+            Gets or initializes the Ollama-compatible endpoint. The default is the local Ollama endpoint.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.SelectedModel">
+            <summary>
+            Gets or initializes the locally discovered model selected for suggestion requests.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.RequestTimeoutSeconds">
+            <summary>
+            Gets or initializes the bounded duration permitted for one AI request.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.PreferenceAdaptationEnabled">
+            <summary>
+            Gets or initializes whether locally recorded approved patterns may be supplied as concise request context.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.AiSettings.DocumentTextInterpretationEnabled">
+            <summary>Gets or initializes whether explicit requests may send bounded extracted text to the configured provider.</summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.AiSettings.IsCapabilityEnabled(OpenSorSe.Core.Configuration.AiCapability)">
+            <summary>
+            Gets whether the master switch and the specified capability switch are both enabled.
+            </summary>
+            <param name="capability">The capability to evaluate.</param>
+            <returns><see langword="true"/> only when the capability may be considered for use.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.AiSettings.Validate">
+            <summary>
+            Validates the supported local AI configuration values.
+            </summary>
+            <exception cref="T:OpenSorSe.Core.Configuration.ConfigurationValidationException">Thrown when the settings are unsafe or unsupported.</exception>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.LoggingSettings">
+            <summary>
+            Defines logging-related application settings.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.LoggingSettings.MinimumLevel">
+            <summary>
+            Gets or initializes the lowest severity that is written to configured log outputs.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.LoggingSettings.FileLoggingEnabled">
+            <summary>
+            Gets or initializes whether local daily text logging is enabled.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.LoggingSettings.LogDirectoryPath">
+            <summary>
+            Gets or initializes the optional absolute directory for local daily log files.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.LoggingSettings.RetainedFileCount">
+            <summary>
+            Gets or initializes the number of daily log files retained locally.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.LoggingSettings.Validate">
+            <summary>
+            Validates logging-specific settings.
+            </summary>
+            <exception cref="T:OpenSorSe.Core.Configuration.ConfigurationValidationException">Thrown when a logging setting is invalid.</exception>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.ConfigurationLimits">
+            <summary>
+            Defines fixed bounds for OpenSorSe-owned configuration persistence.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Configuration.ConfigurationLimits.MaximumSettingsFileBytes">
+            <summary>Gets the maximum encoded size of the complete settings file.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.ConfigurationValidationException">
+            <summary>
+            Represents an invalid application configuration value.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.ConfigurationValidationException.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:OpenSorSe.Core.Configuration.ConfigurationValidationException"/> class.
+            </summary>
+            <param name="message">A description of the invalid configuration.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.ConfigurationValidationException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initializes a configuration validation exception with a non-user-facing underlying failure.
+            </summary>
+            <param name="message">The user-safe validation message.</param>
+            <param name="innerException">The underlying configuration failure.</param>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.IConfigurationService">
+            <summary>
+            Loads, validates, exposes, and persists application configuration.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.IConfigurationService.Current">
+            <summary>
+            Gets the current validated settings.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.IConfigurationService.InitializationWarning">
+            <summary>
+            Gets a user-safe warning when owned settings could not be loaded and defaults were activated.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.IConfigurationService.InitializeAsync(System.Threading.CancellationToken)">
+            <summary>
+            Loads settings from their configured sources and validates the result.
+            </summary>
+            <param name="cancellationToken">A token that cancels loading before completion.</param>
+            <returns>A task that completes when settings are ready for use.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.IConfigurationService.SaveAsync(System.Threading.CancellationToken)">
+            <summary>
+            Persists the current settings to the user configuration file.
+            </summary>
+            <param name="cancellationToken">A token that cancels saving before completion.</param>
+            <returns>A task that completes when settings have been persisted.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.IConfigurationService.SaveAsync(OpenSorSe.Core.Configuration.ApplicationSettings,System.Threading.CancellationToken)">
+            <summary>
+            Validates and persists replacement application settings to the configured user settings file.
+            </summary>
+            <param name="settings">The replacement settings to persist.</param>
+            <param name="cancellationToken">A token that cancels saving before completion.</param>
+            <returns>A task that completes when the replacement settings have been persisted.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.Configuration.JsonConfigurationService">
+            <summary>
+            Loads JSON user settings over safe defaults and applies environment overrides.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.JsonConfigurationService.#ctor(System.String,System.Func{System.String,System.String})">
+            <summary>
+            Initializes a configuration service for a user settings file.
+            </summary>
+            <param name="settingsFilePath">The absolute path of the user settings file.</param>
+            <param name="environmentVariableReader">An optional environment variable reader for testing.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.JsonConfigurationService.Current">
+            <inheritdoc />
+        </member>
+        <member name="P:OpenSorSe.Core.Configuration.JsonConfigurationService.InitializationWarning">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.JsonConfigurationService.InitializeAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.JsonConfigurationService.SaveAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Configuration.JsonConfigurationService.SaveAsync(OpenSorSe.Core.Configuration.ApplicationSettings,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.DependencyInjection.IServiceRegistry">
+            <summary>
+            Provides centralized discovery of shared services registered during application composition.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.DependencyInjection.IServiceRegistry.GetRequiredService``1">
+            <summary>
+            Gets a required registered service.
+            </summary>
+            <typeparam name="TService">The registered service type.</typeparam>
+            <returns>The registered service instance.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.DependencyInjection.IServiceRegistry.IsRegistered``1">
+            <summary>
+            Determines whether a service has been registered.
+            </summary>
+            <typeparam name="TService">The service type to look up.</typeparam>
+            <returns><see langword="true"/> when the service is available; otherwise, <see langword="false"/>.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.DependencyInjection.OpenSorSeCoreOptions">
+            <summary>
+            Defines composition settings required to register the shared Core foundation.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.DependencyInjection.OpenSorSeCoreOptions.ConfigurationFilePath">
+            <summary>
+            Gets or initializes the absolute path of the user settings file.
+            </summary>
+        </member>
+        <member name="T:OpenSorSe.Core.DependencyInjection.ServiceCollectionExtensions">
+            <summary>
+            Registers the shared Core infrastructure with the .NET dependency injection container.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.DependencyInjection.ServiceCollectionExtensions.AddOpenSorSeCore(Microsoft.Extensions.DependencyInjection.IServiceCollection,OpenSorSe.Core.DependencyInjection.OpenSorSeCoreOptions)">
+            <summary>
+            Adds the documented shared Core foundation as singleton services.
+            </summary>
+            <param name="services">The application service collection.</param>
+            <param name="options">The composition settings for Core infrastructure.</param>
+            <returns>The same collection to support fluent composition.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.DependencyInjection.ServiceRegistry">
+            <summary>
+            Adapts the .NET dependency injection provider to the Core service registry contract.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.DependencyInjection.ServiceRegistry.#ctor(System.IServiceProvider)">
+            <summary>
+            Initializes a registry over the composed application service provider.
+            </summary>
+            <param name="serviceProvider">The application service provider.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.DependencyInjection.ServiceRegistry.GetRequiredService``1">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.DependencyInjection.ServiceRegistry.IsRegistered``1">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.Errors.ApplicationError">
+            <summary>
+            Contains diagnostics for an error reported through the shared error handler.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Errors.ApplicationError.#ctor(System.String,System.String,OpenSorSe.Core.Errors.ApplicationErrorSeverity,System.Exception)">
+            <summary>
+            Initializes an application error.
+            </summary>
+            <param name="source">The subsystem that reported the error.</param>
+            <param name="message">A user-safe description of the failure.</param>
+            <param name="severity">The impact of the failure.</param>
+            <param name="exception">The optional underlying exception.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.Errors.ApplicationError.Source">
+            <summary>Gets the subsystem that reported the error.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Errors.ApplicationError.Message">
+            <summary>Gets the user-safe error message.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Errors.ApplicationError.Severity">
+            <summary>Gets the error impact.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Errors.ApplicationError.Exception">
+            <summary>Gets the optional underlying exception.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Errors.ApplicationErrorSeverity">
+            <summary>
+            Describes the impact of an application error.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Errors.ApplicationErrorSeverity.Information">
+            <summary>A non-critical diagnostic condition.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Errors.ApplicationErrorSeverity.Warning">
+            <summary>A recoverable unexpected condition.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Errors.ApplicationErrorSeverity.Error">
+            <summary>A failed operation that allows the application to continue.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Errors.ApplicationErrorSeverity.Critical">
+            <summary>A failure that prevents safe continuation.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Errors.ErrorHandler">
+            <summary>
+            Logs application errors and exposes them to interested presentation components.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Errors.ErrorHandler.#ctor(OpenSorSe.Core.Logging.ILoggingService)">
+            <summary>
+            Initializes an error handler that uses centralized logging.
+            </summary>
+            <param name="loggingService">The logging service used for diagnostic output.</param>
+        </member>
+        <member name="E:OpenSorSe.Core.Errors.ErrorHandler.ErrorReported">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Errors.ErrorHandler.Report(OpenSorSe.Core.Errors.ApplicationError)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.Errors.IErrorHandler">
+            <summary>
+            Reports cross-cutting application errors without implementing user notifications.
+            </summary>
+        </member>
+        <member name="E:OpenSorSe.Core.Errors.IErrorHandler.ErrorReported">
+            <summary>
+            Occurs after an error is reported.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Errors.IErrorHandler.Report(OpenSorSe.Core.Errors.ApplicationError)">
+            <summary>
+            Records and broadcasts an application error.
+            </summary>
+            <param name="applicationError">The error to report.</param>
+        </member>
+        <member name="T:OpenSorSe.Core.Events.EventBus">
+            <summary>
+            Provides in-memory publish-subscribe event delivery with isolated subscriber failures.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Events.EventBus.#ctor(OpenSorSe.Core.Logging.ILoggingService)">
+            <summary>
+            Initializes an event bus that reports subscriber failures through centralized logging.
+            </summary>
+            <param name="loggingService">The central logging service.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Events.EventBus.Subscribe``1(System.Func{``0,System.Threading.CancellationToken,System.Threading.Tasks.Task})">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Events.EventBus.PublishAsync``1(``0,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.Events.IApplicationEvent">
+            <summary>
+            Marks an immutable occurrence that can be published through the application event bus.
+            </summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Events.IEventBus">
+            <summary>
+            Delivers application events to independent subscribers.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Events.IEventBus.Subscribe``1(System.Func{``0,System.Threading.CancellationToken,System.Threading.Tasks.Task})">
+            <summary>
+            Registers an asynchronous handler for an event type.
+            </summary>
+            <typeparam name="TEvent">The immutable event type to observe.</typeparam>
+            <param name="handler">The handler to invoke for each published event.</param>
+            <returns>A subscription that removes the handler when disposed.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Events.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)">
+            <summary>
+            Publishes an event to all current subscribers.
+            </summary>
+            <typeparam name="TEvent">The event type to publish.</typeparam>
+            <param name="applicationEvent">The event that has occurred.</param>
+            <param name="cancellationToken">A token that cancels delivery before the next handler.</param>
+            <returns>A task that completes when all handlers have been offered the event.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.Lifecycle.ApplicationHost">
+            <summary>
+            Coordinates configuration, logging, and lifecycle state for the shared application foundation.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Lifecycle.ApplicationHost.#ctor(OpenSorSe.Core.Configuration.IConfigurationService,OpenSorSe.Core.Logging.ILoggingService,OpenSorSe.Core.State.IApplicationState)">
+            <summary>
+            Initializes an application host.
+            </summary>
+            <param name="configurationService">The configuration service to initialize first.</param>
+            <param name="loggingService">The centralized logging service.</param>
+            <param name="applicationState">The lifecycle state store.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Lifecycle.ApplicationHost.InitializeAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Lifecycle.ApplicationHost.ShutdownAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.Lifecycle.IApplicationHost">
+            <summary>
+            Coordinates Core infrastructure startup and graceful shutdown.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Lifecycle.IApplicationHost.InitializeAsync(System.Threading.CancellationToken)">
+            <summary>
+            Initializes shared Core services in the documented lifecycle order.
+            </summary>
+            <param name="cancellationToken">A token that cancels startup before completion.</param>
+            <returns>A task that completes when the application enters the running state.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Lifecycle.IApplicationHost.ShutdownAsync(System.Threading.CancellationToken)">
+            <summary>
+            Shuts down shared Core services in a controlled order.
+            </summary>
+            <param name="cancellationToken">A token that cancels shutdown before completion.</param>
+            <returns>A task that completes when the application reaches the stopped state.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.DiagnosticEvent">
+            <summary>
+            Represents one bounded, process-session diagnostic event suitable for user-facing inspection.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.DiagnosticEvent.#ctor(System.Int64,System.DateTimeOffset,Microsoft.Extensions.Logging.LogLevel,System.String,System.String,System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Represents one bounded, process-session diagnostic event suitable for user-facing inspection.
+            </summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.DiagnosticEventLimits">
+            <summary>Defines fixed bounds for inspectable process-session diagnostics.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Logging.DiagnosticEventLimits.MaximumRetainedEvents">
+            <summary>Maximum number of recent events retained in memory.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Logging.DiagnosticEventLimits.MaximumSummaryLength">
+            <summary>Maximum user-facing event summary length.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Logging.DiagnosticEventLimits.MaximumExceptionSummaryLength">
+            <summary>Maximum safe exception-summary length.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.ILoggingService">
+            <summary>
+            Configures centralized logging and creates categorized loggers for application modules.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.ILoggingService.Initialize(Microsoft.Extensions.Logging.LogLevel)">
+            <summary>
+            Initializes logging with the supplied minimum severity.
+            </summary>
+            <param name="minimumLevel">The lowest severity to write to log outputs.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.ILoggingService.Initialize(OpenSorSe.Core.Logging.LoggingOptions)">
+            <summary>
+            Initializes logging with explicit local-output options.
+            </summary>
+            <param name="options">The validated minimum level and local sink options.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.ILoggingService.CreateLogger(System.String)">
+            <summary>
+            Creates a logger for the supplied category.
+            </summary>
+            <param name="categoryName">The subsystem or type name used to categorize entries.</param>
+            <returns>A categorized logger.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.ILoggingService.GetStatistics">
+            <summary>
+            Gets process-lifetime logging counters without retaining log entry payloads.
+            </summary>
+            <returns>A snapshot of accepted entries and file-sink failures.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.ILoggingService.GetRecentEvents">
+            <summary>
+            Gets a newest-first snapshot of bounded process-session diagnostic events.
+            </summary>
+            <returns>Immutable events safe for ordinary diagnostic inspection.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.LoggingLimits">
+            <summary>
+            Defines fixed capacity bounds for application-owned diagnostic output.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Logging.LoggingLimits.MaximumDailyFileBytes">
+            <summary>Gets the maximum encoded size of one UTC daily diagnostic log.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.LoggingOptions">
+            <summary>
+            Defines validated local-output options for the centralized logging service.
+            </summary>
+            <param name="MinimumLevel">The lowest severity emitted to configured log providers.</param>
+            <param name="FileLoggingEnabled">Whether the local daily file sink is enabled.</param>
+            <param name="LogDirectoryPath">The optional absolute directory for daily log files.</param>
+            <param name="RetainedFileCount">The number of daily log files to retain.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingOptions.#ctor(Microsoft.Extensions.Logging.LogLevel,System.Boolean,System.String,System.Int32)">
+            <summary>
+            Defines validated local-output options for the centralized logging service.
+            </summary>
+            <param name="MinimumLevel">The lowest severity emitted to configured log providers.</param>
+            <param name="FileLoggingEnabled">Whether the local daily file sink is enabled.</param>
+            <param name="LogDirectoryPath">The optional absolute directory for daily log files.</param>
+            <param name="RetainedFileCount">The number of daily log files to retain.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingOptions.MinimumLevel">
+            <summary>The lowest severity emitted to configured log providers.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingOptions.FileLoggingEnabled">
+            <summary>Whether the local daily file sink is enabled.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingOptions.LogDirectoryPath">
+            <summary>The optional absolute directory for daily log files.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingOptions.RetainedFileCount">
+            <summary>The number of daily log files to retain.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingOptions.Default">
+            <summary>
+            Gets the conservative v0.1 default local logging options.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingOptions.ResolvedLogDirectoryPath">
+            <summary>
+            Gets the resolved absolute directory for daily log files.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingOptions.Validate">
+            <summary>
+            Validates the local logging contract before replacing configured providers.
+            </summary>
+            <exception cref="T:System.ArgumentException">Thrown when an option is invalid.</exception>
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.LoggingService">
+            <summary>
+            Provides a centrally configured debug logging factory for application modules.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingService.Initialize(Microsoft.Extensions.Logging.LogLevel)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingService.Initialize(OpenSorSe.Core.Logging.LoggingOptions)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingService.CreateLogger(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingService.GetStatistics">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingService.GetRecentEvents">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingService.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.Logging.LoggingStatistics">
+            <summary>
+            Contains process-lifetime counts of entries accepted by the centralized logging service.
+            </summary>
+            <param name="TraceEntries">The number of emitted Trace entries.</param>
+            <param name="DebugEntries">The number of emitted Debug entries.</param>
+            <param name="InformationEntries">The number of emitted Information entries.</param>
+            <param name="WarningEntries">The number of emitted Warning entries.</param>
+            <param name="ErrorEntries">The number of emitted Error entries.</param>
+            <param name="CriticalEntries">The number of emitted Critical entries.</param>
+            <param name="FileWriteFailures">The number of isolated local file-sink failures.</param>
+        </member>
+        <member name="M:OpenSorSe.Core.Logging.LoggingStatistics.#ctor(System.Int64,System.Int64,System.Int64,System.Int64,System.Int64,System.Int64,System.Int64)">
+            <summary>
+            Contains process-lifetime counts of entries accepted by the centralized logging service.
+            </summary>
+            <param name="TraceEntries">The number of emitted Trace entries.</param>
+            <param name="DebugEntries">The number of emitted Debug entries.</param>
+            <param name="InformationEntries">The number of emitted Information entries.</param>
+            <param name="WarningEntries">The number of emitted Warning entries.</param>
+            <param name="ErrorEntries">The number of emitted Error entries.</param>
+            <param name="CriticalEntries">The number of emitted Critical entries.</param>
+            <param name="FileWriteFailures">The number of isolated local file-sink failures.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.TraceEntries">
+            <summary>The number of emitted Trace entries.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.DebugEntries">
+            <summary>The number of emitted Debug entries.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.InformationEntries">
+            <summary>The number of emitted Information entries.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.WarningEntries">
+            <summary>The number of emitted Warning entries.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.ErrorEntries">
+            <summary>The number of emitted Error entries.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.CriticalEntries">
+            <summary>The number of emitted Critical entries.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.FileWriteFailures">
+            <summary>The number of isolated local file-sink failures.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Logging.LoggingStatistics.Empty">
+            <summary>
+            Gets an empty process-lifetime statistics snapshot.
+            </summary>
+        </member>
+        <member name="T:OpenSorSe.Core.State.ApplicationLifecycleState">
+            <summary>
+            Describes the lifecycle stage of the running application.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.State.ApplicationLifecycleState.Starting">
+            <summary>The executable has started but infrastructure is not ready.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.State.ApplicationLifecycleState.Initializing">
+            <summary>Core infrastructure is being initialized.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.State.ApplicationLifecycleState.Running">
+            <summary>The application is ready to accept normal work.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.State.ApplicationLifecycleState.ShuttingDown">
+            <summary>The application is releasing resources and stopping work.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.State.ApplicationLifecycleState.Stopped">
+            <summary>The application has completed shutdown.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.State.ApplicationLifecycleStateChangedEventArgs">
+            <summary>
+            Supplies the previous and current values of an application lifecycle transition.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.State.ApplicationLifecycleStateChangedEventArgs.#ctor(OpenSorSe.Core.State.ApplicationLifecycleState,OpenSorSe.Core.State.ApplicationLifecycleState)">
+            <summary>
+            Initializes lifecycle transition event data.
+            </summary>
+            <param name="previousState">The state before the transition.</param>
+            <param name="currentState">The state after the transition.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.State.ApplicationLifecycleStateChangedEventArgs.PreviousState">
+            <summary>Gets the state before the transition.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.State.ApplicationLifecycleStateChangedEventArgs.CurrentState">
+            <summary>Gets the state after the transition.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.State.ApplicationState">
+            <summary>
+            Stores and validates application lifecycle state transitions.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.State.ApplicationState.LifecycleState">
+            <inheritdoc />
+        </member>
+        <member name="E:OpenSorSe.Core.State.ApplicationState.LifecycleStateChanged">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.State.ApplicationState.TryTransitionTo(OpenSorSe.Core.State.ApplicationLifecycleState)">
+            <inheritdoc />
+        </member>
+        <member name="T:OpenSorSe.Core.State.IApplicationState">
+            <summary>
+            Provides the authoritative, in-memory state of the application lifecycle.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.State.IApplicationState.LifecycleState">
+            <summary>
+            Gets the current application lifecycle state.
+            </summary>
+        </member>
+        <member name="E:OpenSorSe.Core.State.IApplicationState.LifecycleStateChanged">
+            <summary>
+            Occurs after a valid lifecycle transition.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.State.IApplicationState.TryTransitionTo(OpenSorSe.Core.State.ApplicationLifecycleState)">
+            <summary>
+            Attempts a valid transition to a new lifecycle state.
+            </summary>
+            <param name="newState">The requested lifecycle state.</param>
+            <returns><see langword="true"/> when the transition succeeds; otherwise, <see langword="false"/>.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot">
+            <summary>
+            Provides an immutable view of a managed background operation.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot.#ctor(System.Guid,System.String,OpenSorSe.Core.Tasks.BackgroundTaskStatus,System.Nullable{System.Double},System.Exception)">
+            <summary>
+            Initializes a snapshot of a managed background operation.
+            </summary>
+            <param name="id">The unique task identifier.</param>
+            <param name="name">The descriptive operation name.</param>
+            <param name="status">The current task status.</param>
+            <param name="progress">The optional normalized progress value.</param>
+            <param name="failure">The optional failure that stopped the operation.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot.Id">
+            <summary>Gets the unique task identifier.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot.Name">
+            <summary>Gets the descriptive operation name.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot.Status">
+            <summary>Gets the current task status.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot.Progress">
+            <summary>Gets the normalized progress value when it has been reported.</summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.BackgroundTaskSnapshot.Failure">
+            <summary>Gets the failure that ended the operation, if any.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Tasks.BackgroundTaskStatus">
+            <summary>
+            Describes the lifecycle status of a managed background operation.
+            </summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Tasks.BackgroundTaskStatus.Pending">
+            <summary>The operation is registered but has not started.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Tasks.BackgroundTaskStatus.Running">
+            <summary>The operation is currently executing.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Tasks.BackgroundTaskStatus.Completed">
+            <summary>The operation completed successfully.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Tasks.BackgroundTaskStatus.Cancelled">
+            <summary>The operation stopped after cancellation was requested.</summary>
+        </member>
+        <member name="F:OpenSorSe.Core.Tasks.BackgroundTaskStatus.Failed">
+            <summary>The operation ended because of an unhandled failure.</summary>
+        </member>
+        <member name="T:OpenSorSe.Core.Tasks.ITaskManager">
+            <summary>
+            Coordinates non-blocking background operations, progress reporting, and cancellation.
+            </summary>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.ITaskManager.ActiveTasks">
+            <summary>
+            Gets snapshots of operations that are currently pending or running.
+            </summary>
+        </member>
+        <member name="E:OpenSorSe.Core.Tasks.ITaskManager.TaskChanged">
+            <summary>
+            Occurs when a managed task changes status or reports progress.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Tasks.ITaskManager.RunAsync(System.String,System.Func{System.Threading.CancellationToken,System.IProgress{System.Double},System.Threading.Tasks.Task},System.Threading.CancellationToken)">
+            <summary>
+            Runs an operation on the thread pool and tracks its lifecycle.
+            </summary>
+            <param name="name">A descriptive task name.</param>
+            <param name="operation">The work to execute.</param>
+            <param name="cancellationToken">A token that can cancel the operation.</param>
+            <returns>A task containing the final operation snapshot.</returns>
+        </member>
+        <member name="M:OpenSorSe.Core.Tasks.ITaskManager.TryCancel(System.Guid)">
+            <summary>
+            Requests cancellation for an active operation.
+            </summary>
+            <param name="taskId">The task to cancel.</param>
+            <returns><see langword="true"/> when a task was active and cancellation was requested.</returns>
+        </member>
+        <member name="T:OpenSorSe.Core.Tasks.TaskManager">
+            <summary>
+            Tracks independent background operations without owning their business logic.
+            </summary>
+        </member>
+        <member name="M:OpenSorSe.Core.Tasks.TaskManager.#ctor(OpenSorSe.Core.Logging.ILoggingService)">
+            <summary>
+            Initializes a task manager that reports task failures through centralized logging.
+            </summary>
+            <param name="loggingService">The logging service used for task diagnostics.</param>
+        </member>
+        <member name="P:OpenSorSe.Core.Tasks.TaskManager.ActiveTasks">
+            <inheritdoc />
+        </member>
+        <member name="E:OpenSorSe.Core.Tasks.TaskManager.TaskChanged">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Tasks.TaskManager.RunAsync(System.String,System.Func{System.Threading.CancellationToken,System.IProgress{System.Double},System.Threading.Tasks.Task},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:OpenSorSe.Core.Tasks.TaskManager.TryCancel(System.Guid)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

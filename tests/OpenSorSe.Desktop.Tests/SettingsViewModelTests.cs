@@ -116,13 +116,21 @@ public sealed class SettingsViewModelTests
         var configuration = new TestConfigurationService();
         var viewModel = new SettingsViewModel(configuration);
         viewModel.Draft.RetainedFileCount = 2;
+        viewModel.Draft.FilesPageDetailsPanelWidthRatio = 0.44;
 
         viewModel.RestoreDefaultsCommand.Execute(null);
         Assert.Equal(7, viewModel.Draft.RetainedFileCount);
+        Assert.Equal(
+            FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio,
+            viewModel.Draft.FilesPageDetailsPanelWidthRatio);
         viewModel.Draft.RetainedFileCount = 2;
+        viewModel.Draft.FilesPageDetailsPanelWidthRatio = 0.44;
         viewModel.CancelCommand.Execute(null);
 
         Assert.Equal(configuration.Current.Logging.RetainedFileCount, viewModel.Draft.RetainedFileCount);
+        Assert.Equal(
+            configuration.Current.Features.FilesPageDetailsPanelWidthRatio,
+            viewModel.Draft.FilesPageDetailsPanelWidthRatio);
         Assert.Equal(0, configuration.ReplacementSaveCount);
     }
 
@@ -194,6 +202,7 @@ public sealed class SettingsViewModelTests
         viewModel.Draft.FileRenameSuggestionsEnabled = true;
         viewModel.Draft.FolderStructureSuggestionsEnabled = false;
         viewModel.Draft.DocumentTextInterpretationEnabled = true;
+        viewModel.Draft.SelectedAiModel = "newly-selected-model";
         viewModel.Draft.ShowAdvancedFeatures = true;
         viewModel.Draft.PdfRasterizationDpi = 300;
         viewModel.Draft.MaximumRasterDimension = 5000;
@@ -206,6 +215,7 @@ public sealed class SettingsViewModelTests
         Assert.True(configuration.Current.Ai.FileRenameSuggestionsEnabled);
         Assert.False(configuration.Current.Ai.FolderStructureSuggestionsEnabled);
         Assert.True(configuration.Current.Ai.DocumentTextInterpretationEnabled);
+        Assert.Equal("newly-selected-model", configuration.Current.Ai.SelectedModel);
         Assert.True(configuration.Current.Features.ShowAdvancedFeatures);
         Assert.Equal(300, configuration.Current.Content.PdfRasterizationDpi);
         Assert.Equal(5000, configuration.Current.Content.MaximumRasterDimension);

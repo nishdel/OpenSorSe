@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using OpenSorSe.Application;
 using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Catalog;
@@ -23,20 +25,18 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 {
     private static readonly IReadOnlyList<NavigationItem> AllNavigationItems = Array.AsReadOnly<NavigationItem>(
     [
-        new(NavigationDestination.Dashboard, "Dashboard", FeatureRequirement.Regular),
-        new(NavigationDestination.Scan, "Scan folders", FeatureRequirement.Regular),
-        new(NavigationDestination.Results, "Results", FeatureRequirement.Regular),
-        new(NavigationDestination.Catalog, "Saved catalog", FeatureRequirement.Regular),
-        new(NavigationDestination.CatalogSearch, "Catalog search", FeatureRequirement.Regular),
-        new(NavigationDestination.SemanticSearch, "Semantic Search (Beta)", FeatureRequirement.SemanticSearch),
-        new(NavigationDestination.CatalogComparison, "Compare snapshots", FeatureRequirement.Advanced),
-        new(NavigationDestination.StructureHistory, "Structure history", FeatureRequirement.Advanced),
-        new(NavigationDestination.Rules, "Rules", FeatureRequirement.Regular),
-        new(NavigationDestination.Settings, "Settings", FeatureRequirement.Regular),
-        new(NavigationDestination.Diagnostics, "Diagnostics", FeatureRequirement.Advanced),
-        new(NavigationDestination.History, "Operation history", FeatureRequirement.Advanced),
-        new(NavigationDestination.Help, "Help", FeatureRequirement.Regular),
-        new(NavigationDestination.About, "About", FeatureRequirement.Regular),
+        new(NavigationDestination.Dashboard, "Home", FeatureRequirement.Regular, NavigationGroup.Primary, "⌂"),
+        new(NavigationDestination.Scan, "Scan", FeatureRequirement.Regular, NavigationGroup.Primary, "⌕"),
+        new(NavigationDestination.Results, "Files", FeatureRequirement.Regular, NavigationGroup.Primary, "▤"),
+        new(NavigationDestination.Duplicates, "Duplicates", FeatureRequirement.Regular, NavigationGroup.Primary, "⧉"),
+        new(NavigationDestination.Catalog, "Saved scans", FeatureRequirement.Regular, NavigationGroup.Primary, "▣"),
+        new(NavigationDestination.Settings, "Settings", FeatureRequirement.Regular, NavigationGroup.Primary, "⚙"),
+        new(NavigationDestination.StructureHistory, "Folder plans", FeatureRequirement.Advanced, NavigationGroup.Advanced, "⌘"),
+        new(NavigationDestination.Rules, "Sorting rules", FeatureRequirement.Advanced, NavigationGroup.Advanced, "≡"),
+        new(NavigationDestination.Diagnostics, "System check", FeatureRequirement.Advanced, NavigationGroup.Advanced, "✓"),
+        new(NavigationDestination.History, "Activity details", FeatureRequirement.Advanced, NavigationGroup.Advanced, "↶"),
+        new(NavigationDestination.Help, "Help", FeatureRequirement.Regular, NavigationGroup.Footer, "?"),
+        new(NavigationDestination.About, "About", FeatureRequirement.Regular, NavigationGroup.Footer, "i"),
     ]);
     private readonly IApplicationController? _applicationController;
     private readonly IConfigurationService _configurationService;
@@ -44,6 +44,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private readonly IResultsCatalogStore? _catalogStore;
     private readonly SemaphoreSlim _shellFeatureSaveGate = new(1, 1);
     private readonly ObservableCollection<NavigationItem> _navigationItems = [];
+    private readonly ObservableCollection<NavigationItem> _primaryNavigationItems = [];
+    private readonly ObservableCollection<NavigationItem> _advancedNavigationItems = [];
+    private readonly ObservableCollection<NavigationItem> _footerNavigationItems = [];
     private NavigationDestination _selectedDestination = NavigationDestination.Dashboard;
     private NavigationItem _selectedNavigationItem = AllNavigationItems[0];
     private CancellationTokenSource? _processingCancellation;
@@ -52,6 +55,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string? _currentCatalogEntryId;
     private bool _enableAi;
     private bool _showAdvancedFeatures;
+    private SavedScansSection _selectedSavedScansSection;
 
     /// <summary>
     /// Initializes the shell with its dashboard presentation model.
@@ -319,6 +323,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _enableAi = configurationService.Current.Ai.Enabled;
         _showAdvancedFeatures = configurationService.Current.Features.ShowAdvancedFeatures;
         NavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_navigationItems);
+        PrimaryNavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_primaryNavigationItems);
+        AdvancedNavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_advancedNavigationItems);
+        FooterNavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_footerNavigationItems);
+        ShowSavedScanLibraryCommand = new RelayCommand(() => SelectedSavedScansSection = SavedScansSection.Library);
+        ShowSavedScanSearchCommand = new RelayCommand(() => SelectedSavedScansSection = SavedScansSection.Search);
+        ShowSavedScanComparisonCommand = new RelayCommand(
+            () => SelectedSavedScansSection = SavedScansSection.Compare,
+            () => IsCompareScansAvailable);
+        BackToFilesCommand = new RelayCommand(() => Navigate(NavigationDestination.Results));
+        CancelCurrentOperationCommand = new RelayCommand(CancelCurrentOperation, () => CanCancelCurrentOperation);
         RefreshNavigationItems(configurationService.Current);
         LogViewer = new LogViewerViewModel(loggingService, clipboardService, configurationService, aiRequestDiagnosticsStore);
         UndoHistory = new UndoHistoryViewModel();
@@ -328,6 +342,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         FolderSelection.ScanRequested += OnScanRequested;
         ScanProgress.CancelRequested += OnScanCancellationRequested;
         Results.PersistedTagsChanged += OnPersistedTagsChanged;
+        Results.MeaningSearchRequested += OnMeaningSearchRequested;
+        ScanProgress.PropertyChanged += OnHostedOperationPropertyChanged;
+        Results.AiSuggestions.PropertyChanged += OnHostedOperationPropertyChanged;
+        SemanticSearch.PropertyChanged += OnHostedOperationPropertyChanged;
         Catalog.EntryOpened += OnCatalogEntryOpened;
         Catalog.CatalogChanged += OnCatalogChanged;
         CatalogSearch.EntryOpened += OnCatalogEntryOpened;
@@ -435,6 +453,13 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             if (SetProperty(ref _showAdvancedFeatures, value))
             {
                 OnPropertyChanged(nameof(AdvancedShellStatusText));
+                OnPropertyChanged(nameof(IsCompareScansAvailable));
+                ShowSavedScanComparisonCommand.NotifyCanExecuteChanged();
+                if (!value && SelectedSavedScansSection == SavedScansSection.Compare)
+                {
+                    SelectedSavedScansSection = SavedScansSection.Library;
+                }
+
                 Settings.SynchronizeShellFeatureSwitches(EnableAi, ShowAdvancedFeatures);
                 _ = PersistShellFeatureSwitchesAsync();
             }
@@ -454,6 +479,103 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets user-facing primary navigation items in their stable shell order.</summary>
     public ReadOnlyObservableCollection<NavigationItem> NavigationItems { get; }
+
+    /// <summary>Gets the six everyday destinations shown first.</summary>
+    public ReadOnlyObservableCollection<NavigationItem> PrimaryNavigationItems { get; }
+
+    /// <summary>Gets specialist destinations shown only when enabled.</summary>
+    public ReadOnlyObservableCollection<NavigationItem> AdvancedNavigationItems { get; }
+
+    /// <summary>Gets Help and About destinations shown in the sidebar footer.</summary>
+    public ReadOnlyObservableCollection<NavigationItem> FooterNavigationItems { get; }
+
+    /// <summary>Gets whether the Advanced navigation section has visible entries.</summary>
+    public bool HasAdvancedNavigationItems => AdvancedNavigationItems.Count > 0;
+
+    /// <summary>Gets or sets the active local section in Saved scans.</summary>
+    public SavedScansSection SelectedSavedScansSection
+    {
+        get => _selectedSavedScansSection;
+        set
+        {
+            if (value == SavedScansSection.Compare && !IsCompareScansAvailable)
+            {
+                StatusText = "Compare scans is available when Advanced mode is on.";
+                return;
+            }
+
+            if (SetProperty(ref _selectedSavedScansSection, value))
+            {
+                OnPropertyChanged(nameof(IsSavedScanLibrarySelected));
+                OnPropertyChanged(nameof(IsSavedScanSearchSelected));
+                OnPropertyChanged(nameof(IsSavedScanComparisonSelected));
+            }
+        }
+    }
+
+    /// <summary>Gets whether the Scan Library tab is active.</summary>
+    public bool IsSavedScanLibrarySelected => SelectedSavedScansSection == SavedScansSection.Library;
+
+    /// <summary>Gets whether Search saved scans is active.</summary>
+    public bool IsSavedScanSearchSelected => SelectedSavedScansSection == SavedScansSection.Search;
+
+    /// <summary>Gets whether Compare scans is active.</summary>
+    public bool IsSavedScanComparisonSelected => SelectedSavedScansSection == SavedScansSection.Compare;
+
+    /// <summary>Gets whether the advanced comparison tab may be opened.</summary>
+    public bool IsCompareScansAvailable => ShowAdvancedFeatures;
+
+    /// <summary>Gets commands for local Saved scans navigation.</summary>
+    public IRelayCommand ShowSavedScanLibraryCommand { get; }
+
+    /// <summary>Gets the Search saved scans tab command.</summary>
+    public IRelayCommand ShowSavedScanSearchCommand { get; }
+
+    /// <summary>Gets the advanced Compare scans tab command.</summary>
+    public IRelayCommand ShowSavedScanComparisonCommand { get; }
+
+    /// <summary>Gets the command that returns from Meaning Search to Files.</summary>
+    public IRelayCommand BackToFilesCommand { get; }
+
+    /// <summary>Gets a single status-bar cancellation command for the active supported operation.</summary>
+    public IRelayCommand CancelCurrentOperationCommand { get; }
+
+    /// <summary>Gets whether the status bar should show active progress.</summary>
+    public bool IsGlobalOperationActive =>
+        IsProcessing || Results.AiSuggestions.IsBusy || SemanticSearch.IsBusy;
+
+    /// <summary>Gets whether the active global operation supports cancellation.</summary>
+    public bool CanCancelCurrentOperation => IsGlobalOperationActive;
+
+    /// <summary>Gets normalized progress when the active operation reports a known fraction.</summary>
+    public double GlobalProgressValue => SemanticSearch.IsBusy ? SemanticSearch.ProgressValue : 0;
+
+    /// <summary>Gets whether active progress is indeterminate.</summary>
+    public bool IsGlobalProgressIndeterminate =>
+        IsGlobalOperationActive && !SemanticSearch.IsBusy;
+
+    /// <summary>Gets whether the latest global status represents a controlled failure.</summary>
+    public bool IsGlobalStatusError =>
+        !IsGlobalOperationActive &&
+        (GlobalStatusText.Contains("failed", StringComparison.OrdinalIgnoreCase) ||
+         GlobalStatusText.Contains("could not", StringComparison.OrdinalIgnoreCase) ||
+         GlobalStatusText.Contains("unavailable", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Gets the most relevant concise status for the persistent status bar.</summary>
+    public string GlobalStatusText => IsProcessing
+        ? ScanProgress.StatusText
+        : Results.AiSuggestions.IsBusy || IsResultsSelected || IsDuplicatesSelected
+            ? Results.AiSuggestions.IsBusy ? Results.AiSuggestions.StatusText : StatusText
+            : SemanticSearch.IsBusy || IsSemanticSearchSelected
+                ? SemanticSearch.Status.Message
+                : StatusText;
+
+    /// <summary>Gets the active item or stage shown in the persistent status bar.</summary>
+    public string? GlobalStatusDetail => IsProcessing
+        ? ScanProgress.CurrentFolder
+        : Results.AiSuggestions.IsBusy
+            ? Results.AiSuggestions.ProgressText
+            : null;
 
     /// <summary>Gets or sets the user-facing navigation item selected by the shell.</summary>
     public NavigationItem SelectedNavigationItem
@@ -480,7 +602,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             }
 
             var visibleItem = _navigationItems.FirstOrDefault(item => item.Destination == value);
-            if (visibleItem is null)
+            var isFilesMeaningMode = value == NavigationDestination.SemanticSearch &&
+                                     FeatureAccess.IsEnabled(_configurationService.Current, FeatureRequirement.SemanticSearch);
+            var isSavedScansChild = value is NavigationDestination.CatalogSearch or NavigationDestination.CatalogComparison &&
+                                    (value != NavigationDestination.CatalogComparison || ShowAdvancedFeatures);
+            if (visibleItem is null && !isFilesMeaningMode && !isSavedScansChild)
             {
                 StatusText = "That feature is hidden by the current Settings choices.";
                 return;
@@ -488,14 +614,26 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
             if (SetProperty(ref _selectedDestination, value))
             {
-                _selectedNavigationItem = visibleItem;
+                var highlightedItem = visibleItem ??
+                    _navigationItems.First(item => item.Destination == (isFilesMeaningMode
+                        ? NavigationDestination.Results
+                        : NavigationDestination.Catalog));
+                foreach (var item in _navigationItems)
+                {
+                    item.SetSelected(ReferenceEquals(item, highlightedItem));
+                }
+
+                _selectedNavigationItem = highlightedItem;
                 OnPropertyChanged(nameof(SelectedNavigationItem));
                 OnPropertyChanged(nameof(CurrentPageTitle));
                 OnPropertyChanged(nameof(IsDashboardSelected));
                 OnPropertyChanged(nameof(IsScanSelected));
                 OnPropertyChanged(nameof(IsResultsSelected));
+                OnPropertyChanged(nameof(IsDuplicatesSelected));
+                OnPropertyChanged(nameof(IsFilesAreaSelected));
                 OnPropertyChanged(nameof(IsCatalogSelected));
                 OnPropertyChanged(nameof(IsCatalogSearchSelected));
+                OnPropertyChanged(nameof(IsSavedScansAreaSelected));
                 OnPropertyChanged(nameof(IsSemanticSearchSelected));
                 OnPropertyChanged(nameof(IsCatalogComparisonSelected));
                 OnPropertyChanged(nameof(IsStructureHistorySelected));
@@ -506,6 +644,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(IsHelpSelected));
                 OnPropertyChanged(nameof(IsAboutSelected));
                 OnPropertyChanged(nameof(IsFeaturePageSelected));
+                NotifyGlobalStatusChanged();
             }
         }
     }
@@ -515,18 +654,19 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public string CurrentPageTitle => SelectedDestination switch
     {
-        NavigationDestination.Dashboard => "Dashboard",
+        NavigationDestination.Dashboard => "Home",
         NavigationDestination.Scan => "Scan",
-        NavigationDestination.Results => "Results",
-        NavigationDestination.Catalog => "Saved catalog",
-        NavigationDestination.CatalogSearch => "Catalog search",
-        NavigationDestination.SemanticSearch => "Semantic Search (Beta)",
-        NavigationDestination.CatalogComparison => "Compare snapshots",
-        NavigationDestination.StructureHistory => "Structure history",
-        NavigationDestination.Rules => "Rules",
+        NavigationDestination.Results => "Files",
+        NavigationDestination.Duplicates => "Duplicates",
+        NavigationDestination.Catalog => "Saved scans",
+        NavigationDestination.CatalogSearch => "Search saved scans",
+        NavigationDestination.SemanticSearch => "Meaning Search (Beta)",
+        NavigationDestination.CatalogComparison => "Compare scans",
+        NavigationDestination.StructureHistory => "Folder plans",
+        NavigationDestination.Rules => "Sorting rules",
         NavigationDestination.Settings => "Settings",
-        NavigationDestination.Diagnostics => "Diagnostics",
-        NavigationDestination.History => "Operation history",
+        NavigationDestination.Diagnostics => "System check",
+        NavigationDestination.History => "Activity details",
         NavigationDestination.Help => "Help",
         NavigationDestination.About => "About OpenSorSe",
         _ => throw new InvalidOperationException("The navigation destination is unsupported."),
@@ -538,7 +678,13 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public string StatusText
     {
         get => _statusText;
-        private set => SetProperty(ref _statusText, value);
+        private set
+        {
+            if (SetProperty(ref _statusText, value))
+            {
+                NotifyGlobalStatusChanged();
+            }
+        }
     }
 
     /// <summary>
@@ -552,6 +698,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             if (SetProperty(ref _isProcessing, value))
             {
                 OnPropertyChanged(nameof(IsFolderSelectionVisible));
+                NotifyGlobalStatusChanged();
             }
         }
     }
@@ -576,10 +723,22 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool IsResultsSelected => SelectedDestination == NavigationDestination.Results;
 
+    /// <summary>Gets whether exact-duplicate review is selected.</summary>
+    public bool IsDuplicatesSelected => SelectedDestination == NavigationDestination.Duplicates;
+
+    /// <summary>Gets whether the shared Files or Duplicates review surface is selected.</summary>
+    public bool IsFilesAreaSelected => IsResultsSelected || IsDuplicatesSelected;
+
     /// <summary>
     /// Gets whether the opt-in saved-results catalog page is currently selected.
     /// </summary>
     public bool IsCatalogSelected => SelectedDestination == NavigationDestination.Catalog;
+
+    /// <summary>Gets whether the consolidated Saved scans area or one of its internal sections is selected.</summary>
+    public bool IsSavedScansAreaSelected =>
+        SelectedDestination is NavigationDestination.Catalog or
+            NavigationDestination.CatalogSearch or
+            NavigationDestination.CatalogComparison;
 
     /// <summary>
     /// Gets whether deterministic catalog-wide metadata search is currently selected.
@@ -628,7 +787,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets whether a later feature-page destination is currently selected.
     /// </summary>
-    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsSemanticSearchSelected && !IsCatalogComparisonSelected && !IsStructureHistorySelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
+    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsDuplicatesSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsSemanticSearchSelected && !IsCatalogComparisonSelected && !IsStructureHistorySelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
 
     /// <summary>
     /// Selects a documented application-shell destination.
@@ -636,6 +795,39 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <param name="destination">The destination to display.</param>
     public void Navigate(NavigationDestination destination)
     {
+        if (destination == NavigationDestination.Results)
+        {
+            Results.ShowFiles();
+        }
+        else if (destination == NavigationDestination.Duplicates)
+        {
+            Results.ShowDuplicates();
+        }
+        else if (destination == NavigationDestination.Catalog)
+        {
+            SelectedSavedScansSection = SavedScansSection.Library;
+        }
+        else if (destination == NavigationDestination.CatalogSearch)
+        {
+            SelectedSavedScansSection = SavedScansSection.Search;
+        }
+        else if (destination == NavigationDestination.CatalogComparison)
+        {
+            SelectedSavedScansSection = SavedScansSection.Compare;
+        }
+        else if (destination == NavigationDestination.Catalog)
+        {
+            SelectedSavedScansSection = SavedScansSection.Library;
+        }
+        else if (destination == NavigationDestination.CatalogSearch)
+        {
+            SelectedSavedScansSection = SavedScansSection.Search;
+        }
+        else if (destination == NavigationDestination.CatalogComparison)
+        {
+            SelectedSavedScansSection = SavedScansSection.Compare;
+        }
+
         SelectedDestination = destination;
     }
 
@@ -687,6 +879,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         FolderSelection.ScanRequested -= OnScanRequested;
         ScanProgress.CancelRequested -= OnScanCancellationRequested;
         Results.PersistedTagsChanged -= OnPersistedTagsChanged;
+        Results.MeaningSearchRequested -= OnMeaningSearchRequested;
+        ScanProgress.PropertyChanged -= OnHostedOperationPropertyChanged;
+        Results.AiSuggestions.PropertyChanged -= OnHostedOperationPropertyChanged;
+        SemanticSearch.PropertyChanged -= OnHostedOperationPropertyChanged;
         Catalog.EntryOpened -= OnCatalogEntryOpened;
         Catalog.CatalogChanged -= OnCatalogChanged;
         CatalogSearch.EntryOpened -= OnCatalogEntryOpened;
@@ -711,6 +907,48 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         RefreshNavigationItems(settings);
         Results.RefreshFeatureAvailability();
         SemanticSearch.RefreshFeatureAvailability();
+    }
+
+    private void OnMeaningSearchRequested(object? sender, EventArgs eventArgs)
+    {
+        if (!_configurationService.Current.SemanticSearch.Enabled)
+        {
+            StatusText = "Meaning Search is off. Enable it in Settings first.";
+            return;
+        }
+
+        Navigate(NavigationDestination.SemanticSearch);
+    }
+
+    private void OnHostedOperationPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs) =>
+        NotifyGlobalStatusChanged();
+
+    private void NotifyGlobalStatusChanged()
+    {
+        OnPropertyChanged(nameof(IsGlobalOperationActive));
+        OnPropertyChanged(nameof(CanCancelCurrentOperation));
+        OnPropertyChanged(nameof(GlobalStatusText));
+        OnPropertyChanged(nameof(GlobalStatusDetail));
+        OnPropertyChanged(nameof(GlobalProgressValue));
+        OnPropertyChanged(nameof(IsGlobalProgressIndeterminate));
+        OnPropertyChanged(nameof(IsGlobalStatusError));
+        CancelCurrentOperationCommand.NotifyCanExecuteChanged();
+    }
+
+    private void CancelCurrentOperation()
+    {
+        if (IsProcessing)
+        {
+            ScanProgress.RequestCancellation();
+        }
+        else if (Results.AiSuggestions.IsBusy)
+        {
+            Results.AiSuggestions.CancelAiOperationCommand.Execute(null);
+        }
+        else if (SemanticSearch.IsBusy)
+        {
+            SemanticSearch.CancelCommand.Execute(null);
+        }
     }
 
     private async Task PersistShellFeatureSwitchesAsync()
@@ -752,6 +990,12 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             nameof(ShowAdvancedFeatures)))
         {
             OnPropertyChanged(nameof(AdvancedShellStatusText));
+            OnPropertyChanged(nameof(IsCompareScansAvailable));
+            ShowSavedScanComparisonCommand.NotifyCanExecuteChanged();
+            if (!ShowAdvancedFeatures && SelectedSavedScansSection == SavedScansSection.Compare)
+            {
+                SelectedSavedScansSection = SavedScansSection.Library;
+            }
         }
     }
 
@@ -786,7 +1030,13 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private void OnHelpBackRequested(object? sender, EventArgs eventArgs)
     {
         var destination = Help.PreviousDestination ?? NavigationDestination.Dashboard;
-        if (_navigationItems.All(item => item.Destination != destination))
+        var canReturnToMeaningSearch = destination == NavigationDestination.SemanticSearch &&
+                                       FeatureAccess.IsEnabled(_configurationService.Current, FeatureRequirement.SemanticSearch);
+        var canReturnToSavedScansChild = destination is NavigationDestination.CatalogSearch or NavigationDestination.CatalogComparison &&
+                                         (destination != NavigationDestination.CatalogComparison || ShowAdvancedFeatures);
+        if (_navigationItems.All(item => item.Destination != destination) &&
+            !canReturnToMeaningSearch &&
+            !canReturnToSavedScansChild)
         {
             destination = NavigationDestination.Dashboard;
         }
@@ -800,18 +1050,50 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             .Where(item => FeatureAccess.IsEnabled(settings, item.Requirement))
             .ToArray();
         _navigationItems.Clear();
+        _primaryNavigationItems.Clear();
+        _advancedNavigationItems.Clear();
+        _footerNavigationItems.Clear();
         foreach (var item in visibleItems)
         {
             _navigationItems.Add(item);
+            switch (item.Group)
+            {
+                case NavigationGroup.Primary:
+                    _primaryNavigationItems.Add(item);
+                    break;
+                case NavigationGroup.Advanced:
+                    _advancedNavigationItems.Add(item);
+                    break;
+                case NavigationGroup.Footer:
+                    _footerNavigationItems.Add(item);
+                    break;
+            }
+        }
+
+        var highlightedDestination = _selectedDestination == NavigationDestination.SemanticSearch
+            ? NavigationDestination.Results
+            : _selectedDestination is NavigationDestination.CatalogSearch or NavigationDestination.CatalogComparison
+                ? NavigationDestination.Catalog
+            : _selectedDestination;
+        foreach (var item in _navigationItems)
+        {
+            item.SetSelected(item.Destination == highlightedDestination);
         }
 
         OnPropertyChanged(nameof(Destinations));
-        if (_navigationItems.All(item => item.Destination != _selectedDestination))
+        OnPropertyChanged(nameof(HasAdvancedNavigationItems));
+        var validFilesMeaningMode = _selectedDestination == NavigationDestination.SemanticSearch &&
+                                    FeatureAccess.IsEnabled(settings, FeatureRequirement.SemanticSearch);
+        var validSavedScansChild = _selectedDestination is NavigationDestination.CatalogSearch or NavigationDestination.CatalogComparison &&
+                                   (_selectedDestination != NavigationDestination.CatalogComparison || ShowAdvancedFeatures);
+        if (_navigationItems.All(item => item.Destination != _selectedDestination) &&
+            !validFilesMeaningMode &&
+            !validSavedScansChild)
         {
             SelectedDestination = NavigationDestination.Dashboard;
-            StatusText = "The previously selected advanced feature was hidden. Dashboard is now selected.";
+            StatusText = "The previously selected feature was hidden. Home is now selected.";
         }
-        else
+        else if (!validFilesMeaningMode && !validSavedScansChild)
         {
             _selectedNavigationItem = _navigationItems.Single(item => item.Destination == _selectedDestination);
             OnPropertyChanged(nameof(SelectedNavigationItem));

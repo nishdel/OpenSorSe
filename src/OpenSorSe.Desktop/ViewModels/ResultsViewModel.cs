@@ -15,6 +15,12 @@ namespace OpenSorSe.Desktop.ViewModels;
 /// </summary>
 public sealed class ResultsViewModel : ViewModelBase, IDisposable
 {
+    /// <summary>Gets the minimum usable file-table width in device-independent pixels.</summary>
+    public const double MinimumFileTableWidth = 450;
+
+    /// <summary>Gets the minimum usable selected-file details width in device-independent pixels.</summary>
+    public const double MinimumDetailsPanelWidth = 320;
+
     private static readonly IReadOnlyList<int> PageSizes = [50, 100, 200, 500];
     private static readonly IReadOnlyList<ResultDuplicateFilter> DuplicateFilters = Enum.GetValues<ResultDuplicateFilter>();
     private static readonly IReadOnlyList<ResultPlannedOperationFilter> PlannedOperationFilters = Enum.GetValues<ResultPlannedOperationFilter>();
@@ -29,6 +35,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     private readonly ObservableCollection<ResultTagRow> _userTags = [];
     private readonly ObservableCollection<ExtractedMetadataField> _contentMetadata = [];
     private readonly IContentStore? _contentStore;
+    private readonly IConfigurationService _configurationService;
+    private readonly SemaphoreSlim _panelPreferenceSaveGate = new(1, 1);
     private readonly Dictionary<string, IReadOnlyList<TagAssociation>> _tagsByFile = new(StringComparer.Ordinal);
     private CancellationTokenSource? _queryCancellation;
     private CancellationTokenSource? _contentDetailsCancellation;
@@ -46,6 +54,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     private bool _isLoading;
     private ResultsDisplayMode _displayMode = ResultsDisplayMode.Explorer;
     private string _contentDetailsStatus = "Select a result to inspect local extracted metadata.";
+    private bool _areFiltersVisible;
+    private double _detailsPanelWidthRatio;
 
     /// <summary>
     /// Initializes the result explorer and its non-mutating navigation commands.
@@ -75,6 +85,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         IContentStore? contentStore = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
+        _configurationService = configurationService;
+        _detailsPanelWidthRatio = configurationService.Current.Features.FilesPageDetailsPanelWidthRatio;
         PageRows = new ReadOnlyObservableCollection<ResultsFileRow>(_pageRows);
         Directories = new ReadOnlyObservableCollection<ResultDirectory>(_directories);
         PlannedOperations = new ReadOnlyObservableCollection<ResultPlannedOperation>(_plannedOperations);
@@ -89,10 +101,14 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         DuplicateReview.BackToExplorerRequested += OnBackToExplorerRequested;
         AiSuggestions = new AiSuggestionsViewModel(configurationService, aiSuggestionService, contentStore);
         ClearFiltersCommand = new RelayCommand(ClearFilters, CanClearFilters);
+        ToggleFiltersCommand = new RelayCommand(() => AreFiltersVisible = !AreFiltersVisible);
         PreviousPageCommand = new RelayCommand(GoToPreviousPage, () => CanGoPreviousPage);
         NextPageCommand = new RelayCommand(GoToNextPage, () => CanGoNextPage);
         OpenDuplicateReviewCommand = new RelayCommand(OpenDuplicateReview, () => CanOpenDuplicateReview);
         BackToExplorerCommand = new RelayCommand(BackToExplorer);
+        OpenMeaningSearchCommand = new RelayCommand(
+            () => MeaningSearchRequested?.Invoke(this, EventArgs.Empty),
+            () => IsMeaningSearchEnabled);
         AddUserTagsCommand = new AsyncRelayCommand(AddUserTagsAsync, CanAddUserTags);
         RemoveSelectedTagCommand = new AsyncRelayCommand(RemoveSelectedTagAsync, CanRemoveSelectedTag);
         AcceptSuggestedTagCommand = new AsyncRelayCommand(
@@ -101,12 +117,19 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         RejectSuggestedTagCommand = new AsyncRelayCommand(
             RejectSuggestedTagAsync,
             () => SelectedUserTag?.CanReject == true);
+        NarrowDetailsPanelCommand = new AsyncRelayCommand(() => AdjustDetailsPanelWidthAsync(-0.05));
+        WidenDetailsPanelCommand = new AsyncRelayCommand(() => AdjustDetailsPanelWidthAsync(0.05));
+        ResetDetailsPanelWidthCommand = new AsyncRelayCommand(
+            () => SetDetailsPanelWidthRatioAsync(FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio));
     }
 
     /// <summary>
     /// Raised after accepted non-deterministic tags change for the loaded snapshot.
     /// </summary>
     public event EventHandler? PersistedTagsChanged;
+
+    /// <summary>Occurs when the user switches from name search to local Meaning Search.</summary>
+    public event EventHandler? MeaningSearchRequested;
 
     /// <summary>Gets the immutable snapshot currently owned by this review surface.</summary>
     public ResultsSnapshot? Snapshot => _snapshot;
@@ -145,6 +168,13 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets whether extracted metadata is available for the selected result.</summary>
     public bool HasContentMetadata => ContentMetadata.Count > 0;
 
+    /// <summary>Gets or sets whether secondary filters are progressively disclosed.</summary>
+    public bool AreFiltersVisible
+    {
+        get => _areFiltersVisible;
+        set => SetProperty(ref _areFiltersVisible, value);
+    }
+
     /// <summary>Gets fixed page-size choices that keep result rendering bounded.</summary>
     public IReadOnlyList<int> AvailablePageSizes => PageSizes;
 
@@ -166,8 +196,23 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the preview-only optional AI suggestion workflow for the selected result.</summary>
     public AiSuggestionsViewModel AiSuggestions { get; }
 
-    /// <summary>Refreshes AI panel visibility and commands after active settings are saved.</summary>
-    public void RefreshFeatureAvailability() => AiSuggestions.RefreshFeatureAvailability();
+    /// <summary>Refreshes feature presentation after active settings are saved.</summary>
+    public void RefreshFeatureAvailability()
+    {
+        AiSuggestions.RefreshFeatureAvailability();
+        DetailsPanelWidthRatio = _configurationService.Current.Features.FilesPageDetailsPanelWidthRatio;
+        OnPropertyChanged(nameof(IsMeaningSearchEnabled));
+        OnPropertyChanged(nameof(MeaningSearchAvailabilityText));
+        OpenMeaningSearchCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Gets whether local Meaning Search Beta is enabled.</summary>
+    public bool IsMeaningSearchEnabled => _configurationService.Current.SemanticSearch.Enabled;
+
+    /// <summary>Gets plain-language Meaning Search availability guidance.</summary>
+    public string MeaningSearchAvailabilityText => IsMeaningSearchEnabled
+        ? "Meaning Search is ready to open. It finds related ideas using a local index."
+        : "Meaning Search is off. Enable it in Settings to search by related ideas.";
 
     /// <summary>Gets the current normalized explorer query.</summary>
     public ResultsQuery Query
@@ -280,6 +325,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
                     : "Tags are OpenSorSe metadata and never change the selected file.";
                 SelectedUserTag = null;
                 UpdateSelectedDetails();
+                UpdateAiSuggestionContext();
                 _ = LoadContentDetailsAsync();
             }
         }
@@ -407,6 +453,13 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets whether selected result details are available.</summary>
     public bool HasSelectedDetails => SelectedDetails is not null;
 
+    /// <summary>Gets the persisted proportion of the Files workspace assigned to selected-file details.</summary>
+    public double DetailsPanelWidthRatio
+    {
+        get => _detailsPanelWidthRatio;
+        private set => SetProperty(ref _detailsPanelWidthRatio, value);
+    }
+
     /// <summary>Gets whether the previous bounded page is available.</summary>
     public bool CanGoPreviousPage => Page.PageIndex > 0;
 
@@ -435,6 +488,9 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the command that clears every non-default local filter.</summary>
     public IRelayCommand ClearFiltersCommand { get; }
 
+    /// <summary>Gets the command that opens or closes secondary filters.</summary>
+    public IRelayCommand ToggleFiltersCommand { get; }
+
     /// <summary>Gets the command that opens the previous bounded page.</summary>
     public IRelayCommand PreviousPageCommand { get; }
 
@@ -447,6 +503,15 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the command that returns from duplicate review to the file explorer.</summary>
     public IRelayCommand BackToExplorerCommand { get; }
 
+    /// <summary>Gets the command that opens local Meaning Search Beta.</summary>
+    public IRelayCommand OpenMeaningSearchCommand { get; }
+
+    /// <summary>Shows the ordinary Files explorer.</summary>
+    public void ShowFiles() => BackToExplorer();
+
+    /// <summary>Shows the existing exact-duplicate review surface.</summary>
+    public void ShowDuplicates() => OpenDuplicateReview();
+
     /// <summary>Gets the command that adds validated application-owned tags to the selected result.</summary>
     public IAsyncRelayCommand AddUserTagsCommand { get; }
 
@@ -458,6 +523,50 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets the command that explicitly rejects one generated candidate tag.</summary>
     public IAsyncRelayCommand RejectSuggestedTagCommand { get; }
+
+    /// <summary>Gets the keyboard-accessible command that narrows selected-file details.</summary>
+    public IAsyncRelayCommand NarrowDetailsPanelCommand { get; }
+
+    /// <summary>Gets the keyboard-accessible command that widens selected-file details.</summary>
+    public IAsyncRelayCommand WidenDetailsPanelCommand { get; }
+
+    /// <summary>Gets the command that restores the default selected-file details width.</summary>
+    public IAsyncRelayCommand ResetDetailsPanelWidthCommand { get; }
+
+    /// <summary>
+    /// Validates and persists the selected-file details proportion without changing source files.
+    /// </summary>
+    /// <param name="ratio">The requested details-panel proportion.</param>
+    public async Task SetDetailsPanelWidthRatioAsync(double ratio)
+    {
+        var boundedRatio = double.IsFinite(ratio)
+            ? Math.Clamp(
+                ratio,
+                FeatureSettings.MinimumFilesPageDetailsPanelWidthRatio,
+                FeatureSettings.MaximumFilesPageDetailsPanelWidthRatio)
+            : FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio;
+
+        DetailsPanelWidthRatio = boundedRatio;
+        await _panelPreferenceSaveGate.WaitAsync();
+        try
+        {
+            var settings = _configurationService.Current.WithFilesPageDetailsPanelWidthRatio(boundedRatio);
+            settings.Validate();
+            await _configurationService.SaveAsync(settings, CancellationToken.None);
+        }
+        catch (IOException)
+        {
+            StatusText = "The Files layout could not be saved. The current layout remains available for this session.";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            StatusText = "The Files layout could not be saved. Check access to the OpenSorSe settings folder.";
+        }
+        finally
+        {
+            _panelPreferenceSaveGate.Release();
+        }
+    }
 
     /// <summary>
     /// Replaces the current in-memory review state with a completed immutable snapshot.
@@ -608,7 +717,11 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         AiSuggestions.Dispose();
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();
+        _panelPreferenceSaveGate.Dispose();
     }
+
+    private Task AdjustDetailsPanelWidthAsync(double delta) =>
+        SetDetailsPanelWidthRatioAsync(DetailsPanelWidthRatio + delta);
 
     private void ChangeQuery(ResultsQuery query)
     {
@@ -741,6 +854,17 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         RemoveSelectedTagCommand.NotifyCanExecuteChanged();
         AcceptSuggestedTagCommand.NotifyCanExecuteChanged();
         RejectSuggestedTagCommand.NotifyCanExecuteChanged();
+    }
+
+    private void UpdateAiSuggestionContext()
+    {
+        var snapshot = Snapshot;
+        AiSuggestions.SetContext(
+            SelectedRow is null || snapshot is null
+                ? null
+                : snapshot.Files.FirstOrDefault(file => file.Id == SelectedRow.FileId),
+            snapshot,
+            Page.Items);
     }
 
     private async Task LoadContentDetailsAsync()

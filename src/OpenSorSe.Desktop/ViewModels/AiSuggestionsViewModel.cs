@@ -31,6 +31,8 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     private string _elapsedText = string.Empty;
     private bool _isBusy;
     private bool _hasContext;
+    private AiReadinessState _readinessState = AiReadinessState.NotConfigured;
+    private string? _actualModelUsed;
     private CancellationTokenSource? _operationCancellation;
     private long _operationVersion;
     private bool _isDisposed;
@@ -58,6 +60,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             DismissDocumentInterpretation,
             () => DocumentInterpretation is not null && !IsBusy);
         CancelAiOperationCommand = new RelayCommand(CancelOperation, () => IsBusy);
+        RetryConnectionCommand = new AsyncRelayCommand(RetryConnectionAsync, CanRetryConnection);
         RefreshFeatureAvailability();
     }
 
@@ -80,6 +83,107 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         _aiSuggestionService is not null &&
         _contentStore is not null &&
         _configurationService.Current.Ai.IsCapabilityEnabled(AiCapability.DocumentTextInterpretation);
+
+    /// <summary>Gets the current concise readiness of the optional local AI service.</summary>
+    public AiReadinessState ReadinessState
+    {
+        get => _readinessState;
+        private set
+        {
+            if (SetProperty(ref _readinessState, value))
+            {
+                OnPropertyChanged(nameof(ReadinessText));
+                OnPropertyChanged(nameof(RenameActionAvailabilityText));
+                OnPropertyChanged(nameof(IsRenameActionAvailable));
+                RetryConnectionCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>Gets plain-language local-AI readiness guidance.</summary>
+    public string ReadinessText => ReadinessState switch
+    {
+        AiReadinessState.NotConfigured => "Local AI is not configured. Enable AI and choose an installed model in Settings.",
+        AiReadinessState.NotChecked => "Local AI has not been checked yet. Retry the connection or request a suggestion.",
+        AiReadinessState.ServerUnavailable => "Your local AI is not running. Start Ollama, then retry the connection.",
+        AiReadinessState.ServerAvailable => "Your local AI is running. The selected model still needs to be checked.",
+        AiReadinessState.ModelMissing => "The selected model is not installed. Choose an installed model in Settings.",
+        AiReadinessState.Ready => ActualModelUsed is null
+            ? "File Assistant is ready."
+            : $"File Assistant is ready. Last model used: {ActualModelUsed}.",
+        AiReadinessState.Running => "File Assistant is working on your explicit request.",
+        AiReadinessState.Failed => "The last suggestion failed safely. Your files were not changed; you can retry.",
+        AiReadinessState.Cancelled => "Suggestion cancelled. Your files were not changed; you can retry.",
+        _ => "Local AI status is unavailable.",
+    };
+
+    /// <summary>Gets the actual model named by the latest validated suggestion.</summary>
+    public string? ActualModelUsed
+    {
+        get => _actualModelUsed;
+        private set
+        {
+            if (SetProperty(ref _actualModelUsed, value))
+            {
+                OnPropertyChanged(nameof(ReadinessText));
+            }
+        }
+    }
+
+    /// <summary>Gets whether rename generation is currently executable.</summary>
+    public bool IsRenameActionAvailable => CanGenerateRename();
+
+    /// <summary>Gets the exact reason rename generation is ready or unavailable.</summary>
+    public string RenameActionAvailabilityText
+    {
+        get
+        {
+            var settings = _configurationService.Current.Ai;
+            if (_selectedFile is null)
+            {
+                return "Choose a file to request a rename suggestion.";
+            }
+
+            if (!settings.Enabled)
+            {
+                return "AI features are off. Enable them in Settings.";
+            }
+
+            if (!settings.FileRenameSuggestionsEnabled)
+            {
+                return "Rename suggestions are off. Enable them in Settings.";
+            }
+
+            if (_aiSuggestionService is null)
+            {
+                return "The local AI service is unavailable in this application session.";
+            }
+
+            if (!IsSupportedRenameContext(_selectedFile))
+            {
+                return "This item does not have a supported filename for rename suggestions.";
+            }
+
+            if (IsBusy)
+            {
+                return "Another File Assistant operation is running.";
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.SelectedModel))
+            {
+                return "Choose an installed AI model in Settings.";
+            }
+
+            return ReadinessState switch
+            {
+                AiReadinessState.ServerUnavailable => "Your local AI is not running. Retry the connection or try the request again.",
+                AiReadinessState.ModelMissing => "The selected model is unavailable. Choose another model in Settings.",
+                AiReadinessState.Failed => "The previous request failed safely. Try again or retry the connection.",
+                AiReadinessState.Cancelled => "The previous request was cancelled. Try again when ready.",
+                _ => $"Ready to suggest a name with '{settings.SelectedModel}'. Nothing will be renamed automatically.",
+            };
+        }
+    }
 
     /// <summary>Gets the current validated rename proposal.</summary>
     public AiFileRenameSuggestion? RenameSuggestion
@@ -293,6 +397,9 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the command that cancels the active explicit AI operation.</summary>
     public IRelayCommand CancelAiOperationCommand { get; }
 
+    /// <summary>Gets the explicit bounded local-AI connection retry command.</summary>
+    public IAsyncRelayCommand RetryConnectionCommand { get; }
+
     /// <summary>Replaces in-memory review context without reading file content or retaining paths for provider requests.</summary>
     public void SetContext(ResultFile? selectedFile, ResultsSnapshot? snapshot, IReadOnlyList<ResultFile>? pageFiles)
     {
@@ -336,6 +443,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         ProgressStage = null;
         ProgressText = "No AI request is active.";
         ElapsedText = string.Empty;
+        RefreshReadinessFromConfiguration(preserveRetryableState: true);
         NotifyCommandStates();
     }
 
@@ -368,6 +476,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsFolderStructureVisible));
         OnPropertyChanged(nameof(IsDocumentInterpretationVisible));
         OnPropertyChanged(nameof(IsVisible));
+        RefreshReadinessFromConfiguration(preserveRetryableState: false);
         NotifyCommandStates();
     }
 
@@ -409,6 +518,8 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
 
             RenameSuggestion = result.Suggestion;
             ProposedFileName = result.Suggestion?.SuggestedFileName;
+            ActualModelUsed = result.Suggestion?.Model;
+            ReadinessState = MapReadiness(result.State);
             StatusText = result.Message;
             Status = PresentResult(result.State, result.Message);
         }
@@ -418,6 +529,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             {
                 StatusText = "The AI rename request was cancelled.";
                 Status = StatusPresentation.Information(StatusText);
+                ReadinessState = AiReadinessState.Cancelled;
             }
         }
         catch (Exception)
@@ -426,6 +538,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             {
                 StatusText = "The AI rename request failed safely. No file was changed.";
                 Status = StatusPresentation.Error(StatusText);
+                ReadinessState = AiReadinessState.Failed;
             }
         }
         finally
@@ -458,6 +571,8 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             }
 
             FolderStructurePlan = result.Plan;
+            ActualModelUsed = result.Plan?.Model;
+            ReadinessState = MapReadiness(result.State);
             _structureItems.Clear();
             if (result.Plan is not null)
             {
@@ -476,6 +591,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             {
                 StatusText = "The AI folder-structure request was cancelled.";
                 Status = StatusPresentation.Information(StatusText);
+                ReadinessState = AiReadinessState.Cancelled;
             }
         }
         catch (Exception)
@@ -484,6 +600,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             {
                 StatusText = "The AI folder-structure request failed safely. No folder or file was changed.";
                 Status = StatusPresentation.Error(StatusText);
+                ReadinessState = AiReadinessState.Failed;
             }
         }
         finally
@@ -584,6 +701,8 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             }
 
             DocumentInterpretation = result.Suggestion;
+            ActualModelUsed = result.Suggestion?.Model;
+            ReadinessState = MapReadiness(result.State);
             StatusText = result.Message;
             Status = PresentResult(result.State, result.Message);
         }
@@ -593,6 +712,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             {
                 StatusText = "The AI document interpretation request was cancelled.";
                 Status = StatusPresentation.Information(StatusText);
+                ReadinessState = AiReadinessState.Cancelled;
             }
         }
         catch (Exception)
@@ -601,6 +721,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             {
                 StatusText = "The AI document interpretation request failed safely. No source file was changed.";
                 Status = StatusPresentation.Error(StatusText);
+                ReadinessState = AiReadinessState.Failed;
             }
         }
         finally
@@ -644,7 +765,11 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     }
 
     private bool CanGenerateRename() =>
-        !IsBusy && IsFileRenameVisible && _selectedFile is not null;
+        !IsBusy &&
+        IsFileRenameVisible &&
+        _selectedFile is not null &&
+        IsSupportedRenameContext(_selectedFile) &&
+        !string.IsNullOrWhiteSpace(_configurationService.Current.Ai.SelectedModel);
 
     private bool CanReviewRename() =>
         !IsBusy && IsFileRenameVisible && RenameSuggestion is not null;
@@ -668,6 +793,9 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         RejectFolderStructureCommand.NotifyCanExecuteChanged();
         GenerateDocumentInterpretationCommand.NotifyCanExecuteChanged();
         DismissDocumentInterpretationCommand.NotifyCanExecuteChanged();
+        RetryConnectionCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(IsRenameActionAvailable));
+        OnPropertyChanged(nameof(RenameActionAvailabilityText));
     }
 
     private (CancellationTokenSource Cancellation, long Version) BeginOperation()
@@ -679,6 +807,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         previous?.Dispose();
         var version = Interlocked.Increment(ref _operationVersion);
         IsBusy = true;
+        ReadinessState = AiReadinessState.Running;
         return (cancellation, version);
     }
 
@@ -712,13 +841,130 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
 
         Interlocked.Increment(ref _operationVersion);
         cancellation.Cancel();
-        cancellation.Dispose();
         IsBusy = false;
-        StatusText = "The active AI operation was cancelled. No file or folder was changed.";
+        ReadinessState = AiReadinessState.Cancelled;
+        StatusText = "Suggestion cancelled. Your files were not changed.";
         ProgressStage = AiRequestStage.RequestCancelled;
         ProgressText = StatusText;
         Status = StatusPresentation.Information(StatusText);
     }
+
+    private bool CanRetryConnection() =>
+        _aiSuggestionService is not null &&
+        !IsBusy &&
+        _configurationService.Current.Ai.Enabled;
+
+    private async Task RetryConnectionAsync()
+    {
+        if (_aiSuggestionService is null || !CanRetryConnection())
+        {
+            return;
+        }
+
+        var (cancellation, version) = BeginOperation();
+        StatusText = "Checking your local AI...";
+        Status = StatusPresentation.Progress(StatusText);
+        try
+        {
+            var settings = _configurationService.Current;
+            var connection = await _aiSuggestionService.TestConnectionAsync(settings, cancellation.Token);
+            if (!IsCurrentOperation(cancellation, version))
+            {
+                return;
+            }
+
+            if (connection.State != AiAvailabilityState.Connected)
+            {
+                ReadinessState = MapReadiness(connection.State);
+                StatusText = connection.Message;
+                Status = PresentResult(connection.State, connection.Message);
+                return;
+            }
+
+            ReadinessState = AiReadinessState.ServerAvailable;
+            var models = await _aiSuggestionService.DiscoverModelsAsync(settings, cancellation.Token);
+            if (!IsCurrentOperation(cancellation, version))
+            {
+                return;
+            }
+
+            var selectedModel = settings.Ai.SelectedModel;
+            var selectedAvailable = !string.IsNullOrWhiteSpace(selectedModel) &&
+                                    models.Models.Any(model => string.Equals(model.Id, selectedModel, StringComparison.Ordinal));
+            ReadinessState = selectedAvailable
+                ? AiReadinessState.Ready
+                : string.IsNullOrWhiteSpace(selectedModel)
+                    ? AiReadinessState.NotConfigured
+                    : AiReadinessState.ModelMissing;
+            StatusText = selectedAvailable
+                ? $"Local AI is ready with '{selectedModel}'."
+                : string.IsNullOrWhiteSpace(selectedModel)
+                    ? "Choose an installed AI model in Settings."
+                    : $"The selected model '{selectedModel}' is not installed.";
+            Status = selectedAvailable
+                ? StatusPresentation.Success(StatusText)
+                : StatusPresentation.Warning(StatusText);
+        }
+        catch (OperationCanceledException)
+        {
+            if (version == Volatile.Read(ref _operationVersion))
+            {
+                ReadinessState = AiReadinessState.Cancelled;
+                StatusText = "Connection check cancelled. You can retry.";
+                Status = StatusPresentation.Information(StatusText);
+            }
+        }
+        catch (Exception)
+        {
+            if (version == Volatile.Read(ref _operationVersion))
+            {
+                ReadinessState = AiReadinessState.Failed;
+                StatusText = "Your local AI could not be checked. Start Ollama and retry.";
+                Status = StatusPresentation.Error(StatusText);
+            }
+        }
+        finally
+        {
+            EndOperation(cancellation, version);
+        }
+    }
+
+    private void RefreshReadinessFromConfiguration(bool preserveRetryableState)
+    {
+        var settings = _configurationService.Current.Ai;
+        if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.SelectedModel))
+        {
+            ReadinessState = AiReadinessState.NotConfigured;
+            ActualModelUsed = null;
+            return;
+        }
+
+        if (!preserveRetryableState ||
+            ReadinessState is AiReadinessState.NotConfigured or AiReadinessState.Ready)
+        {
+            ReadinessState = AiReadinessState.NotChecked;
+            ActualModelUsed = null;
+        }
+    }
+
+    private static bool IsSupportedRenameContext(ResultFile file) =>
+        !string.IsNullOrWhiteSpace(file.Id) &&
+        !string.IsNullOrWhiteSpace(file.DisplayFileName) &&
+        file.DisplayFileName is not "." and not ".." &&
+        file.DisplayFileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+
+    private static AiReadinessState MapReadiness(AiAvailabilityState state) => state switch
+    {
+        AiAvailabilityState.Disabled or AiAvailabilityState.CapabilityDisabled => AiReadinessState.NotConfigured,
+        AiAvailabilityState.Connected => AiReadinessState.ServerAvailable,
+        AiAvailabilityState.ModelSelected or AiAvailabilityState.NoSuggestion => AiReadinessState.Ready,
+        AiAvailabilityState.ModelUnavailable or AiAvailabilityState.NoModelsAvailable => AiReadinessState.ModelMissing,
+        AiAvailabilityState.RequestRunning or AiAvailabilityState.Connecting => AiReadinessState.Running,
+        AiAvailabilityState.RequestCancelled => AiReadinessState.Cancelled,
+        AiAvailabilityState.Unavailable => AiReadinessState.ServerUnavailable,
+        AiAvailabilityState.ResponseInvalid or AiAvailabilityState.InvalidContext => AiReadinessState.Failed,
+        _ => AiReadinessState.Failed,
+    };
 
     private void ApplyProgress(
         AiRequestProgress progress,

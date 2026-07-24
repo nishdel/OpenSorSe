@@ -14,6 +14,7 @@ public sealed class SettingsDraft : ViewModelBase
     private LogLevel _minimumLogLevel;
     private int _retainedFileCount;
     private bool _showAdvancedFeatures;
+    private double _filesPageDetailsPanelWidthRatio = FeatureSettings.DefaultFilesPageDetailsPanelWidthRatio;
     private bool _aiEnabled;
     private bool _fileRenameSuggestionsEnabled;
     private bool _folderStructureSuggestionsEnabled;
@@ -47,6 +48,13 @@ public sealed class SettingsDraft : ViewModelBase
     {
         get => _showAdvancedFeatures;
         set => SetProperty(ref _showAdvancedFeatures, value);
+    }
+
+    /// <summary>Gets or sets the persisted Files-page details-panel proportion.</summary>
+    public double FilesPageDetailsPanelWidthRatio
+    {
+        get => _filesPageDetailsPanelWidthRatio;
+        set => SetProperty(ref _filesPageDetailsPanelWidthRatio, value);
     }
 
     /// <summary>
@@ -295,6 +303,7 @@ public sealed class SettingsDraft : ViewModelBase
             MinimumLogLevel = settings.Logging.MinimumLevel,
             RetainedFileCount = settings.Logging.RetainedFileCount,
             ShowAdvancedFeatures = settings.Features.ShowAdvancedFeatures,
+            FilesPageDetailsPanelWidthRatio = settings.Features.FilesPageDetailsPanelWidthRatio,
             AiEnabled = settings.Ai.Enabled,
             FileRenameSuggestionsEnabled = settings.Ai.FileRenameSuggestionsEnabled,
             FolderStructureSuggestionsEnabled = settings.Ai.FolderStructureSuggestionsEnabled,
@@ -341,6 +350,7 @@ public sealed class SettingsDraft : ViewModelBase
         Features = new FeatureSettings
         {
             ShowAdvancedFeatures = ShowAdvancedFeatures,
+            FilesPageDetailsPanelWidthRatio = FilesPageDetailsPanelWidthRatio,
         },
         Logging = new LoggingSettings
         {

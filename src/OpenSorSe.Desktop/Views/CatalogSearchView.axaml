@@ -8,15 +8,16 @@
         <StackPanel Spacing="12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <StackPanel Spacing="3">
-                    <TextBlock Text="Catalog Search" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock Text="Find files in saved OpenSorSe snapshots using local metadata."
+                    <TextBlock Text="History Search" FontSize="24" FontWeight="SemiBold" />
+                    <TextBlock Text="Find files in saved scans using local metadata."
                                TextWrapping="Wrap" />
                 </StackPanel>
                 <Button Grid.Column="1"
-                        Content="Help"
+                        Classes="help"
+                        Content="?"
                         Command="{Binding HelpCommand}"
-                        ToolTip.Tip="Open Catalog Search help"
-                        AutomationProperties.Name="Help for Catalog Search" />
+                        ToolTip.Tip="Learn how saved-scan search works"
+                        AutomationProperties.Name="Help for saved-scan search" />
             </Grid>
 
             <Border Padding="12"
@@ -24,14 +25,12 @@
                     BorderThickness="1">
                 <StackPanel Spacing="10">
                     <StackPanel Spacing="3">
-                        <TextBlock Text="Search the catalog" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="Searches saved filenames, paths, extensions, categories, and accepted tags. OpenSorSe does not read live file contents for this search."
-                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Search saved scans" FontSize="18" FontWeight="SemiBold" />
                     </StackPanel>
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <TextBox Text="{Binding QueryText, Mode=TwoWay}"
                                  PlaceholderText="Filename, path, file type, category, or tag"
-                                 AutomationProperties.Name="Catalog search query" />
+                                 AutomationProperties.Name="Search saved scans" />
                         <Button Grid.Column="1"
                                 Content="Search"
                                 Command="{Binding SearchCommand}"
@@ -57,7 +56,7 @@
                                    VerticalAlignment="Center" />
                     </Grid>
                     <TextBlock IsVisible="{Binding HasNoHits}"
-                               Text="No saved catalog metadata matches this query. Try a filename fragment, extension, category, or accepted tag."
+                               Text="No saved scans match this search. Try a filename, file type, category, or tag."
                                TextWrapping="Wrap"
                                AutomationProperties.LiveSetting="Polite" />
                     <ListBox ItemsSource="{Binding Hits}"
@@ -76,7 +75,7 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <Button Content="Open selected snapshot"
+                    <Button Content="Open selected saved scan"
                             Command="{Binding OpenSelectedHitCommand}"
                             IsVisible="{Binding HasSearchResults}"
                             HorizontalAlignment="Left" />

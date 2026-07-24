@@ -10,452 +10,592 @@
         <KeyBinding Gesture="Escape" Command="{Binding DuplicateReview.CloseDrawerCommand}" />
     </UserControl.KeyBindings>
 
-    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <StackPanel Spacing="4">
-                <TextBlock Text="Results" FontSize="24" FontWeight="SemiBold" />
-                <TextBlock Text="Review only — this page does not move, rename, or delete files."
-                           TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Button Content="Duplicate View"
-                        Command="{Binding OpenDuplicateReviewCommand}"
-                        IsEnabled="{Binding CanOpenDuplicateReview}" />
-                <Button Content="Help"
-                        Command="{Binding HelpCommand}"
-                        ToolTip.Tip="Open Results help"
-                        AutomationProperties.Name="Help for Results" />
-            </StackPanel>
-        </Grid>
+    <Grid>
+        <Grid IsVisible="{Binding IsExplorerVisible}" RowDefinitions="Auto,Auto,*" RowSpacing="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="3">
+                    <TextBlock Classes="page-title" Text="Files" />
+                    <TextBlock Classes="page-subtitle"
+                               Text="Review, search and organize your digital life." />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Classes="secondary"
+                            Content="Duplicates"
+                            Command="{Binding OpenDuplicateReviewCommand}"
+                            IsEnabled="{Binding CanOpenDuplicateReview}"
+                            ToolTip.Tip="Review exact copies from this scan." />
+                    <Button Classes="help"
+                            Content="?"
+                            Command="{Binding HelpCommand}"
+                            ToolTip.Tip="Files help. This page never changes files automatically."
+                            AutomationProperties.Name="Help for Files" />
+                </StackPanel>
+            </Grid>
 
-        <Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="12">
-            <Border Padding="12"
-                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                    BorderThickness="1"
-                    AutomationProperties.Name="Fixed Results filters">
-                <Grid ColumnDefinitions="*,*,*,*,Auto"
-                      RowDefinitions="Auto,Auto"
-                      ColumnSpacing="8"
-                      RowSpacing="8">
-                    <TextBox Grid.Column="0"
-                             PlaceholderText="Search name, path, type, category, or tags"
-                             Text="{Binding QueryText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding AvailableDuplicateFilters}"
-                              SelectedItem="{Binding SelectedDuplicateFilter, Mode=TwoWay}" />
-                    <ComboBox Grid.Column="2"
-                              ItemsSource="{Binding ExtensionOptions}"
-                              SelectedItem="{Binding SelectedExtensionOption, Mode=TwoWay}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ResultsExtensionFilterOption">
-                                <TextBlock Text="{Binding DisplayName}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <ComboBox Grid.Column="3"
-                              ItemsSource="{Binding CategoryOptions}"
-                              SelectedItem="{Binding SelectedCategoryOption, Mode=TwoWay}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ResultsCategoryFilterOption">
-                                <TextBlock Text="{Binding DisplayName}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Button Grid.Column="4"
-                            Content="Clear filters"
-                            Command="{Binding ClearFiltersCommand}" />
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="0"
-                              ItemsSource="{Binding AvailablePlannedOperationFilters}"
-                              SelectedItem="{Binding SelectedPlannedOperationFilter, Mode=TwoWay}" />
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="1"
-                              ItemsSource="{Binding AvailableSortFields}"
-                              SelectedItem="{Binding SelectedSortField, Mode=TwoWay}" />
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="2"
-                              ItemsSource="{Binding AvailableSortDirections}"
-                              SelectedItem="{Binding SelectedSortDirection, Mode=TwoWay}" />
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="3"
-                              ItemsSource="{Binding AvailablePageSizes}"
-                              SelectedItem="{Binding SelectedPageSize, Mode=TwoWay}" />
-                    <StackPanel Grid.Row="1"
-                                Grid.Column="4"
-                                Orientation="Horizontal"
-                                Spacing="6">
-                        <ProgressBar IsIndeterminate="True"
-                                     Width="36"
-                                     Height="4"
-                                     IsVisible="{Binding IsLoading}" />
-                        <TextBlock Text="{Binding PageRangeText}" VerticalAlignment="Center" />
-                    </StackPanel>
+            <Border Grid.Row="1" Classes="card" AutomationProperties.Name="Files search and filters">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                        <TextBox PlaceholderText="Search file names, folders, types, or tags"
+                                 Text="{Binding QueryText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Name and metadata search" />
+                        <Button Grid.Column="1"
+                                Classes="secondary"
+                                Content="Meaning Search  Beta"
+                                Command="{Binding OpenMeaningSearchCommand}"
+                                ToolTip.Tip="{Binding MeaningSearchAvailabilityText}" />
+                        <Button Grid.Column="2"
+                                Classes="secondary"
+                                Content="Filters"
+                                Command="{Binding ToggleFiltersCommand}" />
+                        <ComboBox Grid.Column="3"
+                                  Width="150"
+                                  ItemsSource="{Binding AvailableSortFields}"
+                                  SelectedItem="{Binding SelectedSortField, Mode=TwoWay}"
+                                  AutomationProperties.Name="Sort files" />
+                        <TextBlock Grid.Column="4"
+                                   Text="{Binding PageRangeText}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <Border Grid.Row="1" Classes="drawer" IsVisible="{Binding AreFiltersVisible}">
+                        <Grid ColumnDefinitions="*,*,*,*,Auto" ColumnSpacing="8">
+                            <ComboBox ItemsSource="{Binding AvailableDuplicateFilters}"
+                                      SelectedItem="{Binding SelectedDuplicateFilter, Mode=TwoWay}"
+                                      AutomationProperties.Name="Duplicate filter" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding ExtensionOptions}"
+                                      SelectedItem="{Binding SelectedExtensionOption, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ResultsExtensionFilterOption">
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <ComboBox Grid.Column="2"
+                                      ItemsSource="{Binding CategoryOptions}"
+                                      SelectedItem="{Binding SelectedCategoryOption, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ResultsCategoryFilterOption">
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <ComboBox Grid.Column="3"
+                                      ItemsSource="{Binding AvailablePlannedOperationFilters}"
+                                      SelectedItem="{Binding SelectedPlannedOperationFilter, Mode=TwoWay}" />
+                            <Button Grid.Column="4"
+                                    Classes="secondary"
+                                    Content="Clear"
+                                    Command="{Binding ClearFiltersCommand}" />
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
-            <ScrollViewer Grid.Row="1"
-                          IsVisible="{Binding IsExplorerVisible}"
-                          HorizontalScrollBarVisibility="Disabled"
-                          VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="12">
-                    <Border IsVisible="{Binding HasNoSnapshot}"
-                            Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <TextBlock Text="No completed scan results are available. Return to Scan to start a read-only scan."
-                                   TextWrapping="Wrap" />
-                    </Border>
-                    <Border IsVisible="{Binding IsEmptyCompletedScan}"
-                            Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <TextBlock Text="This completed scan found no files."
-                                   TextWrapping="Wrap" />
-                    </Border>
-                    <Border IsVisible="{Binding HasSnapshot}"
-                            Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="{Binding ActiveQueryDescription}" TextWrapping="Wrap" />
-                            <TextBlock IsVisible="{Binding HasNoFilterResults}"
-                                       Text="No files match the active filters."
-                                       TextWrapping="Wrap" />
-                            <Grid ColumnDefinitions="2*,3*,Auto,Auto,Auto,Auto,Auto,2*" ColumnSpacing="12">
-                                <TextBlock Text="Name" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="1" Text="Path" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="2" Text="Type" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="3" Text="Size" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="4" Text="Modified" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="5" Text="Duplicate" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="6" Text="Planned" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="7" Text="Tags" FontWeight="SemiBold" />
-                            </Grid>
-                            <ListBox ItemsSource="{Binding PageRows}"
-                                     SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
-                                     AutomationProperties.Name="Result rows">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ResultsFileRow">
-                                        <Border Padding="0,6"
-                                                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                                                BorderThickness="0,1,0,0">
-                                            <Grid ColumnDefinitions="2*,3*,Auto,Auto,Auto,Auto,Auto,2*" ColumnSpacing="12">
-                                                <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FullPath}" />
-                                                <TextBlock Grid.Column="1" Text="{Binding FullPath}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FullPath}" />
-                                                <TextBlock Grid.Column="2" Text="{Binding Extension}" />
-                                                <TextBlock Grid.Column="3" Text="{Binding Size}" />
-                                                <TextBlock Grid.Column="4" Text="{Binding ModifiedTime}" />
-                                                <TextBlock Grid.Column="5" Text="{Binding DuplicateStatus}" />
-                                                <TextBlock Grid.Column="6" Text="{Binding PlannedOperation}" />
-                                                <TextBlock Grid.Column="7" Text="{Binding Tags}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding MatchExplanation}" />
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-                                <Button Content="Previous" Command="{Binding PreviousPageCommand}" />
-                                <TextBlock Text="{Binding PageRangeText}" VerticalAlignment="Center" />
-                                <Button Content="Next" Command="{Binding NextPageCommand}" />
+            <Grid x:Name="FilesSplitGrid"
+                  Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="450" />
+                    <ColumnDefinition Width="0" />
+                    <ColumnDefinition Width="0" MinWidth="320" />
+                </Grid.ColumnDefinitions>
+                <Grid RowDefinitions="*,Auto,Auto" RowSpacing="10">
+                    <Border Classes="card">
+                        <Grid>
+                            <StackPanel IsVisible="{Binding HasNoSnapshot}"
+                                        Classes="empty-state"
+                                        Spacing="6"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="○"
+                                           FontSize="32"
+                                           Foreground="{DynamicResource AccentPrimaryBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="No files yet"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="Scan a folder to see its files here."
+                                           Classes="page-subtitle" />
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <Border IsVisible="{Binding HasSelectedDetails}"
-                            Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="5">
-                            <TextBlock Text="Selected file (read-only)" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding SelectedDetails.FileName}" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding SelectedDetails.FullPath}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding SelectedDetails.Classification}" />
-                            <TextBlock Text="{Binding SelectedDetails.DuplicateStatus}" />
-                            <TextBlock Text="{Binding SelectedDetails.Tags, StringFormat=Tags: {0}}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding SelectedRow.MatchExplanation, StringFormat=Search match: {0}}" TextWrapping="Wrap" />
-                            <TextBlock Text="Extracted metadata" FontWeight="SemiBold" Margin="0,5,0,0" />
-                            <TextBlock Text="{Binding ContentDetailsStatus}" TextWrapping="Wrap" />
-                            <ItemsControl IsVisible="{Binding HasContentMetadata}"
-                                          ItemsSource="{Binding ContentMetadata}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="content:ExtractedMetadataField">
-                                        <Grid ColumnDefinitions="*,2*,*" ColumnSpacing="8" Margin="0,2">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="2" Text="{Binding Provenance}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Text="{Binding UserTagText, Mode=TwoWay}"
-                                         PlaceholderText="Comma-separated local tags" />
-                                <Button Grid.Column="1" Content="Add tags" Command="{Binding AddUserTagsCommand}" />
-                            </Grid>
-                            <ListBox ItemsSource="{Binding UserTags}"
-                                     SelectedItem="{Binding SelectedUserTag, Mode=TwoWay}"
-                                     MaxHeight="140">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ResultTagRow">
-                                        <Grid ColumnDefinitions="2*,*,*,*" ColumnSpacing="8" Margin="0,2">
-                                            <TextBlock Text="{Binding DisplayName}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Category}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding Source}" />
-                                            <TextBlock Grid.Column="3"
-                                                       Text="{Binding AcceptanceState}"
-                                                       ToolTip.Tip="{Binding Explanation}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <Button Content="Remove selected tag"
-                                    Command="{Binding RemoveSelectedTagCommand}"
-                                    HorizontalAlignment="Left" />
-                            <WrapPanel>
-                                <Button Margin="0,0,8,0"
-                                        Content="Accept suggestion"
-                                        Command="{Binding AcceptSuggestedTagCommand}" />
-                                <Button Content="Reject suggestion"
-                                        Command="{Binding RejectSuggestedTagCommand}" />
-                            </WrapPanel>
-                            <TextBlock Text="{Binding UserTagStatusText}" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border IsVisible="{Binding IsVisible}"
-                            Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1"
-                            DataContext="{Binding AiSuggestions}"
-                            x:DataType="vm:AiSuggestionsViewModel">
-                        <StackPanel Spacing="8">
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="Optional AI suggestions" FontSize="18" FontWeight="SemiBold" />
-                                    <TextBlock Text="AI output is unverified and preview-only. No suggestion changes a file or folder."
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                                <Button Grid.Column="1"
-                                        IsVisible="{Binding IsBusy}"
-                                        Content="Cancel"
-                                        Command="{Binding CancelAiOperationCommand}" />
-                                <Button Grid.Column="2" Content="Help" Command="{Binding HelpCommand}" />
-                            </Grid>
-                            <views:StatusBanner DataContext="{Binding Status}" />
-                            <Border IsVisible="{Binding IsFileRenameVisible}"
-                                    Padding="8"
-                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="5">
-                                    <TextBlock Text="AI file-rename suggestion" FontWeight="SemiBold" />
-                                    <Button Content="Suggest a name for the selected file" Command="{Binding GenerateSuggestionCommand}" />
-                                    <StackPanel IsVisible="{Binding HasRenameSuggestion}" Spacing="4">
-                                        <TextBox Text="{Binding ProposedFileName, Mode=TwoWay}" />
-                                        <TextBlock Text="{Binding RenameReason}" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding RenameConfidenceText}" TextWrapping="Wrap" />
-                                        <WrapPanel>
-                                            <Button Margin="0,0,8,0" Content="Record accept or edit" Command="{Binding AcceptRenameCommand}" />
-                                            <Button Content="Reject suggestion" Command="{Binding RejectRenameCommand}" />
-                                        </WrapPanel>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                            <Border IsVisible="{Binding IsFolderStructureVisible}"
-                                    Padding="8"
-                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="5">
-                                    <TextBlock Text="AI folder-structure suggestion" FontWeight="SemiBold" />
-                                    <WrapPanel>
-                                        <Button Margin="0,0,8,0" Content="Suggest structure for this page" Command="{Binding GenerateFolderStructureCommand}" />
-                                        <Button Margin="0,0,8,0" Content="Record acceptance" Command="{Binding AcceptFolderStructureCommand}" />
-                                        <Button Content="Reject suggestion" Command="{Binding RejectFolderStructureCommand}" />
-                                    </WrapPanel>
-                                    <ItemsControl IsVisible="{Binding HasFolderStructurePlan}" ItemsSource="{Binding StructureItems}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="ai:AiFolderStructurePlanItem">
-                                                <Grid ColumnDefinitions="2*,3*" ColumnSpacing="8">
-                                                    <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding DestinationFolder}" TextTrimming="CharacterEllipsis" />
+                            <StackPanel IsVisible="{Binding IsEmptyCompletedScan}"
+                                        Classes="empty-state"
+                                        Spacing="6"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="✓"
+                                           FontSize="30"
+                                           Foreground="{DynamicResource SuccessBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="No files found" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="This scan completed without finding any files."
+                                           Classes="page-subtitle" />
+                            </StackPanel>
+                            <Grid IsVisible="{Binding HasSnapshot}"
+                                  Grid.IsSharedSizeScope="True"
+                                  RowDefinitions="Auto,*"
+                                  RowSpacing="6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" MinWidth="100" SharedSizeGroup="FilesName" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="3*" MinWidth="130" SharedSizeGroup="FilesFolder" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="Auto" MinWidth="50" SharedSizeGroup="FilesType" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="FilesSize" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="2*" MinWidth="70" SharedSizeGroup="FilesTags" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Margin="6,0" Text="Name" FontWeight="SemiBold" />
+                                    <GridSplitter Grid.Column="1"
+                                                  ResizeDirection="Columns"
+                                                  ResizeBehavior="PreviousAndNext"
+                                                  KeyboardIncrement="12"
+                                                  DragIncrement="2"
+                                                  Cursor="SizeWestEast"
+                                                  Background="{DynamicResource BorderSubtleBrush}"
+                                                  Focusable="True"
+                                                  AutomationProperties.Name="Resize name and folder columns" />
+                                    <TextBlock Grid.Column="2" Margin="6,0" Text="Folder" FontWeight="SemiBold" />
+                                    <GridSplitter Grid.Column="3"
+                                                  ResizeDirection="Columns"
+                                                  ResizeBehavior="PreviousAndNext"
+                                                  KeyboardIncrement="12"
+                                                  DragIncrement="2"
+                                                  Cursor="SizeWestEast"
+                                                  Background="{DynamicResource BorderSubtleBrush}"
+                                                  Focusable="True"
+                                                  AutomationProperties.Name="Resize folder and type columns" />
+                                    <TextBlock Grid.Column="4" Margin="6,0" Text="Type" FontWeight="SemiBold" />
+                                    <GridSplitter Grid.Column="5"
+                                                  ResizeDirection="Columns"
+                                                  ResizeBehavior="PreviousAndNext"
+                                                  KeyboardIncrement="12"
+                                                  DragIncrement="2"
+                                                  Cursor="SizeWestEast"
+                                                  Background="{DynamicResource BorderSubtleBrush}"
+                                                  Focusable="True"
+                                                  AutomationProperties.Name="Resize type and size columns" />
+                                    <TextBlock Grid.Column="6" Margin="6,0" Text="Size" FontWeight="SemiBold" />
+                                    <GridSplitter Grid.Column="7"
+                                                  ResizeDirection="Columns"
+                                                  ResizeBehavior="PreviousAndNext"
+                                                  KeyboardIncrement="12"
+                                                  DragIncrement="2"
+                                                  Cursor="SizeWestEast"
+                                                  Background="{DynamicResource BorderSubtleBrush}"
+                                                  Focusable="True"
+                                                  AutomationProperties.Name="Resize size and tags columns" />
+                                    <TextBlock Grid.Column="8" Margin="6,0" Text="Tags" FontWeight="SemiBold" />
+                                </Grid>
+                                <ListBox Grid.Row="1"
+                                         Classes="files-table"
+                                         ItemsSource="{Binding PageRows}"
+                                         SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                         AutomationProperties.Name="Files">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ResultsFileRow">
+                                            <Border Classes="result-row" Padding="0,7">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*" MinWidth="100" SharedSizeGroup="FilesName" />
+                                                        <ColumnDefinition Width="4" />
+                                                        <ColumnDefinition Width="3*" MinWidth="130" SharedSizeGroup="FilesFolder" />
+                                                        <ColumnDefinition Width="4" />
+                                                        <ColumnDefinition Width="Auto" MinWidth="50" SharedSizeGroup="FilesType" />
+                                                        <ColumnDefinition Width="4" />
+                                                        <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="FilesSize" />
+                                                        <ColumnDefinition Width="4" />
+                                                        <ColumnDefinition Width="2*" MinWidth="70" SharedSizeGroup="FilesTags" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Margin="6,0"
+                                                               Text="{Binding FileName}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip.Tip="{Binding FullPath}" />
+                                                    <TextBlock Grid.Column="2"
+                                                               Margin="6,0"
+                                                               Text="{Binding FullPath}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip.Tip="{Binding FullPath}" />
+                                                    <TextBlock Grid.Column="4" Margin="6,0" Text="{Binding Extension}" />
+                                                    <TextBlock Grid.Column="6" Margin="6,0" Text="{Binding Size}" />
+                                                    <TextBlock Grid.Column="8"
+                                                               Margin="6,0"
+                                                               Text="{Binding Tags}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip.Tip="{Binding MatchExplanation}" />
                                                 </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Row="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="8">
+                        <Button Classes="secondary" Content="Previous" Command="{Binding PreviousPageCommand}" />
+                        <TextBlock Text="{Binding PageRangeText}" VerticalAlignment="Center" />
+                        <Button Classes="secondary" Content="Next" Command="{Binding NextPageCommand}" />
+                    </StackPanel>
+                    <Expander Grid.Row="2"
+                              IsVisible="{Binding HasWarnings}"
+                              Header="Scan notes">
+                        <ItemsControl ItemsSource="{Binding Warnings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                               Foreground="{DynamicResource WarningBrush}"
+                                               TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+                </Grid>
+
+                <GridSplitter x:Name="FilesDetailsSplitter"
+                              Grid.Column="1"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              KeyboardIncrement="16"
+                              DragIncrement="2"
+                              Cursor="SizeWestEast"
+                              Background="{DynamicResource AccentPrimaryMutedBrush}"
+                              Focusable="True"
+                              DragCompleted="OnFilesDetailsSplitterDragCompleted"
+                              ToolTip.Tip="Drag or use the arrow keys to resize selected-file details."
+                              AutomationProperties.Name="Resize file list and selected-file details">
+                    <GridSplitter.ContextMenu>
+                        <ContextMenu x:DataType="vm:ResultsViewModel">
+                            <MenuItem Header="Narrow details"
+                                      Command="{Binding NarrowDetailsPanelCommand}" />
+                            <MenuItem Header="Widen details"
+                                      Command="{Binding WidenDetailsPanelCommand}" />
+                            <Separator />
+                            <MenuItem Header="Reset details width"
+                                      Command="{Binding ResetDetailsPanelWidthCommand}" />
+                        </ContextMenu>
+                    </GridSplitter.ContextMenu>
+                </GridSplitter>
+
+                <Border Grid.Column="2"
+                        Classes="side-panel"
+                        IsVisible="{Binding HasSelectedDetails}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="Selected file" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedDetails.FileName}"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedDetails.FullPath}"
+                                           Classes="page-subtitle"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedDetails.Classification}" />
+                                <TextBlock Text="{Binding SelectedDetails.DuplicateStatus}" />
+                            </StackPanel>
+                            <Border Classes="separator" />
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Tags" FontWeight="SemiBold" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBox Text="{Binding UserTagText, Mode=TwoWay}"
+                                             PlaceholderText="Add local tags" />
+                                    <Button Grid.Column="1"
+                                            Classes="secondary"
+                                            Content="Add"
+                                            Command="{Binding AddUserTagsCommand}" />
+                                </Grid>
+                                <ListBox ItemsSource="{Binding UserTags}"
+                                         SelectedItem="{Binding SelectedUserTag, Mode=TwoWay}"
+                                         MaxHeight="110">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ResultTagRow">
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       ToolTip.Tip="{Binding Explanation}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                 <Button Classes="secondary"
+                                         Content="Remove selected tag"
+                                         Command="{Binding RemoveSelectedTagCommand}"
+                                         HorizontalAlignment="Left" />
+                                <WrapPanel>
+                                    <Button Margin="0,0,6,0"
+                                            Classes="secondary"
+                                            Content="Keep suggested tag"
+                                            Command="{Binding AcceptSuggestedTagCommand}" />
+                                    <Button Classes="secondary"
+                                            Content="Dismiss suggested tag"
+                                            Command="{Binding RejectSuggestedTagCommand}" />
+                                </WrapPanel>
+                                <TextBlock Text="{Binding UserTagStatusText}"
+                                           Classes="page-subtitle"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Expander Header="File details">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding ContentDetailsStatus}" TextWrapping="Wrap" />
+                                    <ItemsControl IsVisible="{Binding HasContentMetadata}"
+                                                  ItemsSource="{Binding ContentMetadata}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="content:ExtractedMetadataField">
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding Value}" TextWrapping="Wrap" />
+                                                </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </StackPanel>
-                            </Border>
-                            <Border IsVisible="{Binding IsDocumentInterpretationVisible}"
-                                    Padding="8"
-                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="5">
-                                    <TextBlock Text="AI document-text interpretation" FontWeight="SemiBold" />
-                                    <TextBlock Text="Sends only bounded, already extracted native/OCR text after this explicit request. Output is unverified and is never applied automatically."
-                                               TextWrapping="Wrap" />
-                                    <Button Content="Interpret extracted text for selected file"
-                                            Command="{Binding GenerateDocumentInterpretationCommand}"
-                                            AutomationProperties.Name="Interpret extracted document text with AI" />
-                                    <StackPanel IsVisible="{Binding HasDocumentInterpretation}" Spacing="4">
-                                        <TextBlock Text="{Binding DocumentInterpretationSummary}"
-                                                   TextWrapping="Wrap" />
-                                        <Button Content="Dismiss interpretation"
-                                                Command="{Binding DismissDocumentInterpretationCommand}" />
-                                    </StackPanel>
+                            </Expander>
+                            <Border IsVisible="{Binding AiSuggestions.IsVisible}"
+                                    Classes="ai-card">
+                                <StackPanel Spacing="7"
+                                            DataContext="{Binding AiSuggestions}"
+                                            x:DataType="vm:AiSuggestionsViewModel">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="File Assistant" FontSize="17" FontWeight="SemiBold" />
+                                            <TextBlock Text="Local, unverified suggestions only"
+                                                       Classes="page-subtitle" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Classes="help"
+                                                Content="?"
+                                                Command="{Binding HelpCommand}"
+                                                ToolTip.Tip="Suggestions never rename or move files automatically." />
+                                    </Grid>
+                                    <TextBlock Text="{Binding ReadinessText}" TextWrapping="Wrap" />
+                                    <Button Classes="secondary"
+                                            Content="Retry connection"
+                                            Command="{Binding RetryConnectionCommand}" />
+                                    <Border IsVisible="{Binding IsFileRenameVisible}" Classes="subtle-card">
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Rename Helper" FontWeight="SemiBold" />
+                                            <Button Classes="primary"
+                                                    Content="Suggest a name"
+                                                    Command="{Binding GenerateSuggestionCommand}"
+                                                    ToolTip.Tip="{Binding RenameActionAvailabilityText}" />
+                                            <TextBlock Text="{Binding RenameActionAvailabilityText}"
+                                                       Classes="page-subtitle"
+                                                       TextWrapping="Wrap" />
+                                            <StackPanel IsVisible="{Binding HasRenameSuggestion}" Spacing="4">
+                                                <TextBox Text="{Binding ProposedFileName, Mode=TwoWay}" />
+                                                <TextBlock Text="{Binding RenameReason}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding RenameConfidenceText}"
+                                                           Classes="page-subtitle"
+                                                           TextWrapping="Wrap" />
+                                                <WrapPanel>
+                                                    <Button Margin="0,0,6,0"
+                                                            Classes="primary"
+                                                            Content="Keep proposal"
+                                                            Command="{Binding AcceptRenameCommand}" />
+                                                    <Button Classes="secondary"
+                                                            Content="Dismiss"
+                                                            Command="{Binding RejectRenameCommand}" />
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <Expander IsVisible="{Binding IsFolderStructureVisible}"
+                                              Header="Folder suggestion">
+                                        <StackPanel Spacing="5">
+                                            <Button Classes="secondary"
+                                                    Content="Suggest a folder plan"
+                                                    Command="{Binding GenerateFolderStructureCommand}" />
+                                            <TextBlock Text="{Binding FolderStructureReason}" TextWrapping="Wrap" />
+                                            <ItemsControl IsVisible="{Binding HasFolderStructurePlan}"
+                                                          ItemsSource="{Binding StructureItems}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="ai:AiFolderStructurePlanItem">
+                                                        <TextBlock Text="{Binding DestinationFolder}"
+                                                                   TextWrapping="Wrap" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Expander>
+                                    <Expander IsVisible="{Binding IsDocumentInterpretationVisible}"
+                                              Header="Document summary">
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Uses extracted local text only after you request it. The result is unverified."
+                                                       Classes="page-subtitle"
+                                                       TextWrapping="Wrap" />
+                                            <Button Classes="secondary"
+                                                    Content="Suggest document details"
+                                                    Command="{Binding GenerateDocumentInterpretationCommand}" />
+                                            <TextBlock IsVisible="{Binding HasDocumentInterpretation}"
+                                                       Text="{Binding DocumentInterpretationSummary}"
+                                                       TextWrapping="Wrap" />
+                                            <Button IsVisible="{Binding HasDocumentInterpretation}"
+                                                    Classes="secondary"
+                                                    Content="Dismiss"
+                                                    Command="{Binding DismissDocumentInterpretationCommand}" />
+                                        </StackPanel>
+                                    </Expander>
+                                    <Button IsVisible="{Binding IsBusy}"
+                                            Classes="secondary"
+                                            Content="Cancel suggestion"
+                                            Command="{Binding CancelAiOperationCommand}" />
+                                    <views:StatusBanner DataContext="{Binding Status}" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
-                    </Border>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
 
-                    <Border Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Warnings and limitations" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock IsVisible="{Binding HasNoWarnings}" Text="No scan warnings were reported." />
-                            <ItemsControl IsVisible="{Binding HasWarnings}" ItemsSource="{Binding Warnings}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
-
-            <Grid Grid.Row="1"
-                  IsVisible="{Binding IsDuplicateReviewVisible}">
+            <Grid IsVisible="{Binding IsDuplicateReviewVisible}">
                 <Grid DataContext="{Binding DuplicateReview}"
                       x:DataType="vm:DuplicateReviewViewModel"
                       x:Name="DuplicateViewRoot"
                       RowDefinitions="Auto,Auto,*"
                       RowSpacing="10">
-                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                    <StackPanel Spacing="3">
-                        <TextBlock Text="Duplicate View" FontSize="22" FontWeight="SemiBold" />
-                        <TextBlock Text="Select a group to open its read-only details in the right drawer."
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button Grid.Column="1" Content="Back to Results" Command="{Binding BackToExplorerCommand}" />
-                    <Button Grid.Column="2" Content="Help" Command="{Binding HelpCommand}" />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                <StackPanel Spacing="3">
+                    <TextBlock Classes="page-title" Text="Duplicates" />
+                    <TextBlock Classes="page-subtitle"
+                               Text="Spot identical copies before cleaning." />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="secondary"
+                        Content="Back to Files"
+                        Command="{Binding BackToExplorerCommand}" />
+                <Button Grid.Column="2"
+                        Classes="help"
+                        Content="?"
+                        Command="{Binding HelpCommand}" />
                 </Grid>
-                <TextBox Grid.Row="1"
-                         PlaceholderText="Filter by filename, folder, type, or category"
-                         Text="{Binding FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="Filter duplicate groups" />
-                <Grid Grid.Row="2" ColumnDefinitions="2*,3*" ColumnSpacing="12">
-                    <Border Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
-                            <TextBlock Text="Duplicate groups" FontSize="18" FontWeight="SemiBold" />
-                            <views:StatusBanner Grid.Row="1" DataContext="{Binding Status}" />
-                            <ListBox Grid.Row="2"
-                                     ItemsSource="{Binding VisibleGroupRows}"
-                                     SelectedItem="{Binding SelectedGroupRow, Mode=TwoWay}"
-                                     AutomationProperties.Name="Duplicate groups">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:DuplicateReviewGroupRow">
-                                        <StackPanel Margin="0,5" Spacing="2">
-                                            <TextBlock Text="{Binding Group.Ordinal, StringFormat=Group {0}}" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding Group.MemberCount, StringFormat={}{0} identical files}" />
-                                            <TextBlock Text="{Binding CommonFileSize, StringFormat=Each file: {0}}" />
-                                            <TextBlock Text="{Binding MemberSummary}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+            <TextBox Grid.Row="1"
+                     PlaceholderText="Filter copies by name, folder, type, or category"
+                     Text="{Binding FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Filter duplicate groups" />
+            <Grid Grid.Row="2" ColumnDefinitions="2*,3*" ColumnSpacing="12">
+                <Border Classes="card">
+                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+                        <TextBlock Text="Copies spotted" FontSize="18" FontWeight="SemiBold" />
+                        <views:StatusBanner Grid.Row="1" DataContext="{Binding Status}" />
+                        <ListBox Grid.Row="2"
+                                 ItemsSource="{Binding VisibleGroupRows}"
+                                 SelectedItem="{Binding SelectedGroupRow, Mode=TwoWay}"
+                                 AutomationProperties.Name="Duplicate groups">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DuplicateReviewGroupRow">
+                                    <StackPanel Margin="0,5" Spacing="2">
+                                        <TextBlock Text="{Binding Group.Ordinal, StringFormat=Group {0}}"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Group.MemberCount, StringFormat={}{0} identical files}" />
+                                        <TextBlock Text="{Binding CommonFileSize, StringFormat=Each file: {0}}" />
+                                        <TextBlock Text="{Binding MemberSummary}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+                <Border Grid.Column="1"
+                        IsVisible="{Binding IsDrawerOpen}"
+                        Classes="side-panel"
+                        AutomationProperties.Name="Duplicate details">
+                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBlock Text="{Binding SelectedGroupCountText}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <Button Grid.Column="1"
+                                    Classes="secondary"
+                                    Content="Close"
+                                    Command="{Binding CloseDrawerCommand}" />
                         </Grid>
-                    </Border>
-                    <Border Grid.Column="1"
-                            IsVisible="{Binding IsDrawerOpen}"
-                            Padding="12"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1"
-                            AutomationProperties.Name="Duplicate details drawer">
-                        <Grid RowDefinitions="Auto,*" RowSpacing="8">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBlock Text="{Binding SelectedGroupCountText}" FontSize="18" FontWeight="SemiBold" />
-                                <Button Grid.Column="1"
-                                        Content="Close"
-                                        Command="{Binding CloseDrawerCommand}"
-                                        AutomationProperties.Name="Close duplicate details" />
-                            </Grid>
-                            <ScrollViewer Grid.Row="1"
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto">
-                                <StackPanel Spacing="9">
-                                    <TextBlock Text="Review only. Duplicate View does not delete, move, rename, or modify files."
-                                               TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding SelectedGroupCommonSizeText, StringFormat=Each file: {0}}" />
-                                    <TextBlock Text="{Binding SelectedGroupPotentialReclaimableText, StringFormat=Possible space saved by keeping one copy: {0}}"
-                                               TextWrapping="Wrap" />
-                                    <ItemsControl ItemsSource="{Binding MemberRows}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:DuplicateFileRow">
-                                                <Border Padding="0,7"
-                                                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                                                        BorderThickness="0,1,0,0">
-                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                                  VerticalAlignment="Top"
-                                                                  AutomationProperties.Name="Select duplicate file" />
-                                                        <StackPanel Grid.Column="1" Spacing="2">
-                                                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                            <TextBlock Text="{Binding ParentPath}" TextWrapping="Wrap" />
-                                                            <TextBlock Text="{Binding SizeText}" />
-                                                            <WrapPanel>
-                                                                <Button Margin="0,2,8,0"
-                                                                        Content="Open file"
-                                                                        Command="{Binding DataContext.OpenFileCommand, ElementName=DuplicateViewRoot}"
-                                                                        CommandParameter="{Binding}"
-                                                                        x:CompileBindings="False" />
-                                                                <Button Margin="0,2,8,0"
-                                                                        Content="Open containing folder"
-                                                                        Command="{Binding DataContext.OpenContainingFolderCommand, ElementName=DuplicateViewRoot}"
-                                                                        CommandParameter="{Binding}"
-                                                                        x:CompileBindings="False" />
-                                                            </WrapPanel>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                    <TextBlock Text="{Binding SelectedMemberCountText}"
-                                               IsVisible="{Binding IsLargeGroup}"
-                                               TextWrapping="Wrap" />
-                                    <WrapPanel>
-                                        <Button IsVisible="{Binding IsExactPair}" Margin="0,0,8,8" Content="Open both files" Command="{Binding OpenBothFilesCommand}" />
-                                        <Button IsVisible="{Binding IsLargeGroup}" Margin="0,0,8,8" Content="Open selected files" Command="{Binding OpenSelectedFilesCommand}" />
-                                        <Button Margin="0,0,8,8" Content="Open selected containing folders" Command="{Binding OpenSelectedFoldersCommand}" />
-                                        <Button IsVisible="{Binding IsOpening}" Margin="0,0,8,8" Content="Cancel opening" Command="{Binding CancelOpenCommand}" />
-                                        <Button Margin="0,0,8,8" Content="Show group in Results" Command="{Binding ShowGroupFilesCommand}" />
-                                    </WrapPanel>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </Border>
-                    <Border Grid.Column="1"
-                            IsVisible="{Binding !IsDrawerOpen}"
-                            Padding="24"
-                            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                            BorderThickness="1">
-                        <TextBlock Text="Select a duplicate group to review its locations. The group list remains visible while the drawer is open."
-                                   TextWrapping="Wrap"
-                                   VerticalAlignment="Center"
+                        <ScrollViewer Grid.Row="1"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="9">
+                                <TextBlock Text="Review only. OpenSorSe does not remove copies automatically."
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedGroupPotentialReclaimableText, StringFormat=Space you could save: {0}}"
+                                           TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding MemberRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:DuplicateFileRow">
+                                            <Border Classes="result-row" Padding="0,7">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              VerticalAlignment="Top" />
+                                                    <StackPanel Grid.Column="1" Spacing="2">
+                                                        <TextBlock Text="{Binding FileName}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding ParentPath}" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding SizeText}" />
+                                                        <WrapPanel>
+                                                            <Button Margin="0,2,8,0"
+                                                                    Classes="secondary"
+                                                                    Content="Open file"
+                                                                    Command="{Binding DataContext.OpenFileCommand, ElementName=DuplicateViewRoot}"
+                                                                    CommandParameter="{Binding}"
+                                                                    x:CompileBindings="False" />
+                                                            <Button Margin="0,2,8,0"
+                                                                    Classes="secondary"
+                                                                    Content="Open folder"
+                                                                    Command="{Binding DataContext.OpenContainingFolderCommand, ElementName=DuplicateViewRoot}"
+                                                                    CommandParameter="{Binding}"
+                                                                    x:CompileBindings="False" />
+                                                        </WrapPanel>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <WrapPanel>
+                                    <Button IsVisible="{Binding IsExactPair}"
+                                            Margin="0,0,8,8"
+                                            Classes="secondary"
+                                            Content="Open both"
+                                            Command="{Binding OpenBothFilesCommand}" />
+                                    <Button IsVisible="{Binding IsLargeGroup}"
+                                            Margin="0,0,8,8"
+                                            Classes="secondary"
+                                            Content="Open selected"
+                                            Command="{Binding OpenSelectedFilesCommand}" />
+                                    <Button Margin="0,0,8,8"
+                                            Classes="secondary"
+                                            Content="Open selected folders"
+                                            Command="{Binding OpenSelectedFoldersCommand}" />
+                                    <Button IsVisible="{Binding IsOpening}"
+                                            Margin="0,0,8,8"
+                                            Classes="secondary"
+                                            Content="Cancel opening"
+                                            Command="{Binding CancelOpenCommand}" />
+                                    <Button Margin="0,0,8,8"
+                                            Classes="primary"
+                                            Content="Show in Files"
+                                            Command="{Binding ShowGroupFilesCommand}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+                <Border Grid.Column="1"
+                        IsVisible="{Binding !IsDrawerOpen}"
+                        Classes="empty-state">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="5">
+                        <TextBlock Text="⧉"
+                                   FontSize="30"
+                                   Foreground="{DynamicResource AccentDuplicateBrush}"
                                    HorizontalAlignment="Center" />
-                    </Border>
+                        <TextBlock Text="Choose a duplicate group" FontWeight="SemiBold" />
+                        <TextBlock Text="Its file locations will appear here."
+                                   Classes="page-subtitle" />
+                    </StackPanel>
+                </Border>
+            </Grid>
                 </Grid>
-            </Grid>
-            </Grid>
         </Grid>
-
-        <Border Grid.Row="2"
-                Padding="8"
-                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                BorderThickness="0,1,0,0">
-            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
-        </Border>
     </Grid>
 </UserControl>

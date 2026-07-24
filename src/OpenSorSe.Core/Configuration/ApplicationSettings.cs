@@ -42,6 +42,7 @@ public sealed class ApplicationSettings
         Features = new FeatureSettings
         {
             ShowAdvancedFeatures = showAdvancedFeatures,
+            FilesPageDetailsPanelWidthRatio = Features.FilesPageDetailsPanelWidthRatio,
         },
         Logging = Logging,
         Ai = new AiSettings
@@ -56,6 +57,25 @@ public sealed class ApplicationSettings
             PreferenceAdaptationEnabled = Ai.PreferenceAdaptationEnabled,
             DocumentTextInterpretationEnabled = Ai.DocumentTextInterpretationEnabled,
         },
+        Catalog = Catalog,
+        Content = Content,
+        SemanticSearch = SemanticSearch,
+    };
+
+    /// <summary>
+    /// Creates a settings snapshot with only the Files-page details-panel proportion changed.
+    /// </summary>
+    /// <param name="ratio">The validated proportion of available Files-page width assigned to details.</param>
+    /// <returns>A settings snapshot that preserves every unrelated value.</returns>
+    public ApplicationSettings WithFilesPageDetailsPanelWidthRatio(double ratio) => new()
+    {
+        Features = new FeatureSettings
+        {
+            ShowAdvancedFeatures = Features.ShowAdvancedFeatures,
+            FilesPageDetailsPanelWidthRatio = ratio,
+        },
+        Logging = Logging,
+        Ai = Ai,
         Catalog = Catalog,
         Content = Content,
         SemanticSearch = SemanticSearch,
@@ -209,12 +229,32 @@ public sealed class ContentSettings
 /// </summary>
 public sealed class FeatureSettings
 {
+    /// <summary>Gets the default proportion of Files-page width assigned to selected-file details.</summary>
+    public const double DefaultFilesPageDetailsPanelWidthRatio = 0.32;
+
+    /// <summary>Gets the smallest supported Files-page details-panel proportion.</summary>
+    public const double MinimumFilesPageDetailsPanelWidthRatio = 0.20;
+
+    /// <summary>Gets the largest supported Files-page details-panel proportion.</summary>
+    public const double MaximumFilesPageDetailsPanelWidthRatio = 0.50;
+
     /// <summary>Gets or initializes whether specialist and troubleshooting features are shown.</summary>
     public bool ShowAdvancedFeatures { get; init; }
 
-    /// <summary>Validates feature settings reserved for compatible expansion.</summary>
+    /// <summary>
+    /// Gets or initializes the proportion of available Files-page width assigned to selected-file details.
+    /// </summary>
+    public double FilesPageDetailsPanelWidthRatio { get; init; } = DefaultFilesPageDetailsPanelWidthRatio;
+
+    /// <summary>Validates bounded interface-presentation settings.</summary>
     public void Validate()
     {
+        if (!double.IsFinite(FilesPageDetailsPanelWidthRatio) ||
+            FilesPageDetailsPanelWidthRatio is < MinimumFilesPageDetailsPanelWidthRatio or > MaximumFilesPageDetailsPanelWidthRatio)
+        {
+            throw new ConfigurationValidationException(
+                $"Files-page details width must be between {MinimumFilesPageDetailsPanelWidthRatio:P0} and {MaximumFilesPageDetailsPanelWidthRatio:P0}.");
+        }
     }
 }
 

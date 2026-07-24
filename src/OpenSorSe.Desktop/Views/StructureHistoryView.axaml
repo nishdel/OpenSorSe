@@ -7,12 +7,12 @@
         <StackPanel Grid.Row="0" Spacing="6">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <StackPanel>
-                    <TextBlock Text="Structure history" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock Text="Advanced, local, preview-first folder restructuring with successful-apply repeat protection."
+                    <TextBlock Text="Folder Timeline" FontSize="24" FontWeight="SemiBold" />
+                    <TextBlock Text="Review proposed and applied folder structures."
                                TextWrapping="Wrap" />
                 </StackPanel>
-                <Button Grid.Column="1" Content="Help" Command="{Binding HelpCommand}"
-                        AutomationProperties.Name="Structure history help" />
+                <Button Grid.Column="1" Classes="help" Content="?" Command="{Binding HelpCommand}"
+                        AutomationProperties.Name="Folder plans help" />
             </Grid>
             <TextBlock Text="Diagrams and previews are read-only. Applying requires a second explicit confirmation and never overwrites or deletes files."
                        TextWrapping="Wrap" FontWeight="SemiBold" />
@@ -20,7 +20,7 @@
 
         <Border Grid.Row="1" Padding="10" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
             <StackPanel Spacing="7">
-                <TextBlock Text="Create a proposal" FontWeight="SemiBold" />
+                <TextBlock Text="Create a folder plan" FontWeight="SemiBold" />
                 <TextBox Text="{Binding RootPath, Mode=TwoWay}"
                          PlaceholderText="Absolute folder root"
                          AutomationProperties.Name="Folder restructuring root" />

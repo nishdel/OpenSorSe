@@ -14,6 +14,9 @@ public enum NavigationDestination
     /// <summary>Displays processed file results.</summary>
     Results,
 
+    /// <summary>Displays exact duplicate review for the active scan.</summary>
+    Duplicates,
+
     /// <summary>Displays opt-in, application-owned saved result snapshots.</summary>
     Catalog,
 

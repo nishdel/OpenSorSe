@@ -7,15 +7,16 @@
     <Grid RowDefinitions="Auto,Auto,Auto,2*,Auto,2*,Auto" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <StackPanel Spacing="3">
-                <TextBlock Text="Diagnostics" FontSize="24" FontWeight="SemiBold" />
-                <TextBlock Text="Review bounded application diagnostics from this session. Operation History, scan warnings, and opt-in raw AI request diagnostics remain separate sources."
+                <TextBlock Text="System check" FontSize="24" FontWeight="SemiBold" />
+                <TextBlock Text="Check local services and application readiness."
                            TextWrapping="Wrap" />
             </StackPanel>
             <Button Grid.Column="1"
-                    Content="Help"
+                    Classes="help"
+                    Content="?"
                     Command="{Binding HelpCommand}"
-                    ToolTip.Tip="Open Diagnostics help"
-                    AutomationProperties.Name="Help for Diagnostics" />
+                    ToolTip.Tip="Open System check help"
+                    AutomationProperties.Name="Help for System check" />
         </Grid>
 
         <Border Grid.Row="1" Padding="10" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
