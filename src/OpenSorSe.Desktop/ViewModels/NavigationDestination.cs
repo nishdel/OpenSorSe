@@ -20,6 +20,9 @@ public enum NavigationDestination
     /// <summary>Searches metadata across opt-in, application-owned saved result snapshots.</summary>
     CatalogSearch,
 
+    /// <summary>Searches the bounded local deterministic semantic index.</summary>
+    SemanticSearch,
+
     /// <summary>Compares stored metadata from two explicit historical catalog snapshots.</summary>
     CatalogComparison,
 

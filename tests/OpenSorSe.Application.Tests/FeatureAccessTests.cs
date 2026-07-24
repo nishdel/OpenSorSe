@@ -6,6 +6,20 @@ namespace OpenSorSe.Application.Tests;
 /// <summary>Verifies the centralized AI/advanced feature truth table.</summary>
 public sealed class FeatureAccessTests
 {
+    /// <summary>Verifies local Semantic Search is independent from AI and advanced mode.</summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void SemanticSearchRequirement_UsesItsIndependentSetting(bool enabled, bool expected)
+    {
+        var settings = new ApplicationSettings
+        {
+            SemanticSearch = new SemanticSearchSettings { Enabled = enabled },
+        };
+
+        Assert.Equal(expected, FeatureAccess.IsEnabled(settings, FeatureRequirement.SemanticSearch));
+    }
+
     /// <summary>Verifies regular and advanced non-AI features are independent from AI.</summary>
     [Theory]
     [InlineData(false, false)]

@@ -197,10 +197,13 @@
                                      MaxHeight="140">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:ResultTagRow">
-                                        <Grid ColumnDefinitions="2*,*,*" ColumnSpacing="8" Margin="0,2">
+                                        <Grid ColumnDefinitions="2*,*,*,*" ColumnSpacing="8" Margin="0,2">
                                             <TextBlock Text="{Binding DisplayName}" />
                                             <TextBlock Grid.Column="1" Text="{Binding Category}" />
                                             <TextBlock Grid.Column="2" Text="{Binding Source}" />
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding AcceptanceState}"
+                                                       ToolTip.Tip="{Binding Explanation}" />
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -208,6 +211,13 @@
                             <Button Content="Remove selected tag"
                                     Command="{Binding RemoveSelectedTagCommand}"
                                     HorizontalAlignment="Left" />
+                            <WrapPanel>
+                                <Button Margin="0,0,8,0"
+                                        Content="Accept suggestion"
+                                        Command="{Binding AcceptSuggestedTagCommand}" />
+                                <Button Content="Reject suggestion"
+                                        Command="{Binding RejectSuggestedTagCommand}" />
+                            </WrapPanel>
                             <TextBlock Text="{Binding UserTagStatusText}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>

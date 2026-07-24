@@ -53,6 +53,7 @@ public sealed class JsonConfigurationServiceTests
         Assert.True(service.Current.Content.MetadataExtractionEnabled);
         Assert.False(service.Current.Content.OcrEnabled);
         Assert.True(service.Current.Content.OcrOnlyWhenNativeTextUnavailable);
+        Assert.False(service.Current.SemanticSearch.Enabled);
     }
 
     /// <summary>Verifies pre-v0.9.1 JSON keeps established values while new opt-ins receive safe defaults.</summary>
@@ -266,6 +267,12 @@ public sealed class JsonConfigurationServiceTests
                 MaximumOcrDurationSeconds = 60,
                 BackgroundProcessingEnabled = true,
             },
+            SemanticSearch = new SemanticSearchSettings
+            {
+                Enabled = true,
+                MaximumDocumentCount = 5000,
+                MaximumResultCount = 100,
+            },
         };
 
         try
@@ -296,6 +303,9 @@ public sealed class JsonConfigurationServiceTests
             Assert.Equal("deu+eng", reader.Current.Content.OcrLanguage);
             Assert.Equal(60, reader.Current.Content.MaximumOcrDurationSeconds);
             Assert.True(reader.Current.Content.BackgroundProcessingEnabled);
+            Assert.True(reader.Current.SemanticSearch.Enabled);
+            Assert.Equal(5000, reader.Current.SemanticSearch.MaximumDocumentCount);
+            Assert.Equal(100, reader.Current.SemanticSearch.MaximumResultCount);
         }
         finally
         {

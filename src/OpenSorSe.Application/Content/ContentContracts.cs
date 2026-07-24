@@ -1,4 +1,5 @@
 using OpenSorSe.Scanner.Models;
+using OpenSorSe.Application.Models;
 
 namespace OpenSorSe.Application.Content;
 
@@ -135,6 +136,9 @@ public sealed record ContentRecord(
     string? OcrEngineIdentifier,
     IReadOnlyList<string> Warnings)
 {
+    /// <summary>Gets provenance-aware confirmed, suggested, and rejected local tags.</summary>
+    public IReadOnlyList<TagAssociation> Tags { get; init; } = [];
+
     /// <summary>Gets a stable source fingerprint used for cache invalidation.</summary>
     public string SourceFingerprint => $"{SourceLength}:{SourceLastWriteTimeUtc.UtcTicks}";
 }

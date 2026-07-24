@@ -26,6 +26,28 @@
             </Border>
 
             <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+                <StackPanel Spacing="7">
+                    <TextBlock Text="Semantic Search (Beta)" FontSize="18" FontWeight="SemiBold" />
+                    <CheckBox Content="Enable local Semantic Search Beta"
+                              IsChecked="{Binding Draft.SemanticSearchEnabled, Mode=TwoWay}" />
+                    <TextBlock Text="Off by default. Uses a deterministic local feature-hashing index over filenames, confirmed and suggested tags, metadata, native text, and bounded OCR text. It does not require AI and never sends content to a model."
+                               TextWrapping="Wrap" />
+                    <Grid IsVisible="{Binding IsAdvancedSettingsVisible}"
+                          ColumnDefinitions="*,*"
+                          ColumnSpacing="8">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="Maximum indexed documents" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumSemanticDocuments, Mode=TwoWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="Maximum displayed results" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumSemanticResults, Mode=TwoWay}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Local content and OCR (Beta)" FontSize="18" FontWeight="SemiBold" />
                     <CheckBox Content="Extract bounded document metadata and native text"

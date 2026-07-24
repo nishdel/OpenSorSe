@@ -32,6 +32,9 @@ public sealed class SettingsDraft : ViewModelBase
     private string _ocrLanguage = "eng";
     private int _maximumOcrDurationSeconds = 120;
     private bool _backgroundContentProcessingEnabled;
+    private bool _semanticSearchEnabled;
+    private int _maximumSemanticDocuments = 10_000;
+    private int _maximumSemanticResults = 200;
 
     /// <summary>Gets or sets whether specialist and troubleshooting interface features are shown.</summary>
     public bool ShowAdvancedFeatures
@@ -208,6 +211,27 @@ public sealed class SettingsDraft : ViewModelBase
         set => SetProperty(ref _backgroundContentProcessingEnabled, value);
     }
 
+    /// <summary>Gets or sets whether local Semantic Search Beta is enabled.</summary>
+    public bool SemanticSearchEnabled
+    {
+        get => _semanticSearchEnabled;
+        set => SetProperty(ref _semanticSearchEnabled, value);
+    }
+
+    /// <summary>Gets or sets the maximum locally indexed documents.</summary>
+    public int MaximumSemanticDocuments
+    {
+        get => _maximumSemanticDocuments;
+        set => SetProperty(ref _maximumSemanticDocuments, value);
+    }
+
+    /// <summary>Gets or sets the maximum semantic results displayed.</summary>
+    public int MaximumSemanticResults
+    {
+        get => _maximumSemanticResults;
+        set => SetProperty(ref _maximumSemanticResults, value);
+    }
+
     /// <summary>
     /// Creates a draft copied from validated application settings.
     /// </summary>
@@ -241,6 +265,9 @@ public sealed class SettingsDraft : ViewModelBase
             OcrLanguage = settings.Content.OcrLanguage,
             MaximumOcrDurationSeconds = settings.Content.MaximumOcrDurationSeconds,
             BackgroundContentProcessingEnabled = settings.Content.BackgroundProcessingEnabled,
+            SemanticSearchEnabled = settings.SemanticSearch.Enabled,
+            MaximumSemanticDocuments = settings.SemanticSearch.MaximumDocumentCount,
+            MaximumSemanticResults = settings.SemanticSearch.MaximumResultCount,
         };
     }
 
@@ -293,6 +320,12 @@ public sealed class SettingsDraft : ViewModelBase
             OcrLanguage = OcrLanguage.Trim(),
             MaximumOcrDurationSeconds = MaximumOcrDurationSeconds,
             BackgroundProcessingEnabled = BackgroundContentProcessingEnabled,
+        },
+        SemanticSearch = new SemanticSearchSettings
+        {
+            Enabled = SemanticSearchEnabled,
+            MaximumDocumentCount = MaximumSemanticDocuments,
+            MaximumResultCount = MaximumSemanticResults,
         },
         };
     }

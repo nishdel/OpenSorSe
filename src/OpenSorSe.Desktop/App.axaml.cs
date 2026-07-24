@@ -14,6 +14,7 @@ using OpenSorSe.Application.Catalog;
 using OpenSorSe.Application.CatalogComparison;
 using OpenSorSe.Application.CatalogSearch;
 using OpenSorSe.Application.Content;
+using OpenSorSe.Application.Semantic;
 using OpenSorSe.AI;
 using OpenSorSe.Desktop.Services;
 
@@ -90,6 +91,18 @@ public partial class App : Avalonia.Application
                 serviceProvider.GetRequiredService<OpenSorSe.Core.Logging.ILoggingService>());
         });
         services.AddSingleton<IContentIndexingService, ContentIndexingService>();
+        services.AddSingleton<IEmbeddingProvider, FeatureHashingEmbeddingProvider>();
+        services.AddSingleton<ISemanticIndexStore>(serviceProvider =>
+        {
+            var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;
+            var settingsDirectory = Path.GetDirectoryName(settingsFilePath)
+                ?? throw new InvalidOperationException("The OpenSorSe settings path must include a directory.");
+            return new JsonSemanticIndexStore(
+                Path.Combine(settingsDirectory, "semantic-index.json"),
+                serviceProvider.GetRequiredService<OpenSorSe.Core.Logging.ILoggingService>());
+        });
+        services.AddSingleton<ISemanticIndexer, SemanticIndexer>();
+        services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
         services.AddSingleton<ICatalogComparisonService, CatalogComparisonService>();
         services.AddSingleton<IResultsCatalogStore>(serviceProvider =>
         {

@@ -30,6 +30,9 @@ public sealed class ApplicationSettings
     /// <summary>Gets or initializes bounded local content-extraction settings.</summary>
     public ContentSettings Content { get; init; } = new();
 
+    /// <summary>Gets or initializes local Semantic Search Beta settings.</summary>
+    public SemanticSearchSettings SemanticSearch { get; init; } = new();
+
     /// <summary>
     /// Creates a settings snapshot with only the two shell-wide feature switches changed.
     /// All detailed provider, capability, catalog, and logging values are preserved.
@@ -54,6 +57,7 @@ public sealed class ApplicationSettings
         },
         Catalog = Catalog,
         Content = Content,
+        SemanticSearch = SemanticSearch,
     };
 
     /// <summary>
@@ -98,6 +102,36 @@ public sealed class ApplicationSettings
         }
 
         Content.Validate();
+
+        if (SemanticSearch is null)
+        {
+            throw new ConfigurationValidationException("Semantic Search settings are required.");
+        }
+
+        SemanticSearch.Validate();
+    }
+}
+
+/// <summary>Defines bounded local deterministic Semantic Search Beta behavior.</summary>
+public sealed class SemanticSearchSettings
+{
+    /// <summary>Gets or initializes whether local semantic indexing and navigation are enabled.</summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>Gets or initializes the maximum indexed-document count.</summary>
+    public int MaximumDocumentCount { get; init; } = 10_000;
+
+    /// <summary>Gets or initializes the maximum displayed result count.</summary>
+    public int MaximumResultCount { get; init; } = 200;
+
+    /// <summary>Validates local semantic-search bounds.</summary>
+    public void Validate()
+    {
+        if (MaximumDocumentCount is < 1 or > 100_000 ||
+            MaximumResultCount is < 1 or > 1_000)
+        {
+            throw new ConfigurationValidationException("Semantic Search settings are invalid.");
+        }
     }
 }
 

@@ -95,6 +95,12 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         BackToExplorerCommand = new RelayCommand(BackToExplorer);
         AddUserTagsCommand = new AsyncRelayCommand(AddUserTagsAsync, CanAddUserTags);
         RemoveSelectedTagCommand = new AsyncRelayCommand(RemoveSelectedTagAsync, CanRemoveSelectedTag);
+        AcceptSuggestedTagCommand = new AsyncRelayCommand(
+            AcceptSuggestedTagAsync,
+            () => SelectedUserTag?.CanAccept == true);
+        RejectSuggestedTagCommand = new AsyncRelayCommand(
+            RejectSuggestedTagAsync,
+            () => SelectedUserTag?.CanReject == true);
     }
 
     /// <summary>
@@ -308,6 +314,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
             if (SetProperty(ref _selectedUserTag, value))
             {
                 RemoveSelectedTagCommand.NotifyCanExecuteChanged();
+                AcceptSuggestedTagCommand.NotifyCanExecuteChanged();
+                RejectSuggestedTagCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -349,6 +357,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
             {
                 AddUserTagsCommand.NotifyCanExecuteChanged();
                 RemoveSelectedTagCommand.NotifyCanExecuteChanged();
+                AcceptSuggestedTagCommand.NotifyCanExecuteChanged();
+                RejectSuggestedTagCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -443,6 +453,12 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the command that removes the selected non-deterministic application-owned tag.</summary>
     public IAsyncRelayCommand RemoveSelectedTagCommand { get; }
 
+    /// <summary>Gets the command that explicitly accepts one generated candidate tag.</summary>
+    public IAsyncRelayCommand AcceptSuggestedTagCommand { get; }
+
+    /// <summary>Gets the command that explicitly rejects one generated candidate tag.</summary>
+    public IAsyncRelayCommand RejectSuggestedTagCommand { get; }
+
     /// <summary>
     /// Replaces the current in-memory review state with a completed immutable snapshot.
     /// </summary>
@@ -481,7 +497,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// </summary>
     public IReadOnlyList<TagAssociation> GetPersistableTags() => Array.AsReadOnly(_tagsByFile.Values
         .SelectMany(tags => tags)
-        .Where(tag => tag.AcceptanceState == TagAcceptanceState.Accepted && tag.Source != TagSource.Deterministic)
+        .Where(tag => tag.AcceptanceState == TagAcceptanceState.Accepted &&
+                      tag.Source is TagSource.UserApproved or TagSource.AiSuggestion or TagSource.Preference)
         .OrderBy(tag => tag.FileId, StringComparer.Ordinal)
         .ThenBy(tag => tag.NormalizedValue, StringComparer.Ordinal)
         .ToArray());
@@ -722,6 +739,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         RebuildSelectedTagRows(selected?.Id);
         AddUserTagsCommand.NotifyCanExecuteChanged();
         RemoveSelectedTagCommand.NotifyCanExecuteChanged();
+        AcceptSuggestedTagCommand.NotifyCanExecuteChanged();
+        RejectSuggestedTagCommand.NotifyCanExecuteChanged();
     }
 
     private async Task LoadContentDetailsAsync()
@@ -762,6 +781,23 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
             foreach (var field in record?.Metadata ?? [])
             {
                 _contentMetadata.Add(field);
+            }
+
+            if (record is not null && SelectedRow is not null)
+            {
+                var existing = GetTags(SelectedRow.FileId)
+                    .Where(tag => tag.Source is
+                        TagSource.Deterministic or
+                        TagSource.UserApproved or
+                        TagSource.AiSuggestion or
+                        TagSource.Preference)
+                    .ToArray();
+                var generated = record.Tags.Select(tag => tag with { FileId = SelectedRow.FileId });
+                _tagsByFile[SelectedRow.FileId] = Array.AsReadOnly(existing
+                    .Concat(generated)
+                    .DistinctBy(tag => tag.TagId, StringComparer.Ordinal)
+                    .ToArray());
+                RebuildSelectedTagRows(SelectedRow.FileId);
             }
 
             ContentDetailsStatus = record is null
@@ -844,6 +880,58 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         _tagsByFile[SelectedRow.FileId] = Array.AsReadOnly(remaining);
         SelectedUserTag = null;
         await PublishTagChangeAsync("Tag removed from OpenSorSe metadata. The selected file was not changed.");
+    }
+
+    private Task AcceptSuggestedTagAsync() =>
+        UpdateGeneratedTagStateAsync(TagAcceptanceState.Accepted);
+
+    private Task RejectSuggestedTagAsync() =>
+        UpdateGeneratedTagStateAsync(TagAcceptanceState.Rejected);
+
+    private async Task UpdateGeneratedTagStateAsync(TagAcceptanceState state)
+    {
+        if (_contentStore is null ||
+            SelectedRow is null ||
+            SelectedUserTag is null ||
+            state is not (TagAcceptanceState.Accepted or TagAcceptanceState.Rejected))
+        {
+            return;
+        }
+
+        var selectedFile = Snapshot?.Files.FirstOrDefault(file => file.Id == SelectedRow.FileId);
+        if (selectedFile is null)
+        {
+            return;
+        }
+
+        var record = await _contentStore.GetAsync(selectedFile.FullPath, CancellationToken.None);
+        var tags = record?.Tags.ToArray();
+        var index = tags is null
+            ? -1
+            : Array.FindIndex(
+                tags,
+                tag => string.Equals(tag.TagId, SelectedUserTag.TagId, StringComparison.Ordinal));
+        if (record is null || tags is null || index < 0)
+        {
+            UserTagStatusText = "The generated tag is no longer available.";
+            return;
+        }
+
+        tags[index] = tags[index] with
+        {
+            AcceptanceState = state,
+            UpdatedAtUtc = DateTimeOffset.UtcNow,
+        };
+        await _contentStore.UpsertAsync(
+            record with { Tags = Array.AsReadOnly(tags) },
+            CancellationToken.None);
+        var selectedTagId = tags[index].TagId;
+        await LoadContentDetailsAsync();
+        SelectedUserTag = UserTags.FirstOrDefault(tag =>
+            string.Equals(tag.TagId, selectedTagId, StringComparison.Ordinal));
+        UserTagStatusText = state == TagAcceptanceState.Accepted
+            ? "Generated tag accepted as local OpenSorSe metadata."
+            : "Generated tag rejected until source content changes or generated tags are reset.";
     }
 
     private async Task PublishTagChangeAsync(string status)

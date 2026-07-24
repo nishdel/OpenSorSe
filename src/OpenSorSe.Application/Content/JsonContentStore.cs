@@ -208,6 +208,8 @@ public sealed class JsonContentStore : IContentStore
             record.IndexedAtUtc.Offset != TimeSpan.Zero ||
             record.Metadata is null ||
             record.Metadata.Count > 64 ||
+            record.Tags is null ||
+            record.Tags.Count > 32 ||
             record.Warnings is null ||
             record.Warnings.Count > 16 ||
             record.NativeText?.Length > ContentText.MaximumTextCharacters ||
@@ -232,6 +234,31 @@ public sealed class JsonContentStore : IContentStore
 
             return field;
         }).ToArray();
+        var tags = record.Tags.Select(tag =>
+        {
+            if (tag is null ||
+                string.IsNullOrWhiteSpace(tag.TagId) ||
+                tag.TagId.Length > 256 ||
+                string.IsNullOrWhiteSpace(tag.FileId) ||
+                string.IsNullOrWhiteSpace(tag.DisplayName) ||
+                tag.DisplayName.Length > 64 ||
+                string.IsNullOrWhiteSpace(tag.NormalizedValue) ||
+                tag.NormalizedValue.Length > 64 ||
+                !Enum.IsDefined(tag.Source) ||
+                !Enum.IsDefined(tag.AcceptanceState) ||
+                tag.Confidence is < 0 or > 1 ||
+                tag.CreatedAtUtc.Offset != TimeSpan.Zero ||
+                tag.UpdatedAtUtc is { Offset: not { Ticks: 0 } })
+            {
+                throw new InvalidDataException("A local content tag is invalid.");
+            }
+
+            return tag with
+            {
+                Explanation = ContentText.NormalizeField(tag.Explanation, 256),
+                ProvenanceDetails = ContentText.NormalizeField(tag.ProvenanceDetails, 256),
+            };
+        }).ToArray();
         return record with
         {
             FullPath = NormalizePath(record.FullPath),
@@ -239,6 +266,7 @@ public sealed class JsonContentStore : IContentStore
             NativeText = NullIfEmpty(ContentText.Normalize(record.NativeText)),
             OcrText = NullIfEmpty(ContentText.Normalize(record.OcrText)),
             OcrEngineIdentifier = ContentText.NormalizeField(record.OcrEngineIdentifier, 128),
+            Tags = Array.AsReadOnly(tags),
             Warnings = Array.AsReadOnly(record.Warnings
                 .Select(warning => ContentText.NormalizeField(warning, 256))
                 .Where(warning => warning.Length > 0)

@@ -88,6 +88,9 @@
                 <Grid IsVisible="{Binding IsCatalogSearchSelected}">
                     <views:CatalogSearchView DataContext="{Binding CatalogSearch}" />
                 </Grid>
+                <Grid IsVisible="{Binding IsSemanticSearchSelected}">
+                    <views:SemanticSearchView DataContext="{Binding SemanticSearch}" />
+                </Grid>
                 <Grid IsVisible="{Binding IsCatalogComparisonSelected}">
                     <views:CatalogComparisonView DataContext="{Binding CatalogComparison}" />
                 </Grid>

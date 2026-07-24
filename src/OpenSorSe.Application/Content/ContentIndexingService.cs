@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 using OpenSorSe.Scanner.Models;
+using OpenSorSe.Application.Tags;
 
 namespace OpenSorSe.Application.Content;
 
@@ -88,11 +89,12 @@ public sealed class ContentIndexingService : IContentIndexingService
                     ocrSkipped++;
                 }
 
+                var indexedAt = DateTimeOffset.UtcNow;
                 var record = new ContentRecord(
                     Path.GetFullPath(file.FullPath),
                     source.Length,
                     source.LastWriteTimeUtc,
-                    DateTimeOffset.UtcNow,
+                    indexedAt,
                     metadata.Fields,
                     metadata.NativeText,
                     ocr.ExtractedText,
@@ -103,7 +105,16 @@ public sealed class ContentIndexingService : IContentIndexingService
                         .Append(ocr.Message)
                         .Distinct(StringComparer.Ordinal)
                         .Take(16)
-                        .ToArray()));
+                        .ToArray()))
+                {
+                    Tags = ProvenanceTagGenerator.Generate(
+                        Path.GetFullPath(file.FullPath),
+                        $"{source.Length}:{source.LastWriteTimeUtc.UtcTicks}",
+                        metadata.Fields,
+                        metadata.NativeText,
+                        ocr.ExtractedText,
+                        indexedAt),
+                };
                 await _contentStore.UpsertAsync(record, cancellationToken).ConfigureAwait(false);
                 indexed++;
             }

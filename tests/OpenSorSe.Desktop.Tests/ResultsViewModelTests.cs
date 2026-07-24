@@ -1,4 +1,6 @@
 using OpenSorSe.Application.Models;
+using OpenSorSe.Application.Content;
+using OpenSorSe.Core.Configuration;
 using OpenSorSe.Desktop.ViewModels;
 using OpenSorSe.Rules.Models;
 using OpenSorSe.Scanner.Models;
@@ -225,6 +227,47 @@ public sealed class ResultsViewModelTests
         Assert.Contains("already", viewModel.UserTagStatusText, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Verifies generated candidates can be accepted or rejected and rejected state persists in the content store.</summary>
+    [Fact]
+    public async Task GeneratedTagCommands_PersistAcceptanceAndRejection()
+    {
+        var file = CreateFile("file:0", "C:\\Selected\\invoice.txt", DuplicateStatus.Unique, null);
+        var first = GeneratedTag(file.FullPath, "invoice");
+        var second = GeneratedTag(file.FullPath, "receipt");
+        var store = new ContentStore(new ContentRecord(
+            file.FullPath,
+            2,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            [],
+            null,
+            "invoice receipt",
+            OcrStatus.Completed,
+            "fake",
+            [])
+        {
+            Tags = [first, second],
+        });
+        using var viewModel = new ResultsViewModel(new Configuration(), null, null, store);
+        await viewModel.LoadSnapshotAsync(CreateSnapshot([file]));
+
+        viewModel.SelectedRow = Assert.Single(viewModel.PageRows);
+        await WaitUntilAsync(() => viewModel.UserTags.Count >= 3);
+        viewModel.SelectedUserTag = viewModel.UserTags.Single(tag => tag.DisplayName == "invoice");
+        await viewModel.AcceptSuggestedTagCommand.ExecuteAsync(null);
+        viewModel.SelectedUserTag = viewModel.UserTags.Single(tag => tag.DisplayName == "receipt");
+        await viewModel.RejectSuggestedTagCommand.ExecuteAsync(null);
+
+        Assert.Contains(store.Record.Tags, tag =>
+            tag.TagId == first.TagId &&
+            tag.AcceptanceState == TagAcceptanceState.Accepted);
+        Assert.Contains(store.Record.Tags, tag =>
+            tag.TagId == second.TagId &&
+            tag.AcceptanceState == TagAcceptanceState.Rejected);
+        Assert.DoesNotContain(viewModel.GetPersistableTags(), tag =>
+            tag.TagId == first.TagId || tag.TagId == second.TagId);
+    }
+
     private static ResultsSnapshot CreateSnapshot(IReadOnlyList<ResultFile> files, bool duplicateDataAvailable = true)
     {
         var groups = duplicateDataAvailable && files.Count(file => file.DuplicateGroupId == "group:opaque") >= 2
@@ -271,4 +314,60 @@ public sealed class ResultsViewModelTests
             duplicateStatus,
             groupId,
             false);
+
+    private static TagAssociation GeneratedTag(string path, string value) => new(
+        $"tag:generated:{value}",
+        path,
+        value,
+        value,
+        "OCR candidate",
+        TagSource.OcrCandidate,
+        TagAcceptanceState.Suggested,
+        "Generated locally",
+        DateTimeOffset.UnixEpoch)
+    {
+        Confidence = 0.5,
+        UpdatedAtUtc = DateTimeOffset.UnixEpoch,
+        SourceFingerprint = "2:0",
+    };
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var timeout = DateTime.UtcNow.AddSeconds(2);
+        while (!condition() && DateTime.UtcNow < timeout)
+        {
+            await Task.Delay(10);
+        }
+
+        Assert.True(condition());
+    }
+
+    private sealed class Configuration : IConfigurationService
+    {
+        public ApplicationSettings Current { get; private set; } = new();
+        public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+        {
+            Current = settings;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class ContentStore(ContentRecord initial) : IContentStore
+    {
+        public ContentRecord Record { get; private set; } = initial;
+        public Task<ContentRecord?> GetAsync(string fullPath, CancellationToken cancellationToken) =>
+            Task.FromResult<ContentRecord?>(Record);
+        public Task<IReadOnlyList<ContentRecord>> ListAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ContentRecord>>([Record]);
+        public Task UpsertAsync(ContentRecord record, CancellationToken cancellationToken)
+        {
+            Record = record;
+            return Task.CompletedTask;
+        }
+        public Task RemoveMissingAsync(IReadOnlyCollection<string> knownPaths, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+        public Task ClearAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
 }

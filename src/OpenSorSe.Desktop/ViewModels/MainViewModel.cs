@@ -7,6 +7,7 @@ using OpenSorSe.Application.CatalogSearch;
 using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Features;
 using OpenSorSe.Application.Models;
+using OpenSorSe.Application.Semantic;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 using OpenSorSe.Scanner.Models;
@@ -26,6 +27,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         new(NavigationDestination.Results, "Results", FeatureRequirement.Regular),
         new(NavigationDestination.Catalog, "Saved catalog", FeatureRequirement.Regular),
         new(NavigationDestination.CatalogSearch, "Catalog search", FeatureRequirement.Regular),
+        new(NavigationDestination.SemanticSearch, "Semantic Search (Beta)", FeatureRequirement.SemanticSearch),
         new(NavigationDestination.CatalogComparison, "Compare snapshots", FeatureRequirement.Advanced),
         new(NavigationDestination.Rules, "Rules", FeatureRequirement.Regular),
         new(NavigationDestination.Settings, "Settings", FeatureRequirement.Regular),
@@ -221,7 +223,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IAiRequestDiagnosticsStore aiRequestDiagnosticsStore,
         IExternalFileLauncher externalFileLauncher,
         IContentStore? contentStore = null,
-        IOcrService? ocrService = null)
+        IOcrService? ocrService = null,
+        ISemanticIndexer? semanticIndexer = null,
+        ISemanticSearchService? semanticSearchService = null,
+        ISemanticIndexStore? semanticIndexStore = null)
         : this(
             configurationService,
             loggingService,
@@ -236,7 +241,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             aiRequestDiagnosticsStore ?? throw new ArgumentNullException(nameof(aiRequestDiagnosticsStore)),
             externalFileLauncher ?? throw new ArgumentNullException(nameof(externalFileLauncher)),
             contentStore,
-            ocrService)
+            ocrService,
+            semanticIndexer,
+            semanticSearchService,
+            semanticIndexStore)
     {
     }
 
@@ -254,7 +262,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IAiRequestDiagnosticsStore? aiRequestDiagnosticsStore = null,
         IExternalFileLauncher? externalFileLauncher = null,
         IContentStore? contentStore = null,
-        IOcrService? ocrService = null)
+        IOcrService? ocrService = null,
+        ISemanticIndexer? semanticIndexer = null,
+        ISemanticSearchService? semanticSearchService = null,
+        ISemanticIndexStore? semanticIndexStore = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(loggingService);
@@ -272,6 +283,12 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             contentStore);
         Catalog = new CatalogViewModel(configurationService, catalogStore);
         CatalogSearch = new CatalogSearchViewModel(configurationService, catalogStore, savedSearchStore);
+        SemanticSearch = new SemanticSearchViewModel(
+            configurationService,
+            semanticIndexer,
+            semanticSearchService,
+            semanticIndexStore,
+            externalFileLauncher);
         CatalogComparison = new CatalogComparisonViewModel(configurationService, catalogStore, comparisonService);
         RuleEditor = new RuleEditorViewModel();
         Settings = new SettingsViewModel(
@@ -330,6 +347,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// Gets deterministic metadata search state for opt-in, application-owned saved snapshots.
     /// </summary>
     public CatalogSearchViewModel CatalogSearch { get; }
+
+    /// <summary>Gets local deterministic Semantic Search Beta state.</summary>
+    public SemanticSearchViewModel SemanticSearch { get; }
 
     /// <summary>
     /// Gets deterministic comparison state for two application-owned historical snapshots.
@@ -454,6 +474,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(IsResultsSelected));
                 OnPropertyChanged(nameof(IsCatalogSelected));
                 OnPropertyChanged(nameof(IsCatalogSearchSelected));
+                OnPropertyChanged(nameof(IsSemanticSearchSelected));
                 OnPropertyChanged(nameof(IsCatalogComparisonSelected));
                 OnPropertyChanged(nameof(IsRulesSelected));
                 OnPropertyChanged(nameof(IsSettingsSelected));
@@ -476,6 +497,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         NavigationDestination.Results => "Results",
         NavigationDestination.Catalog => "Saved catalog",
         NavigationDestination.CatalogSearch => "Catalog search",
+        NavigationDestination.SemanticSearch => "Semantic Search (Beta)",
         NavigationDestination.CatalogComparison => "Compare snapshots",
         NavigationDestination.Rules => "Rules",
         NavigationDestination.Settings => "Settings",
@@ -540,6 +562,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool IsCatalogSearchSelected => SelectedDestination == NavigationDestination.CatalogSearch;
 
+    /// <summary>Gets whether local Semantic Search Beta is selected.</summary>
+    public bool IsSemanticSearchSelected => SelectedDestination == NavigationDestination.SemanticSearch;
+
     /// <summary>
     /// Gets whether historical saved-snapshot comparison is currently selected.
     /// </summary>
@@ -576,7 +601,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets whether a later feature-page destination is currently selected.
     /// </summary>
-    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsCatalogComparisonSelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
+    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsSemanticSearchSelected && !IsCatalogComparisonSelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
 
     /// <summary>
     /// Selects a documented application-shell destination.
@@ -641,6 +666,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Results.Dispose();
         Catalog.Dispose();
         CatalogSearch.Dispose();
+        SemanticSearch.Dispose();
         CatalogComparison.Dispose();
         Settings.Dispose();
         Notifications.Dispose();
@@ -652,6 +678,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         UpdateShellFeatureState(settings);
         RefreshNavigationItems(settings);
         Results.RefreshFeatureAvailability();
+        SemanticSearch.RefreshFeatureAvailability();
     }
 
     private async Task PersistShellFeatureSwitchesAsync()

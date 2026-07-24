@@ -37,6 +37,7 @@ public sealed class MainViewModelTests
         Assert.Contains(NavigationDestination.Results, viewModel.Destinations);
         Assert.Contains(NavigationDestination.Catalog, viewModel.Destinations);
         Assert.Contains(NavigationDestination.CatalogSearch, viewModel.Destinations);
+        Assert.DoesNotContain(NavigationDestination.SemanticSearch, viewModel.Destinations);
     }
 
     /// <summary>Verifies Help is regular, immediately precedes About, and contextual Back restores its origin.</summary>
@@ -148,6 +149,22 @@ public sealed class MainViewModelTests
         Assert.False(viewModel.IsFeaturePageSelected);
         Assert.Equal("Compare snapshots", viewModel.CurrentPageTitle);
         Assert.NotNull(viewModel.CatalogComparison);
+    }
+
+    /// <summary>Verifies Semantic Search Beta is independently gated and does not require AI or advanced mode.</summary>
+    [Fact]
+    public void Constructor_SemanticSearchEnabled_ShowsRegularBetaDestination()
+    {
+        using var viewModel = new MainViewModel(
+            new TestConfigurationService(semanticSearchEnabled: true),
+            new TestLoggingService());
+
+        Assert.Contains(NavigationDestination.SemanticSearch, viewModel.Destinations);
+        Assert.False(viewModel.EnableAi);
+        Assert.False(viewModel.ShowAdvancedFeatures);
+        viewModel.Navigate(NavigationDestination.SemanticSearch);
+        Assert.True(viewModel.IsSemanticSearchSelected);
+        Assert.Equal("Semantic Search (Beta)", viewModel.CurrentPageTitle);
     }
 
     /// <summary>Verifies sidebar-style navigation awaits the destination refresh instead of abandoning background work.</summary>
@@ -450,12 +467,16 @@ public sealed class MainViewModelTests
 
     private sealed class TestConfigurationService : IConfigurationService
     {
-        public TestConfigurationService(bool catalogEnabled = false, bool advancedEnabled = false)
+        public TestConfigurationService(
+            bool catalogEnabled = false,
+            bool advancedEnabled = false,
+            bool semanticSearchEnabled = false)
         {
             Current = new ApplicationSettings
             {
                 Features = new FeatureSettings { ShowAdvancedFeatures = advancedEnabled },
                 Catalog = new CatalogSettings { Enabled = catalogEnabled },
+                SemanticSearch = new SemanticSearchSettings { Enabled = semanticSearchEnabled },
             };
         }
 
