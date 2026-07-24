@@ -3,6 +3,7 @@
              xmlns:vm="using:OpenSorSe.Desktop.ViewModels"
              xmlns:application="using:OpenSorSe.Application.Models"
              xmlns:ai="using:OpenSorSe.Application.AI"
+             xmlns:views="using:OpenSorSe.Desktop.Views"
              x:Class="OpenSorSe.Desktop.Views.ResultsView"
              x:DataType="vm:ResultsViewModel">
     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
@@ -12,18 +13,22 @@
                 <TextBlock Text="Review only — OpenSorSe will not move, rename, or delete files from this screen."
                            TextWrapping="Wrap" />
             </StackPanel>
-            <Button Grid.Column="1"
-                    Content="Exact duplicates"
-                    Command="{Binding OpenDuplicateReviewCommand}"
-                    IsEnabled="{Binding CanOpenDuplicateReview}"
-                    VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Duplicate View"
+                        Command="{Binding OpenDuplicateReviewCommand}"
+                        IsEnabled="{Binding CanOpenDuplicateReview}" />
+                <Button Content="Help"
+                        Command="{Binding HelpCommand}"
+                        ToolTip.Tip="Open Results help"
+                        AutomationProperties.Name="Help for Results" />
+            </StackPanel>
         </Grid>
 
         <Grid Grid.Row="1">
             <ScrollViewer IsVisible="{Binding IsExplorerVisible}"
-                          HorizontalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="12" MinWidth="760">
+                <StackPanel Spacing="12">
                     <Border Padding="12"
                             BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                             BorderThickness="1">
@@ -194,7 +199,7 @@
                             DataContext="{Binding AiSuggestions}"
                             x:DataType="vm:AiSuggestionsViewModel">
                         <StackPanel Spacing="8">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                 <StackPanel Spacing="2">
                                     <TextBlock Text="Optional AI suggestions" FontSize="18" FontWeight="SemiBold" />
                                     <TextBlock Text="AI-generated suggestions are unverified. OpenSorSe sends bounded metadata only, validates the complete response, and never changes a file or folder from this panel."
@@ -204,9 +209,18 @@
                                         IsVisible="{Binding IsBusy}"
                                         Content="Cancel AI request"
                                         Command="{Binding CancelAiOperationCommand}" />
+                                <Button Grid.Column="2"
+                                        Content="Help"
+                                        Command="{Binding HelpCommand}"
+                                        ToolTip.Tip="Open AI suggestions help"
+                                        AutomationProperties.Name="Help for AI suggestions" />
                             </Grid>
                             <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding IsBusy}" />
-                            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsBusy}">
+                                <TextBlock Text="{Binding ProgressText}" TextWrapping="Wrap" />
+                                <TextBlock Grid.Column="1" Text="{Binding ElapsedText}" />
+                            </Grid>
+                            <views:StatusBanner DataContext="{Binding Status}" />
                             <Border IsVisible="{Binding IsFileRenameVisible}"
                                     Padding="8"
                                     BorderBrush="{DynamicResource ThemeBorderLowBrush}"
@@ -289,42 +303,49 @@
             </ScrollViewer>
 
             <ScrollViewer IsVisible="{Binding IsDuplicateReviewVisible}"
-                          HorizontalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto">
-                <Grid DataContext="{Binding DuplicateReview}"
-                      x:DataType="vm:DuplicateReviewViewModel"
-                      RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12"
-                      MinWidth="700">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel DataContext="{Binding DuplicateReview}"
+                            x:DataType="vm:DuplicateReviewViewModel"
+                            x:Name="DuplicateViewRoot"
+                            Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Exact duplicates" FontSize="22" FontWeight="SemiBold" />
-                            <TextBlock Text="All listed files shared a supported SHA-256 hash during this completed scan. This is not a similarity check."
+                            <TextBlock Text="Duplicate View" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock Text="Compare files that shared the same supported SHA-256 hash in this completed scan. This identifies identical content, not similar content."
                                        TextWrapping="Wrap" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Back to results" Command="{Binding BackToExplorerCommand}" />
+                        <Button Grid.Column="1" Content="Back to Results" Command="{Binding BackToExplorerCommand}" />
+                        <Button Grid.Column="2"
+                                Content="Help"
+                                Command="{Binding HelpCommand}"
+                                ToolTip.Tip="Open Duplicate View help"
+                                AutomationProperties.Name="Help for Duplicate View" />
                     </Grid>
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBox PlaceholderText="Filter duplicate member name or path"
-                                 Text="{Binding FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Grid.Column="1" Text="{Binding StatusText}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                    </Grid>
-                    <StackPanel Grid.Row="2" Spacing="12">
+                    <TextBox PlaceholderText="Filter by filename, folder, type, or category"
+                             Text="{Binding FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Filter duplicate groups" />
+                    <views:StatusBanner DataContext="{Binding Status}" />
+                    <StackPanel Spacing="12">
                         <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
-                            <StackPanel Spacing="6">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Duplicate groups" FontSize="18" FontWeight="SemiBold" />
                                 <TextBlock IsVisible="{Binding HasNoVisibleGroups}"
-                                           Text="No exact duplicate groups were found in this completed scan."
+                                           Text="No duplicate groups are available for the current scan and filter."
                                            TextWrapping="Wrap" />
                                 <ListBox ItemsSource="{Binding VisibleGroupRows}"
-                                         SelectedItem="{Binding SelectedGroupRow, Mode=TwoWay}">
+                                         SelectedItem="{Binding SelectedGroupRow, Mode=TwoWay}"
+                                         MaxHeight="280"
+                                         AutomationProperties.Name="Duplicate groups">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:DuplicateReviewGroupRow">
-                                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="12" Margin="0,4">
-                                                <TextBlock Text="Group" FontWeight="SemiBold" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Group.Ordinal}" />
-                                                <TextBlock Grid.Column="2" Text="{Binding Group.MemberCount, StringFormat=Files: {0}}" />
-                                                <TextBlock Grid.Column="3" Text="{Binding CommonFileSize, StringFormat=Common size: {0}}" />
-                                                <TextBlock Grid.Column="4" Text="{Binding MemberSummary}" TextWrapping="Wrap" />
-                                            </Grid>
+                                            <StackPanel Margin="0,5" Spacing="2">
+                                                <TextBlock Text="{Binding Group.Ordinal, StringFormat=Group {0}}"
+                                                           FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Group.MemberCount, StringFormat={}{0} identical files}" />
+                                                <TextBlock Text="{Binding CommonFileSize, StringFormat=Each file: {0}}" />
+                                                <TextBlock Text="{Binding MemberSummary}" TextWrapping="Wrap" />
+                                            </StackPanel>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
@@ -334,32 +355,82 @@
                                 Padding="12"
                                 BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                                 BorderThickness="1">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="Selected exact duplicate group" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Text="Potential reclaimable space if all but one matching copy were removed outside OpenSorSe. This is an informational estimate, not a recommendation."
+                            <StackPanel Spacing="9">
+                                <TextBlock Text="{Binding SelectedGroupCountText}"
+                                           FontSize="18"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="Review the locations before taking any action. OpenSorSe never deletes, moves, or renames a file from Duplicate View."
                                            TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding SelectedGroupCommonSizeText, StringFormat=Common file size: {0}}" />
-                                <TextBlock Text="{Binding SelectedGroupPotentialReclaimableText, StringFormat=Potential reclaimable space: {0}}" />
-                                <ItemsControl ItemsSource="{Binding SelectedMembers}">
+                                <WrapPanel>
+                                    <TextBlock Margin="0,0,20,4"
+                                               Text="{Binding SelectedGroupCommonSizeText, StringFormat=Each file: {0}}" />
+                                    <TextBlock Margin="0,0,20,4"
+                                               Text="{Binding SelectedGroupPotentialReclaimableText, StringFormat=Possible space saved by keeping one copy: {0}}" />
+                                </WrapPanel>
+                                <ItemsControl ItemsSource="{Binding MemberRows}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="application:ResultFile">
-                                            <Border Padding="0,4" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="0,1,0,0">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding FullPath}" TextWrapping="Wrap" />
-                                                    <TextBlock Text="{Binding ClassificationDisplay}" />
-                                                </StackPanel>
+                                        <DataTemplate x:DataType="vm:DuplicateFileRow">
+                                            <Border Padding="0,7"
+                                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                                    BorderThickness="0,1,0,0">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              VerticalAlignment="Top"
+                                                              AutomationProperties.Name="Select duplicate file" />
+                                                    <StackPanel Grid.Column="1" Spacing="2">
+                                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding ShortParentPath}"
+                                                                   ToolTip.Tip="{Binding ParentPath}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding SizeText}" />
+                                                        <WrapPanel>
+                                                            <Button Margin="0,2,8,0"
+                                                                    Content="Open file"
+                                                                    Command="{Binding DataContext.OpenFileCommand, ElementName=DuplicateViewRoot}"
+                                                                    CommandParameter="{Binding}"
+                                                                    x:CompileBindings="False" />
+                                                            <Button Margin="0,2,8,0"
+                                                                    Content="Open containing folder"
+                                                                    Command="{Binding DataContext.OpenContainingFolderCommand, ElementName=DuplicateViewRoot}"
+                                                                    CommandParameter="{Binding}"
+                                                                    x:CompileBindings="False" />
+                                                        </WrapPanel>
+                                                    </StackPanel>
+                                                </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="Show group files in results" Command="{Binding ShowGroupFilesCommand}" />
+                                <TextBlock Text="{Binding SelectedMemberCountText}"
+                                           IsVisible="{Binding IsLargeGroup}"
+                                           TextWrapping="Wrap" />
+                                <WrapPanel>
+                                    <Button IsVisible="{Binding IsExactPair}"
+                                            Margin="0,0,8,8"
+                                            Content="Open both files"
+                                            Command="{Binding OpenBothFilesCommand}" />
+                                    <Button IsVisible="{Binding IsLargeGroup}"
+                                            Margin="0,0,8,8"
+                                            Content="Open selected files"
+                                            Command="{Binding OpenSelectedFilesCommand}" />
+                                    <Button Margin="0,0,8,8"
+                                            Content="Open selected containing folders"
+                                            Command="{Binding OpenSelectedFoldersCommand}" />
+                                    <Button IsVisible="{Binding IsOpening}"
+                                            Margin="0,0,8,8"
+                                            Content="Cancel opening"
+                                            Command="{Binding CancelOpenCommand}" />
+                                    <Button Margin="0,0,8,8"
+                                            Content="Show group in Results"
+                                            Command="{Binding ShowGroupFilesCommand}" />
+                                </WrapPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                    <TextBlock Grid.Row="3"
+                    <TextBlock
                                Text="Review only — OpenSorSe will not move, rename, or delete files from this screen."
                                TextWrapping="Wrap" />
-                </Grid>
+                </StackPanel>
             </ScrollViewer>
         </Grid>
 

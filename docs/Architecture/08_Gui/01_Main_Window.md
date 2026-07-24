@@ -14,9 +14,9 @@ The Main Window does not implement business logic or application workflows.
 
 ## v0.9.1 implementation status
 
-Navigation entries carry reusable feature requirements. Dashboard, Scan, Results, Duplicate review, Rules, Saved catalog, Catalog search, Settings, and About are regular. Compare snapshots, Diagnostics, and Operation history are advanced. AI suggestions are a Results panel rather than a page and appear only when AI and at least one capability are enabled. A feature requiring both AI and advanced mode requires both flags.
+Navigation entries carry reusable feature requirements. Dashboard, Scan, Results, Rules, Saved catalog, Catalog search, Settings, Help, and About are regular. Duplicate View and AI Suggestions are Results subviews; AI Suggestions appears only when AI and at least one capability are enabled. Compare snapshots, Diagnostics, and Operation history are advanced. A feature requiring both AI and advanced mode requires both flags.
 
-The shell builds visible navigation from the central requirements after Settings is successfully saved. Direct or stale attempts to navigate to a hidden page are rejected; if the selected page becomes hidden, Dashboard is selected. This prevents keyboard or programmatic navigation from bypassing visual hiding.
+The shell builds visible navigation from the central requirements after Settings is successfully saved. Direct or stale attempts to navigate to a hidden page are rejected; if the selected page becomes hidden, Dashboard is selected. Contextual Help is immediately above About. Every major page exposes the common Help command, Help remembers the originating destination, and Back rejects a now-hidden destination in favor of Dashboard. This prevents keyboard or programmatic navigation from bypassing visual hiding.
 
 ---
 

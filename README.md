@@ -4,7 +4,7 @@
 
 ## Project status
 
-OpenSorSe v0.9.1 is implemented on the local `v0.9.1` branch as a focused refinement of v0.9.
+OpenSorSe v0.9.1, including its reliability and usability correction pass, is implemented on the local `v0.9.1` branch as a focused refinement of v0.9.
 
 - Restore, build, and test validation results are recorded in [Release Status](docs/RELEASE_STATUS.md).
 - AI and advanced interface features are independently disabled by default.
@@ -19,17 +19,17 @@ OpenSorSe does not rename, move, delete, overwrite, or otherwise modify selected
 | Folder analysis | Select local folders, traverse recursively, report progress, continue after recoverable issues, and support cancellation. |
 | File analysis | Read filesystem metadata, calculate SHA-256 hashes, apply deterministic classification, and detect exact duplicates. |
 | Results review | Explore one completed in-memory scan with filtering, sorting, bounded paging, and read-only file details. |
-| Duplicate review | Inspect exact SHA-256 duplicate groups and a conservative theoretical reclaimable-space estimate without exposing hashes or recommending an action. |
+| Duplicate View | Inspect responsive exact-duplicate groups, select known members, and safely ask the operating system to open up to five files or containing folders for comparison. No cleanup action is recommended or performed. |
 | Ranked search | Search filenames, paths, extensions, deterministic categories, and accepted session tags with deterministic ranking and match explanations. This is not semantic search. |
 | Saved catalog | Opt in to retain up to ten bounded completed snapshots locally, label them, review captured source scope, reopen them after restart, search their stored metadata, and explicitly remove application-owned catalog entries. |
 | User-managed tags | Add or remove up to twelve accepted OpenSorSe metadata tags for a selected result without AI or any file-metadata change; catalog-backed tags remain searchable after restart. |
 | Saved searches | Retain up to 25 named catalog query presets locally, rerun them against current snapshots, and explicitly remove or reset query text without persisting hits. |
 | Snapshot comparison | Select two distinct saved snapshots and review added, removed, modified, and unchanged stored metadata with scope warnings, tag-change detection, cancellation, filters, and bounded rows. No stored path is accessed. |
-| Optional AI | Explicitly enable AI and either rename or folder-structure suggestions, then request bounded, metadata-only, strictly validated previews. Provider configuration and diagnostics are advanced controls. The default endpoint is local; a custom endpoint can be remote. |
+| Optional AI | Explicitly enable AI and either rename or folder-structure suggestions, then request bounded, metadata-only, strictly validated previews with visible request stages. Essential Ollama setup remains visible with AI; raw request diagnostics additionally require advanced mode and explicit opt-in. |
 | Preference adaptation | Record local accept/reject/edit decisions and optionally reuse concise approved patterns. It does not train or fine-tune a model. |
 | Interface modes | Keep the primary workflow simple by default, or enable advanced mode for Compare snapshots, Diagnostics, Operation history internals, detailed logging, and provider configuration. Hidden values remain persisted. |
-| Application workflow | Use Dashboard, Scan, Results, Saved catalog, Catalog search, Settings, and About. Rules remain a regular review-only foundation. Advanced mode additionally exposes Compare snapshots, Diagnostics, and Operation history. |
-| Safety | Avoid execution, shell-launch, and any modification of selected user files. Catalog persistence is local, opt-in, bounded, and separate from user folders. |
+| Application workflow | Use Dashboard, Scan, Results, Duplicate View, Saved catalog, Catalog search, contextual Help, Settings, and About. Rules remain a regular review-only foundation. Advanced mode additionally exposes Compare snapshots, Diagnostics, and Operation history. |
+| Safety | Avoid execution and any modification of selected user files. Explicit duplicate-comparison opening passes only validated known paths to the operating-system shell; it never constructs a shell command. Catalog persistence is local, opt-in, bounded, and separate from user folders. |
 
 Planned operations and AI suggestions are presentation-only in the Desktop application. Rules and Operation history accept only caller-supplied in-memory data; the production shell supplies none and exposes no execution or undo action.
 
@@ -88,7 +88,7 @@ docs/                      Architecture, specifications, release status, and roa
 | v0.7 Saved Catalog Searches | Complete | Atomic bounded named query persistence, explicit rerun/remove/reset workflows, corruption recovery, and no stored hits. |
 | v0.8 Snapshot Identity and Scope | Complete | Backward-compatible catalog schema 2, optional snapshot names, captured source roots, and explicit legacy unknown-scope behavior. |
 | v0.9 Historical Snapshot Comparison | Complete | Deterministic bounded metadata/tag comparison, scope compatibility, filters, cancellation, and baseline/current historical opening. |
-| v0.9.1 Optional AI and Feature Controls | Complete | Default-off AI and advanced switches, independent rename/folder capabilities, central visibility and command gates, bounded prompts, strict response validation, and suggestion-only review. |
+| v0.9.1 Optional AI and Feature Controls | Complete; manual GUI verification pending | Default-off AI and advanced switches, constrained suggestions, hardened Ollama setup, bounded diagnostics, contextual Help, simpler catalog search, responsive Duplicate View, and consistent status feedback. |
 | Future releases | Ideas only | Content readers, OCR, embedding-based semantic search, database-backed indexes, safe execution workflows, and plugins. |
 
 See the [roadmap](docs/roadmap.md) and [release status](docs/RELEASE_STATUS.md) for details.
@@ -112,11 +112,11 @@ For the new switches and suggestion workflow, use the focused [v0.9.1 manual tes
 
 ## Optional Ollama setup
 
-Ollama is optional and externally managed. Open **Settings**, select **Enable AI features**, enable one or both capability switches, and select **Show advanced features** to reveal provider configuration. Keep the default local endpoint (`http://127.0.0.1:11434`) or enter your own endpoint, use **Test connection**, then **Discover models**, select a model, and save Settings.
+Ollama is optional and externally managed. Open **Settings**, select **Enable AI features**, keep the default local endpoint (`http://127.0.0.1:11434`) or enter your own endpoint, use **Check connection**, then **Discover models**, select an exact installed model, enable one or both capabilities, and save Settings. These essential setup controls do not require advanced mode. Advanced mode adds troubleshooting controls, including a separate default-off session-only AI request diagnostic capture.
 
 When AI is disabled, OpenSorSe performs no provider discovery, background communication, or model request. When Ollama is unavailable, has no configured or installed model, times out, is cancelled, or returns invalid or unsafe JSON, scanning and every non-AI feature continue to work. Suggestions are validated previews only: accepting, rejecting, or editing one records a local decision but never changes a file or folder.
 
-The default endpoint is local. A custom remote endpoint can receive only the bounded request metadata OpenSorSe supplies (opaque source identities, filenames, extensions, deterministic categories, existing logical folder names, and concise local preferences); it never sends document contents or absolute paths. See the [v0.9.1 specification](docs/Implementation_Spec/v0.9.1/046_Optional_AI_and_Advanced_Feature_Controls.md) for the exact boundary.
+The default endpoint is local. A custom remote endpoint can receive only the bounded request metadata OpenSorSe supplies (request-local identities, exact filenames, extensions, deterministic categories, existing logical folder names, and concise local preferences); it never sends document contents or absolute paths. See the [v0.9.1 feature specification](docs/Implementation_Spec/v0.9.1/046_Optional_AI_and_Advanced_Feature_Controls.md) and [correction specification](docs/Implementation_Spec/v0.9.1/047_Correction_Reliability_and_Usability_Pass.md) for the exact boundary.
 
 ## Contributing
 

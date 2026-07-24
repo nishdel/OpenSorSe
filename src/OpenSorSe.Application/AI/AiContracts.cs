@@ -47,6 +47,38 @@ public enum AiSuggestionKind
     FolderStructure,
 }
 
+/// <summary>Identifies truthful progress stages for one explicit AI request.</summary>
+public enum AiRequestStage
+{
+    /// <summary>Checking settings and capability gates.</summary>
+    CheckingSettings,
+    /// <summary>Connecting to the configured endpoint.</summary>
+    Connecting,
+    /// <summary>Checking that the exact selected model is installed.</summary>
+    ValidatingModel,
+    /// <summary>Preparing bounded filename metadata.</summary>
+    PreparingMetadata,
+    /// <summary>Sending the structured request.</summary>
+    SendingRequest,
+    /// <summary>Waiting for the model.</summary>
+    WaitingForModel,
+    /// <summary>Receiving the bounded provider response.</summary>
+    ReceivingResponse,
+    /// <summary>Validating the complete untrusted response.</summary>
+    ValidatingSuggestion,
+    /// <summary>A validated review-only suggestion is ready.</summary>
+    SuggestionReady,
+    /// <summary>The caller cancelled the request.</summary>
+    RequestCancelled,
+    /// <summary>The finite request timeout elapsed.</summary>
+    RequestTimedOut,
+    /// <summary>The request failed safely.</summary>
+    RequestFailed,
+}
+
+/// <summary>Reports one typed progress transition and elapsed duration.</summary>
+public sealed record AiRequestProgress(AiRequestStage Stage, string Message, TimeSpan Elapsed);
+
 /// <summary>
 /// Identifies a safe, user-visible provider failure category.
 /// </summary>
@@ -109,7 +141,20 @@ public sealed record AiModel(string Id, string DisplayName);
 public sealed record AiConnectionResult(
     AiAvailabilityState State,
     string Message,
-    IReadOnlyList<AiModel> Models);
+    IReadOnlyList<AiModel> Models)
+{
+    /// <summary>Gets the normalized endpoint used for the concrete check.</summary>
+    public string? NormalizedEndpoint { get; init; }
+
+    /// <summary>Gets the provider version when reported by a dedicated connection check.</summary>
+    public string? ProviderVersion { get; init; }
+
+    /// <summary>Gets the HTTP status returned by the provider when available.</summary>
+    public int? HttpStatusCode { get; init; }
+
+    /// <summary>Gets the concrete request duration.</summary>
+    public TimeSpan? Elapsed { get; init; }
+}
 
 /// <summary>Describes safe metadata for one explicit file-rename request.</summary>
 public sealed record AiFileRenameRequest(
@@ -198,7 +243,20 @@ public sealed record AiProviderGenerationRequest(
     string Endpoint,
     string Model,
     string Prompt,
-    TimeSpan Timeout);
+    TimeSpan Timeout)
+{
+    /// <summary>Gets optional typed progress reporting owned by the current explicit request.</summary>
+    public IProgress<AiRequestProgress>? Progress { get; init; }
+}
+
+/// <summary>Contains concrete provider transport facts for opt-in diagnostics.</summary>
+public sealed record AiProviderRequestDiagnostics(
+    string NormalizedEndpoint,
+    int? HttpStatusCode,
+    TimeSpan Elapsed,
+    int ResponseCharacterCount,
+    int ResponseByteCount,
+    string RawResponse);
 
 /// <summary>Contains a provider-neutral generation response before application-owned validation.</summary>
 public sealed record AiProviderGenerationResult(
@@ -208,11 +266,18 @@ public sealed record AiProviderGenerationResult(
 {
     /// <summary>Gets whether a structured response is available for application validation.</summary>
     public bool IsSuccess => FailureKind == AiProviderFailureKind.None && !string.IsNullOrWhiteSpace(StructuredJson);
+
+    /// <summary>Gets bounded transport facts for opt-in session diagnostics.</summary>
+    public AiProviderRequestDiagnostics? Diagnostics { get; init; }
 }
 
 /// <summary>Defines the narrow provider boundary used by application-owned suggestion workflows.</summary>
 public interface IAiSuggestionProvider
 {
+    /// <summary>Checks endpoint reachability without discovering or selecting models.</summary>
+    Task<AiConnectionResult> CheckConnectionAsync(AiSettings settings, CancellationToken cancellationToken) =>
+        GetConnectionAsync(settings, cancellationToken);
+
     /// <summary>Checks provider availability and lists installed models.</summary>
     Task<AiConnectionResult> GetConnectionAsync(AiSettings settings, CancellationToken cancellationToken);
 
@@ -245,8 +310,24 @@ public interface IAiSuggestionService
     /// <summary>Generates one safe, review-only filename suggestion.</summary>
     Task<AiFileRenameResult> GenerateFileRenameAsync(AiFileRenameRequest request, AiSettings settings, CancellationToken cancellationToken);
 
+    /// <summary>Generates one safe rename suggestion with typed progress.</summary>
+    Task<AiFileRenameResult> GenerateFileRenameAsync(
+        AiFileRenameRequest request,
+        AiSettings settings,
+        IProgress<AiRequestProgress>? progress,
+        CancellationToken cancellationToken) =>
+        GenerateFileRenameAsync(request, settings, cancellationToken);
+
     /// <summary>Generates one safe, preview-only folder-structure plan.</summary>
     Task<AiFolderStructureResult> GenerateFolderStructureAsync(AiFolderStructureRequest request, AiSettings settings, CancellationToken cancellationToken);
+
+    /// <summary>Generates one safe folder plan with typed progress.</summary>
+    Task<AiFolderStructureResult> GenerateFolderStructureAsync(
+        AiFolderStructureRequest request,
+        AiSettings settings,
+        IProgress<AiRequestProgress>? progress,
+        CancellationToken cancellationToken) =>
+        GenerateFolderStructureAsync(request, settings, cancellationToken);
 
     /// <summary>Records a user review decision for optional local preference adaptation.</summary>
     Task<AiDecisionResult> RecordDecisionAsync(AiSuggestionDecision decision, AiSettings settings, CancellationToken cancellationToken);

@@ -4,7 +4,11 @@
              x:Class="OpenSorSe.Desktop.Views.RuleEditorView"
              x:DataType="vm:RuleEditorViewModel">
     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,*,Auto" ColumnSpacing="16" RowSpacing="12">
-        <TextBlock Grid.ColumnSpan="2" Text="Rules (review only)" FontSize="24" FontWeight="SemiBold" />
+        <Grid Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock Text="Rules (review only)" FontSize="24" FontWeight="SemiBold" />
+            <Button Grid.Column="1" Content="Help" Command="{Binding HelpCommand}"
+                    ToolTip.Tip="Open Rules help" AutomationProperties.Name="Help for Rules" />
+        </Grid>
         <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
                    Text="The current desktop does not create, persist, or execute rules. This surface only reviews rule data supplied in memory."
                    TextWrapping="Wrap" />

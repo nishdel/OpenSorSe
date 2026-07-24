@@ -108,8 +108,12 @@ Complete.
 - Deterministic, bounded, metadata-only prompts for one-file rename and selected-file logical hierarchy proposals.
 - Strict JSON parsing and whole-response validation for identities, fields, counts, confidence, filenames, path components, hierarchy graphs, and duplicate suggestions.
 - Review/edit/accept/reject decision workflow only; no AI proposal creates a folder or renames, moves, deletes, overwrites, or edits a file.
-- Advanced classification for historical comparison, detailed diagnostics, operation-history internals, logging detail, and provider controls while core workflows remain regular.
+- Advanced classification for historical comparison, detailed diagnostics, operation-history internals, logging detail, and raw provider/request diagnostics while core workflows and essential Ollama setup remain regular.
 - Ollama remains optional, externally managed, and isolated from all non-AI workflows.
+- A corrective reliability pass normalizes Ollama endpoints, uses one 5-300 second request timeout, preserves exact model selection, reports typed request progress, and uses request-local item identities with exact-once folder validation.
+- Diagnostics retains a bounded inspectable event buffer and an independently enabled, redacted, session-only AI request buffer.
+- Contextual Help, a simplified Catalog Search hierarchy, scroll-stable Settings, reusable status feedback, and a responsive Duplicate View improve normal desktop usability.
+- Duplicate View can explicitly open a bounded set of known current-scan files or containing folders for comparison through the operating system, without adding any OpenSorSe mutation action.
 
 This refinement is not the v1.0 plugin, localization, packaging, database, semantic-search, or cross-platform release programme.
 

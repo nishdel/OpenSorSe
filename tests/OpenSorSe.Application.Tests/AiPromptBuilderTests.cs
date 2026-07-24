@@ -32,6 +32,9 @@ public sealed class AiPromptBuilderTests
         Assert.Contains("Do not wrap it in Markdown fences", root.GetProperty("outputInstruction").GetString(), StringComparison.Ordinal);
         Assert.Equal("invoice \"draft\".pdf",
             root.GetProperty("inputData").GetProperty("sourceFile").GetProperty("currentFileName").GetString());
+        Assert.Equal("item-001",
+            root.GetProperty("inputData").GetProperty("sourceFile").GetProperty("sourceFileId").GetString());
+        Assert.Equal("file:1", Assert.Single(result.SourceMappings).KnownSourceId);
         Assert.DoesNotContain("content-secret", result.Prompt, StringComparison.Ordinal);
         Assert.DoesNotContain(file.FullPath, result.Prompt, StringComparison.Ordinal);
     }
@@ -53,6 +56,9 @@ public sealed class AiPromptBuilderTests
 
         Assert.Equal(first.Prompt, second.Prompt);
         Assert.Equal(["a", "b"], first.IncludedSourceIds);
+        Assert.Equal(["item-001", "item-002"], first.SourceMappings.Select(mapping => mapping.RequestSourceId));
+        Assert.Equal(["a", "b"], first.SourceMappings.Select(mapping => mapping.KnownSourceId));
+        Assert.Contains("assign every supplied item exactly once", first.Prompt, StringComparison.Ordinal);
         Assert.Contains(AiPromptBuilder.FolderStructureTaskId, first.Prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("C:\\Private", first.Prompt, StringComparison.Ordinal);
     }
@@ -70,6 +76,9 @@ public sealed class AiPromptBuilderTests
         var result = _builder.BuildFolderStructurePrompt(new AiFolderStructureRequest(files, folders), EmptyPreferences());
 
         Assert.True(result.WasInputBounded);
+        Assert.Equal(40, result.TotalInputCount);
+        Assert.Equal(25, result.IncludedInputCount);
+        Assert.Equal(15, result.OmittedInputCount);
         Assert.Equal(AiPromptLimits.MaximumFolderStructureFiles, result.IncludedSourceIds.Count);
         Assert.Equal("file:00", result.IncludedSourceIds[0]);
         Assert.Equal("file:24", result.IncludedSourceIds[^1]);

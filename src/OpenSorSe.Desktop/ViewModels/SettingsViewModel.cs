@@ -14,7 +14,9 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 {
     private readonly IConfigurationService _configurationService;
     private readonly IAiSuggestionService? _aiSuggestionService;
+    private readonly IAiRequestDiagnosticsStore? _aiRequestDiagnosticsStore;
     private readonly ObservableCollection<string> _availableAiModels = [];
+    private readonly HashSet<string> _installedAiModelIds = new(StringComparer.Ordinal);
     private SettingsDraft _draft;
     private bool _restartRequired;
     private bool _isAiBusy;
@@ -22,17 +24,29 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _aiOperationCancellation;
     private long _aiOperationVersion;
     private bool _isDisposed;
+    private bool _hasCompletedModelDiscovery;
     private string _statusText = "Ready";
+    private StatusPresentation _status = StatusPresentation.Information("Ready");
+    private StatusPresentation _aiStatus = StatusPresentation.Information("AI assistance is disabled until enabled and configured.");
 
     /// <summary>
     /// Initializes a settings editor over the already initialized configuration service.
     /// </summary>
     /// <param name="configurationService">The centralized configuration service.</param>
     /// <param name="aiSuggestionService">The optional application-owned local AI suggestion service.</param>
-    public SettingsViewModel(IConfigurationService configurationService, IAiSuggestionService? aiSuggestionService = null)
+    /// <param name="aiRequestDiagnosticsStore">The optional bounded session diagnostics store.</param>
+    public SettingsViewModel(
+        IConfigurationService configurationService,
+        IAiSuggestionService? aiSuggestionService = null,
+        IAiRequestDiagnosticsStore? aiRequestDiagnosticsStore = null)
     {
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _aiSuggestionService = aiSuggestionService;
+        _aiRequestDiagnosticsStore = aiRequestDiagnosticsStore;
+        _aiRequestDiagnosticsStore?.SetEnabled(
+            _configurationService.Current.Ai.Enabled &&
+            _configurationService.Current.Features.ShowAdvancedFeatures &&
+            _configurationService.Current.Ai.RequestDiagnosticsEnabled);
         _draft = SettingsDraft.FromSettings(_configurationService.Current);
         _draft.PropertyChanged += OnDraftPropertyChanged;
         _statusText = _configurationService.InitializationWarning ?? "Ready";
@@ -79,8 +93,43 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets whether advanced non-AI settings are visible in the editable hierarchy.</summary>
     public bool IsAdvancedSettingsVisible => Draft.ShowAdvancedFeatures;
 
-    /// <summary>Gets whether low-level provider and AI-history settings are visible.</summary>
+    /// <summary>Gets whether essential provider setup is visible whenever AI is enabled.</summary>
+    public bool IsAiProviderSettingsVisible => Draft.AiEnabled;
+
+    /// <summary>Gets whether low-level AI diagnostics and history settings are visible.</summary>
     public bool IsAdvancedAiSettingsVisible => Draft.AiEnabled && Draft.ShowAdvancedFeatures;
+
+    /// <summary>Gets whether model discovery has completed for the current endpoint.</summary>
+    public bool HasCompletedModelDiscovery => _hasCompletedModelDiscovery;
+
+    /// <summary>Gets whether discovery completed without finding an installed model.</summary>
+    public bool HasNoDiscoveredModels => HasCompletedModelDiscovery && _installedAiModelIds.Count == 0;
+
+    /// <summary>Gets whether the exact configured model appeared in the most recent discovery.</summary>
+    public bool IsSelectedModelAvailable =>
+        !string.IsNullOrWhiteSpace(Draft.SelectedAiModel) && _installedAiModelIds.Contains(Draft.SelectedAiModel);
+
+    /// <summary>Gets a clear selected-model availability explanation.</summary>
+    public string SelectedModelStatusText => string.IsNullOrWhiteSpace(Draft.SelectedAiModel)
+        ? "No model is selected. Discover installed models, then choose one."
+        : !HasCompletedModelDiscovery
+            ? $"Configured model: {Draft.SelectedAiModel}. Refresh models to verify that it is installed."
+            : IsSelectedModelAvailable
+                ? $"Selected model '{Draft.SelectedAiModel}' is installed."
+                : $"Selected model '{Draft.SelectedAiModel}' is not in the discovered installed-model list. Select an installed model.";
+
+    /// <summary>Gets whether normal AI setup is ready for at least one enabled capability.</summary>
+    public bool IsAiSetupReady => Draft.AiEnabled && IsSelectedModelAvailable &&
+        (Draft.FileRenameSuggestionsEnabled || Draft.FolderStructureSuggestionsEnabled);
+
+    /// <summary>Gets concise setup readiness guidance.</summary>
+    public string AiSetupReadinessText => IsAiSetupReady
+        ? "AI setup is ready for the enabled suggestion capabilities."
+        : "AI setup is incomplete. Check the connection, discover models, select an installed model, and enable a capability.";
+
+    /// <summary>Gets timeout range guidance for predictable validation.</summary>
+    public string AiRequestTimeoutValidation =>
+        $"Enter a whole number from {AiSettings.MinimumRequestTimeoutSeconds} through {AiSettings.MaximumRequestTimeoutSeconds} seconds.";
 
     /// <summary>
     /// Gets whether saved settings require application restart to reconfigure active services.
@@ -100,6 +149,13 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _statusText, value);
     }
 
+    /// <summary>Gets consistent settings-save status presentation.</summary>
+    public StatusPresentation Status
+    {
+        get => _status;
+        private set => SetProperty(ref _status, value);
+    }
+
     /// <summary>
     /// Gets the documented log levels users may select.
     /// </summary>
@@ -113,6 +169,13 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets a concise explanation of the optional AI integration state.</summary>
     public string AiStatusText { get; private set; } = "AI assistance is disabled until enabled and configured.";
+
+    /// <summary>Gets consistent provider/setup status presentation.</summary>
+    public StatusPresentation AiStatus
+    {
+        get => _aiStatus;
+        private set => SetProperty(ref _aiStatus, value);
+    }
 
     /// <summary>Gets whether an optional AI connection, discovery, or owned-history reset operation is active.</summary>
     public bool IsAiBusy
@@ -204,6 +267,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         Draft = SettingsDraft.FromSettings(_configurationService.Current);
         RestartRequired = false;
         StatusText = "Settings loaded.";
+        Status = StatusPresentation.Information(StatusText);
         SetAiStatus(_configurationService.Current.Ai.Enabled
             ? AiAvailabilityState.Connected
             : AiAvailabilityState.Disabled,
@@ -220,23 +284,31 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             var settings = Draft.ToSettings();
             settings.Validate();
             await _configurationService.SaveAsync(settings, CancellationToken.None);
+            _aiRequestDiagnosticsStore?.SetEnabled(
+                settings.Ai.Enabled &&
+                settings.Features.ShowAdvancedFeatures &&
+                settings.Ai.RequestDiagnosticsEnabled);
             RestartRequired = LoggingChanged(previous.Logging, settings.Logging);
             StatusText = RestartRequired
                 ? "Settings saved and feature visibility updated. Restart OpenSorSe to apply active logging changes."
                 : "Settings saved and feature visibility updated.";
+            Status = StatusPresentation.Success(StatusText);
             SettingsSaved?.Invoke(this, settings);
         }
-        catch (ConfigurationValidationException)
+        catch (ConfigurationValidationException exception)
         {
-            StatusText = "Settings are invalid.";
+            StatusText = exception.Message;
+            Status = StatusPresentation.Error(StatusText);
         }
         catch (IOException)
         {
             StatusText = "Settings could not be saved.";
+            Status = StatusPresentation.Error(StatusText);
         }
         catch (UnauthorizedAccessException)
         {
             StatusText = "Settings could not be saved.";
+            Status = StatusPresentation.Error(StatusText);
         }
     }
 
@@ -246,6 +318,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         Draft = SettingsDraft.FromSettings(new ApplicationSettings());
         RestartRequired = false;
         StatusText = "Default settings restored. Save to persist them.";
+        Status = StatusPresentation.Information(StatusText);
         SetAiStatus(AiAvailabilityState.Disabled, "AI assistance is disabled until enabled and configured.");
     }
 
@@ -255,10 +328,11 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         Draft = SettingsDraft.FromSettings(_configurationService.Current);
         RestartRequired = false;
         StatusText = "Unsaved changes discarded.";
+        Status = StatusPresentation.Information(StatusText);
     }
 
     private bool CanStartAiOperation() =>
-        _aiSuggestionService is not null && !IsAiBusy && Draft.AiEnabled && Draft.ShowAdvancedFeatures;
+        _aiSuggestionService is not null && !IsAiBusy && Draft.AiEnabled;
 
     private bool CanRequestPreferenceHistoryReset() =>
         _aiSuggestionService is not null && !IsAiBusy && Draft.AiEnabled && Draft.ShowAdvancedFeatures && !IsPreferenceHistoryResetPending;
@@ -280,7 +354,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             var result = await _aiSuggestionService.TestConnectionAsync(Draft.ToSettings(), cancellation.Token);
             if (IsCurrentAiOperation(cancellation, version))
             {
-                PublishAiConnection(result, selectFirstModel: false);
+                PublishAiConnection(result, publishModels: false);
             }
         }
         catch (ConfigurationValidationException)
@@ -321,7 +395,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             var result = await _aiSuggestionService.DiscoverModelsAsync(Draft.ToSettings(), cancellation.Token);
             if (IsCurrentAiOperation(cancellation, version))
             {
-                PublishAiConnection(result, selectFirstModel: true);
+                PublishAiConnection(result, publishModels: true);
             }
         }
         catch (ConfigurationValidationException)
@@ -465,28 +539,41 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         _isDisposed = true;
     }
 
-    private void PublishAiConnection(AiConnectionResult result, bool selectFirstModel)
+    private void PublishAiConnection(AiConnectionResult result, bool publishModels)
     {
-        _availableAiModels.Clear();
-        foreach (var model in result.Models)
+        if (publishModels)
         {
-            _availableAiModels.Add(model.Id);
-        }
+            _installedAiModelIds.Clear();
+            _availableAiModels.Clear();
+            foreach (var model in result.Models)
+            {
+                _installedAiModelIds.Add(model.Id);
+                _availableAiModels.Add(model.Id);
+            }
 
-        if (selectFirstModel && string.IsNullOrWhiteSpace(Draft.SelectedAiModel) && _availableAiModels.Count > 0)
-        {
-            Draft.SelectedAiModel = _availableAiModels[0];
-            SetAiStatus(AiAvailabilityState.ModelSelected, $"Ollama model '{Draft.SelectedAiModel}' selected. Save Settings to persist it.");
-            return;
+            _hasCompletedModelDiscovery = true;
+            if (!string.IsNullOrWhiteSpace(Draft.SelectedAiModel) && !_installedAiModelIds.Contains(Draft.SelectedAiModel))
+            {
+                _availableAiModels.Insert(0, Draft.SelectedAiModel);
+            }
         }
 
         SetAiStatus(result.State, result.Message);
+        NotifyAiReadinessChanged();
     }
 
     private void SetAiStatus(AiAvailabilityState state, string message)
     {
         AiAvailabilityState = state;
         AiStatusText = message;
+        AiStatus = state switch
+        {
+            AiAvailabilityState.Connecting or AiAvailabilityState.RequestRunning => StatusPresentation.Progress(message),
+            AiAvailabilityState.Connected or AiAvailabilityState.ModelSelected => StatusPresentation.Success(message),
+            AiAvailabilityState.NoModelsAvailable or AiAvailabilityState.ModelUnavailable or AiAvailabilityState.ResponseInvalid => StatusPresentation.Warning(message),
+            AiAvailabilityState.Unavailable => StatusPresentation.Error(message),
+            _ => StatusPresentation.Information(message),
+        };
         OnPropertyChanged(nameof(AiAvailabilityState));
         OnPropertyChanged(nameof(AiStatusText));
     }
@@ -495,12 +582,20 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     {
         if (eventArgs.PropertyName is nameof(SettingsDraft.AiEnabled) or nameof(SettingsDraft.ShowAdvancedFeatures))
         {
-            if ((!Draft.AiEnabled || !Draft.ShowAdvancedFeatures) && IsAiBusy)
+            if (!Draft.AiEnabled && IsAiBusy)
             {
                 CancelAiOperation();
             }
 
             NotifyFeatureVisibilityChanged();
+        }
+
+        if (eventArgs.PropertyName is nameof(SettingsDraft.SelectedAiModel)
+            or nameof(SettingsDraft.FileRenameSuggestionsEnabled)
+            or nameof(SettingsDraft.FolderStructureSuggestionsEnabled)
+            or nameof(SettingsDraft.AiRequestTimeoutText))
+        {
+            NotifyAiReadinessChanged();
         }
     }
 
@@ -508,11 +603,24 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     {
         OnPropertyChanged(nameof(IsAiCapabilitySettingsVisible));
         OnPropertyChanged(nameof(IsAdvancedSettingsVisible));
+        OnPropertyChanged(nameof(IsAiProviderSettingsVisible));
         OnPropertyChanged(nameof(IsAdvancedAiSettingsVisible));
         TestAiConnectionCommand.NotifyCanExecuteChanged();
         DiscoverAiModelsCommand.NotifyCanExecuteChanged();
         RequestPreferenceHistoryResetCommand.NotifyCanExecuteChanged();
         ConfirmPreferenceHistoryResetCommand.NotifyCanExecuteChanged();
+        NotifyAiReadinessChanged();
+    }
+
+    private void NotifyAiReadinessChanged()
+    {
+        OnPropertyChanged(nameof(HasCompletedModelDiscovery));
+        OnPropertyChanged(nameof(HasNoDiscoveredModels));
+        OnPropertyChanged(nameof(IsSelectedModelAvailable));
+        OnPropertyChanged(nameof(SelectedModelStatusText));
+        OnPropertyChanged(nameof(IsAiSetupReady));
+        OnPropertyChanged(nameof(AiSetupReadinessText));
+        OnPropertyChanged(nameof(AiRequestTimeoutValidation));
     }
 
     private static bool LoggingChanged(LoggingSettings previous, LoggingSettings current) =>

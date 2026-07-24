@@ -87,6 +87,32 @@ public sealed class AiResponseParserTests
         Assert.Equal("Finance/Invoices", Assert.Single(value.Items).DestinationFolder);
     }
 
+    /// <summary>Verifies request-local identities map back only after every included item is assigned exactly once.</summary>
+    [Fact]
+    public void ParseFolderStructure_RequestLocalMappings_RequireCompleteExactOnceAssignment()
+    {
+        var files = new[]
+        {
+            CreateFile("known:a", "a.pdf"),
+            CreateFile("known:b", "b.pdf"),
+        };
+        var mappings = new[]
+        {
+            new AiPromptSourceMapping("item-001", "known:a", "a.pdf"),
+            new AiPromptSourceMapping("item-002", "known:b", "b.pdf"),
+        };
+        const string complete = """{"taskId":"folder-structure-v1","status":"suggestion","folders":[{"folderId":"f1","name":"Documents","parentFolderId":null,"reason":"Type","confidence":0.8}],"assignments":[{"sourceFileId":"item-001","folderId":"f1"},{"sourceFileId":"item-002","folderId":"f1"}],"reason":"Group documents."}""";
+        const string missing = """{"taskId":"folder-structure-v1","status":"suggestion","folders":[{"folderId":"f1","name":"Documents","parentFolderId":null,"reason":"Type","confidence":0.8}],"assignments":[{"sourceFileId":"item-001","folderId":"f1"}],"reason":"Group documents."}""";
+
+        var accepted = _parser.ParseFolderStructure(complete, files, mappings);
+        var rejected = _parser.ParseFolderStructure(missing, files, mappings);
+
+        Assert.True(accepted.IsValid);
+        Assert.Equal(["known:a", "known:b"], accepted.Value!.Items.Select(item => item.FileId));
+        Assert.False(rejected.IsValid);
+        Assert.Null(rejected.Value);
+    }
+
     /// <summary>Verifies a valid explicit folder no-suggestion response remains non-actionable.</summary>
     [Fact]
     public void ParseFolderStructure_NoSuggestion_IsAcceptedWithoutPlan()

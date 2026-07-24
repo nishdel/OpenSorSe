@@ -47,8 +47,20 @@ public interface IAiResponseParser
     /// <summary>Parses one file-rename response against the exact known file context.</summary>
     AiResponseParseResult<AiParsedFileRename> ParseFileRename(string response, AiFileRenameRequest request);
 
+    /// <summary>Parses one file-rename response using request-local identity mapping.</summary>
+    AiResponseParseResult<AiParsedFileRename> ParseFileRename(
+        string response,
+        AiFileRenameRequest request,
+        IReadOnlyList<AiPromptSourceMapping> sourceMappings);
+
     /// <summary>Parses one folder-structure response against only the file records included in the prompt.</summary>
     AiResponseParseResult<AiParsedFolderStructure> ParseFolderStructure(string response, IReadOnlyList<ResultFile> includedFiles);
+
+    /// <summary>Parses one folder response using request-local identity mapping.</summary>
+    AiResponseParseResult<AiParsedFolderStructure> ParseFolderStructure(
+        string response,
+        IReadOnlyList<ResultFile> includedFiles,
+        IReadOnlyList<AiPromptSourceMapping> sourceMappings);
 }
 
 /// <summary>
@@ -60,11 +72,30 @@ public sealed class AiResponseParser : IAiResponseParser
     private const string NoSuggestionStatus = "no_suggestion";
 
     /// <inheritdoc />
-    public AiResponseParseResult<AiParsedFileRename> ParseFileRename(string response, AiFileRenameRequest request)
+    public AiResponseParseResult<AiParsedFileRename> ParseFileRename(string response, AiFileRenameRequest request) =>
+        ParseFileRename(
+            response,
+            request,
+            Array.AsReadOnly([new AiPromptSourceMapping(request.File.Id, request.File.Id, request.File.DisplayFileName)]));
+
+    /// <inheritdoc />
+    public AiResponseParseResult<AiParsedFileRename> ParseFileRename(
+        string response,
+        AiFileRenameRequest request,
+        IReadOnlyList<AiPromptSourceMapping> sourceMappings)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.File);
         ArgumentNullException.ThrowIfNull(request.SiblingFileNames);
+        ArgumentNullException.ThrowIfNull(sourceMappings);
+        var sourceMapping = sourceMappings.Count == 1 &&
+                            string.Equals(sourceMappings[0].KnownSourceId, request.File.Id, StringComparison.Ordinal)
+            ? sourceMappings[0]
+            : null;
+        if (sourceMapping is null)
+        {
+            return Failure<AiParsedFileRename>("The known rename identity mapping is invalid. No suggestion was used.");
+        }
 
         if (!TryOpen(response, out var document, out var error))
         {
@@ -90,7 +121,7 @@ public sealed class AiResponseParser : IAiResponseParser
             }
 
             if (!TryReadRequiredString(root, "sourceFileId", 128, out var sourceFileId, out error) ||
-                !string.Equals(sourceFileId, request.File.Id, StringComparison.Ordinal))
+                !string.Equals(sourceFileId, sourceMapping.RequestSourceId, StringComparison.Ordinal))
             {
                 return Failure<AiParsedFileRename>("The AI rename response referenced an unknown source file. No suggestion was used.");
             }
@@ -117,20 +148,39 @@ public sealed class AiResponseParser : IAiResponseParser
             }
 
             return new AiResponseParseResult<AiParsedFileRename>(
-                new AiParsedFileRename(sourceFileId, normalizedFileName, reason, confidence),
+                new AiParsedFileRename(sourceMapping.KnownSourceId, normalizedFileName, reason, confidence),
                 false,
                 "A validated AI-generated rename suggestion is available for review.");
         }
     }
 
     /// <inheritdoc />
-    public AiResponseParseResult<AiParsedFolderStructure> ParseFolderStructure(string response, IReadOnlyList<ResultFile> includedFiles)
+    public AiResponseParseResult<AiParsedFolderStructure> ParseFolderStructure(string response, IReadOnlyList<ResultFile> includedFiles) =>
+        ParseFolderStructure(
+            response,
+            includedFiles,
+            Array.AsReadOnly(includedFiles.Select(file => new AiPromptSourceMapping(file.Id, file.Id, file.DisplayFileName)).ToArray()));
+
+    /// <inheritdoc />
+    public AiResponseParseResult<AiParsedFolderStructure> ParseFolderStructure(
+        string response,
+        IReadOnlyList<ResultFile> includedFiles,
+        IReadOnlyList<AiPromptSourceMapping> sourceMappings)
     {
         ArgumentNullException.ThrowIfNull(includedFiles);
+        ArgumentNullException.ThrowIfNull(sourceMappings);
         if (includedFiles.Count == 0 || includedFiles.Any(file => file is null || string.IsNullOrWhiteSpace(file.Id)) ||
             includedFiles.Select(file => file.Id).Distinct(StringComparer.Ordinal).Count() != includedFiles.Count)
         {
             return Failure<AiParsedFolderStructure>("The known folder-structure context is invalid. No suggestion was used.");
+        }
+
+        if (sourceMappings.Count != includedFiles.Count ||
+            sourceMappings.Select(mapping => mapping.RequestSourceId).Distinct(StringComparer.Ordinal).Count() != sourceMappings.Count ||
+            sourceMappings.Select(mapping => mapping.KnownSourceId).Distinct(StringComparer.Ordinal).Count() != sourceMappings.Count ||
+            sourceMappings.Any(mapping => !includedFiles.Any(file => string.Equals(file.Id, mapping.KnownSourceId, StringComparison.Ordinal))))
+        {
+            return Failure<AiParsedFolderStructure>("The known folder-structure identity mapping is invalid. No suggestion was used.");
         }
 
         if (!TryOpen(response, out var document, out var error))
@@ -207,12 +257,13 @@ public sealed class AiResponseParser : IAiResponseParser
 
             if (!root.TryGetProperty("assignments", out var assignmentsElement) || assignmentsElement.ValueKind != JsonValueKind.Array ||
                 assignmentsElement.GetArrayLength() is 0 or > AiResponseLimits.MaximumAssignments ||
-                assignmentsElement.GetArrayLength() > includedFiles.Count)
+                assignmentsElement.GetArrayLength() != includedFiles.Count)
             {
                 return Failure<AiParsedFolderStructure>("The AI folder response contains an invalid assignment list. No suggestion was used.");
             }
 
             var knownFiles = includedFiles.ToDictionary(file => file.Id, StringComparer.Ordinal);
+            var sourceMap = sourceMappings.ToDictionary(mapping => mapping.RequestSourceId, StringComparer.Ordinal);
             var assignedFiles = new HashSet<string>(StringComparer.Ordinal);
             var items = new List<AiFolderStructurePlanItem>();
             foreach (var assignmentElement in assignmentsElement.EnumerateArray())
@@ -220,7 +271,8 @@ public sealed class AiResponseParser : IAiResponseParser
                 if (assignmentElement.ValueKind != JsonValueKind.Object ||
                     !TryReadRequiredString(assignmentElement, "sourceFileId", 128, out var sourceFileId, out error) ||
                     !TryReadRequiredString(assignmentElement, "folderId", 64, out var folderId, out error) ||
-                    !knownFiles.TryGetValue(sourceFileId, out var file) ||
+                    !sourceMap.TryGetValue(sourceFileId, out var mapping) ||
+                    !knownFiles.TryGetValue(mapping.KnownSourceId, out var file) ||
                     !paths.TryGetValue(folderId, out var logicalPath))
                 {
                     return Failure<AiParsedFolderStructure>("The AI folder response referenced an unknown source file or folder. No suggestion was used.");
@@ -232,6 +284,11 @@ public sealed class AiResponseParser : IAiResponseParser
                 }
 
                 items.Add(new AiFolderStructurePlanItem(file.Id, file.DisplayFileName, logicalPath));
+            }
+
+            if (assignedFiles.Count != sourceMappings.Count)
+            {
+                return Failure<AiParsedFolderStructure>("The AI folder response did not assign every supplied source file exactly once. No suggestion was used.");
             }
 
             var folders = folderInputs.Values

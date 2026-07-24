@@ -10,6 +10,8 @@ The **Catalog search** page searches only metadata already held in saved snapsho
 
 v0.7 adds a separate list of up to 25 named query-text presets. Presets live in `saved-catalog-searches.json`, do not retain hits, and rerun the current catalog search explicitly. Selected removal and two-step reset affect only saved query text; reset remains available to recover malformed preset data even when catalog storage is disabled.
 
+The v0.9.1 correction pass presents **Search the catalog** before the separate **Saved searches** maintenance section. A completed query has one severity-labelled status and one result-count or empty state; clearing the query also clears results and selection. Saved definitions can be created, run, renamed, removed, or cleared with confirmation. Renaming preserves the preset identifier, query, and creation time, so it does not change the persisted schema or compatibility.
+
 v0.8 advances `catalog.json` writes to schema 2 while reading schema 1 without automatic mutation. New entries capture at most 32 selected source roots and may have an 80-character name. Search hits show that name without changing v0.5 ranking. A later successful catalog write atomically upgrades the bounded envelope; listing alone does not rewrite it.
 
 ```mermaid
@@ -32,6 +34,7 @@ flowchart LR
 - Removing/clearing requires explicit controls; clear all requires a second confirmation action.
 - Malformed catalog data is reported and preserved rather than automatically deleted.
 - Saved-query data is bounded separately; malformed data is preserved until the user explicitly confirms reset.
+- Renaming, removing, or clearing saved-search definitions never changes catalog snapshots, tags, search hits, or selected user files.
 
 ## Related documents
 

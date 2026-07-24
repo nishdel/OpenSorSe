@@ -88,7 +88,7 @@ public sealed class SettingsViewModelTests
         await viewModel.SaveCommand.ExecuteAsync(null);
 
         Assert.Equal(0, configuration.ReplacementSaveCount);
-        Assert.Equal("Settings are invalid.", viewModel.StatusText);
+        Assert.Equal("Logging settings are invalid.", viewModel.StatusText);
         Assert.False(viewModel.RestartRequired);
     }
 
@@ -104,7 +104,7 @@ public sealed class SettingsViewModelTests
         await viewModel.SaveCommand.ExecuteAsync(null);
 
         Assert.Equal(0, configuration.ReplacementSaveCount);
-        Assert.Equal("Settings are invalid.", viewModel.StatusText);
+        Assert.Equal("Logging settings are invalid.", viewModel.StatusText);
     }
 
     /// <summary>
@@ -203,6 +203,61 @@ public sealed class SettingsViewModelTests
         Assert.True(configuration.Current.Ai.FileRenameSuggestionsEnabled);
         Assert.False(configuration.Current.Ai.FolderStructureSuggestionsEnabled);
         Assert.True(configuration.Current.Features.ShowAdvancedFeatures);
+    }
+
+    /// <summary>Verifies both documented timeout boundaries persist and out-of-range text is rejected.</summary>
+    [Theory]
+    [InlineData("5", true)]
+    [InlineData("300", true)]
+    [InlineData("4", false)]
+    [InlineData("301", false)]
+    [InlineData("not-a-number", false)]
+    public async Task SaveAsync_AiTimeoutText_EnforcesFiveThroughThreeHundredSeconds(string text, bool expectedSaved)
+    {
+        var configuration = new TestConfigurationService();
+        using var viewModel = new SettingsViewModel(configuration);
+        viewModel.Draft.AiRequestTimeoutText = text;
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(expectedSaved ? 1 : 0, configuration.ReplacementSaveCount);
+        if (expectedSaved)
+        {
+            Assert.Equal(int.Parse(text, System.Globalization.CultureInfo.InvariantCulture), configuration.Current.Ai.RequestTimeoutSeconds);
+        }
+        else
+        {
+            Assert.Contains("5", viewModel.StatusText, StringComparison.Ordinal);
+            Assert.Contains("300", viewModel.StatusText, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Verifies raw AI diagnostics require AI, Advanced mode, and the independent opt-in without resetting it.</summary>
+    [Fact]
+    public async Task SaveAsync_AiDiagnostics_RequiresBothMasterFlagsAndClearsWhenHidden()
+    {
+        var initial = new ApplicationSettings
+        {
+            Ai = new AiSettings
+            {
+                Enabled = true,
+                RequestDiagnosticsEnabled = true,
+            },
+        };
+        var configuration = new TestConfigurationService(settings: initial);
+        var diagnostics = new AiRequestDiagnosticsStore();
+        diagnostics.SetEnabled(true);
+        using var viewModel = new SettingsViewModel(configuration, aiRequestDiagnosticsStore: diagnostics);
+        Assert.False(diagnostics.IsEnabled);
+
+        viewModel.Draft.ShowAdvancedFeatures = true;
+        await viewModel.SaveCommand.ExecuteAsync(null);
+        Assert.True(diagnostics.IsEnabled);
+
+        viewModel.Draft.ShowAdvancedFeatures = false;
+        await viewModel.SaveCommand.ExecuteAsync(null);
+        Assert.False(diagnostics.IsEnabled);
+        Assert.True(configuration.Current.Ai.RequestDiagnosticsEnabled);
     }
 
     private static ApplicationSettings AiAdvancedSettings() => new()

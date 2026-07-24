@@ -14,7 +14,7 @@ public sealed class AiSuggestionServiceTests
     [Fact]
     public async Task GenerateFileRenameAsync_ValidResponse_PublishesReviewOnlySuggestion()
     {
-        var provider = new FakeProvider(RenameJson("file:1", "April Invoice.pdf"));
+        var provider = new FakeProvider(RenameJson("item-001", "April Invoice.pdf"));
         var service = CreateService(provider, new InMemoryDecisionHistoryStore());
 
         var result = await service.GenerateFileRenameAsync(CreateRenameRequest(), EnabledSettings(), CancellationToken.None);
@@ -64,6 +64,26 @@ public sealed class AiSuggestionServiceTests
         Assert.Equal(0, provider.GenerateCallCount);
     }
 
+    /// <summary>Verifies exact selected-model availability is checked before any generation request.</summary>
+    [Fact]
+    public async Task GenerateFileRenameAsync_SelectedModelMissing_DoesNotGenerate()
+    {
+        var provider = new FakeProvider("{}")
+        {
+            ConnectionModels = [new AiModel("LOCAL-MODEL", "LOCAL-MODEL")],
+        };
+        var service = CreateService(provider, new InMemoryDecisionHistoryStore());
+
+        var result = await service.GenerateFileRenameAsync(
+            CreateRenameRequest(),
+            EnabledSettings(),
+            CancellationToken.None);
+
+        Assert.Equal(AiAvailabilityState.ModelUnavailable, result.State);
+        Assert.Equal(1, provider.ConnectionCallCount);
+        Assert.Equal(0, provider.GenerateCallCount);
+    }
+
     /// <summary>Verifies invalid known context is rejected before provider or preference access.</summary>
     [Fact]
     public async Task GenerateFolderStructureAsync_DuplicateSourceIdentity_IsRejectedBeforeProvider()
@@ -95,7 +115,7 @@ public sealed class AiSuggestionServiceTests
                 {"folderId":"f1","name":"Finance","parentFolderId":null,"reason":"Category","confidence":0.8},
                 {"folderId":"f2","name":"Invoices","parentFolderId":"f1","reason":"Filename","confidence":0.7}
               ],
-              "assignments":[{"sourceFileId":"file:1","folderId":"f2"}],
+              "assignments":[{"sourceFileId":"item-001","folderId":"f2"}],
               "reason":"A bounded logical grouping."
             }
             """;
@@ -149,7 +169,78 @@ public sealed class AiSuggestionServiceTests
         Assert.Equal(0, history.LoadCallCount);
     }
 
-    /// <summary>Verifies advanced provider diagnostics require both independent master switches.</summary>
+    /// <summary>Verifies typed stages and opt-in raw diagnostics describe one complete metadata-only request.</summary>
+    [Fact]
+    public async Task GenerateFileRenameAsync_DiagnosticsEnabled_CapturesBoundedStagesAndLocalIdentity()
+    {
+        var provider = new FakeProvider(RenameJson("item-001", "April Invoice.pdf"));
+        var diagnostics = new AiRequestDiagnosticsStore();
+        diagnostics.SetEnabled(true);
+        var service = new AiSuggestionService(
+            provider,
+            new InMemoryDecisionHistoryStore(),
+            new LoggingService(),
+            new FixedTimeProvider(DateTimeOffset.UnixEpoch),
+            diagnostics);
+        var progress = new InlineProgress<AiRequestProgress>();
+
+        var result = await service.GenerateFileRenameAsync(
+            CreateRenameRequest(),
+            WithDiagnostics(),
+            progress,
+            CancellationToken.None);
+
+        Assert.NotNull(result.Suggestion);
+        Assert.Equal(AiRequestStage.CheckingSettings, progress.Values[0].Stage);
+        Assert.Equal(AiRequestStage.SuggestionReady, progress.Values[^1].Stage);
+        var record = Assert.Single(diagnostics.GetRecent());
+        Assert.Equal("Accepted", record.ValidationOutcome);
+        Assert.Contains("item-001", record.Prompt, StringComparison.Ordinal);
+        Assert.Contains("invoice.pdf", record.Prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("C:\\Reports", record.Prompt, StringComparison.Ordinal);
+        Assert.Contains(record.Stages, stage => stage.Stage == AiRequestStage.ValidatingModel);
+        Assert.Contains(record.Stages, stage => stage.Stage == AiRequestStage.ValidatingSuggestion);
+
+        static AiSettings WithDiagnostics()
+        {
+            var settings = EnabledSettings();
+            return new AiSettings
+            {
+                Enabled = settings.Enabled,
+                FileRenameSuggestionsEnabled = settings.FileRenameSuggestionsEnabled,
+                FolderStructureSuggestionsEnabled = settings.FolderStructureSuggestionsEnabled,
+                Endpoint = settings.Endpoint,
+                SelectedModel = settings.SelectedModel,
+                RequestTimeoutSeconds = settings.RequestTimeoutSeconds,
+                PreferenceAdaptationEnabled = settings.PreferenceAdaptationEnabled,
+                RequestDiagnosticsEnabled = true,
+            };
+        }
+    }
+
+    /// <summary>Verifies an enabled store cannot capture when the request's explicit opt-in is inactive.</summary>
+    [Fact]
+    public async Task GenerateFileRenameAsync_DiagnosticSettingDisabled_DoesNotCapture()
+    {
+        var diagnostics = new AiRequestDiagnosticsStore();
+        diagnostics.SetEnabled(true);
+        var service = new AiSuggestionService(
+            new FakeProvider(RenameJson("item-001", "April Invoice.pdf")),
+            new InMemoryDecisionHistoryStore(),
+            new LoggingService(),
+            new FixedTimeProvider(DateTimeOffset.UnixEpoch),
+            diagnostics);
+
+        var result = await service.GenerateFileRenameAsync(
+            CreateRenameRequest(),
+            EnabledSettings(),
+            CancellationToken.None);
+
+        Assert.NotNull(result.Suggestion);
+        Assert.Empty(diagnostics.GetRecent());
+    }
+
+    /// <summary>Verifies the AI master switch alone gates ordinary provider setup communication.</summary>
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -166,8 +257,16 @@ public sealed class AiSuggestionServiceTests
 
         var result = await service.TestConnectionAsync(settings, CancellationToken.None);
 
-        Assert.Contains(result.State, new[] { AiAvailabilityState.Disabled, AiAvailabilityState.CapabilityDisabled });
-        Assert.Equal(0, provider.ConnectionCallCount);
+        if (ai)
+        {
+            Assert.Equal(AiAvailabilityState.Connected, result.State);
+            Assert.Equal(1, provider.ConnectionCallCount);
+        }
+        else
+        {
+            Assert.Equal(AiAvailabilityState.Disabled, result.State);
+            Assert.Equal(0, provider.ConnectionCallCount);
+        }
     }
 
     /// <summary>Verifies an unexpected transport exception becomes a safe provider result.</summary>
@@ -280,6 +379,8 @@ public sealed class AiSuggestionServiceTests
 
         public Exception? ConnectionException { get; init; }
 
+        public IReadOnlyList<AiModel> ConnectionModels { get; init; } = [new AiModel("local-model", "local-model")];
+
         public Task<AiConnectionResult> GetConnectionAsync(AiSettings settings, CancellationToken cancellationToken)
         {
             ConnectionCallCount++;
@@ -288,7 +389,7 @@ public sealed class AiSuggestionServiceTests
                 throw ConnectionException;
             }
 
-            return Task.FromResult(new AiConnectionResult(AiAvailabilityState.Connected, "Connected", [new AiModel("local-model", "local-model")]));
+            return Task.FromResult(new AiConnectionResult(AiAvailabilityState.Connected, "Connected", ConnectionModels));
         }
 
         public Task<AiProviderGenerationResult> GenerateAsync(AiProviderGenerationRequest request, CancellationToken cancellationToken)
@@ -331,5 +432,12 @@ public sealed class AiSuggestionServiceTests
     {
         /// <inheritdoc />
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class InlineProgress<T> : IProgress<T>
+    {
+        public List<T> Values { get; } = [];
+
+        public void Report(T value) => Values.Add(value);
     }
 }

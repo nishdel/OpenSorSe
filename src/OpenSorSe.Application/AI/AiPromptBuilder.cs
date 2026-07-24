@@ -25,7 +25,23 @@ public sealed record AiPromptPackage(
     string TaskId,
     string Prompt,
     IReadOnlyList<string> IncludedSourceIds,
-    bool WasInputBounded);
+    bool WasInputBounded)
+{
+    /// <summary>Gets request-local identities mapped to known application source identities.</summary>
+    public IReadOnlyList<AiPromptSourceMapping> SourceMappings { get; init; } = Array.Empty<AiPromptSourceMapping>();
+
+    /// <summary>Gets the total eligible source count before deterministic bounding.</summary>
+    public int TotalInputCount { get; init; } = IncludedSourceIds.Count;
+
+    /// <summary>Gets the source count serialized into the request.</summary>
+    public int IncludedInputCount => SourceMappings.Count == 0 ? IncludedSourceIds.Count : SourceMappings.Count;
+
+    /// <summary>Gets the count omitted by deterministic bounding.</summary>
+    public int OmittedInputCount => Math.Max(0, TotalInputCount - IncludedInputCount);
+}
+
+/// <summary>Maps one short request-local identity back to a known result without exposing its path.</summary>
+public sealed record AiPromptSourceMapping(string RequestSourceId, string KnownSourceId, string ExactFileName);
 
 /// <summary>Builds capability-specific, bounded, metadata-only prompts.</summary>
 public interface IAiPromptBuilder
@@ -63,6 +79,7 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
 
         var siblings = BoundStrings(request.SiblingFileNames, AiPromptLimits.MaximumSiblingFileNames);
         var rejectedValues = BoundStrings(preferences.RejectedValues, AiPromptLimits.MaximumPreferenceValues);
+        const string requestSourceId = "item-001";
         var prompt = new
         {
             taskIdentifier = FileRenameTaskId,
@@ -71,8 +88,8 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
             {
                 sourceFile = new
                 {
-                    sourceFileId = Bound(request.File.Id, 128),
-                    currentFileName = Bound(request.File.DisplayFileName, 255),
+                    sourceFileId = requestSourceId,
+                    currentFileName = request.File.DisplayFileName,
                     extension = Bound(request.File.NormalizedExtension, 32),
                     deterministicCategory = Bound(request.File.ClassificationDisplay, 128),
                 },
@@ -86,7 +103,7 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
             },
             mandatoryRules = new[]
             {
-                "Return the supplied sourceFileId exactly.",
+                "Copy the supplied request-local sourceFileId item-001 exactly without modification.",
                 "Preserve the original extension exactly.",
                 "Return one filename only, never a path.",
                 "Use status no_suggestion when no safe improvement is justified.",
@@ -115,7 +132,11 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
             FileRenameTaskId,
             JsonSerializer.Serialize(prompt, JsonOptions),
             Array.AsReadOnly([request.File.Id]),
-            siblings.WasBounded || rejectedValues.WasBounded);
+            siblings.WasBounded || rejectedValues.WasBounded)
+        {
+            SourceMappings = Array.AsReadOnly([new AiPromptSourceMapping(requestSourceId, request.File.Id, request.File.DisplayFileName)]),
+            TotalInputCount = 1,
+        };
     }
 
     /// <inheritdoc />
@@ -134,18 +155,25 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
         var existingFolders = BoundStrings(request.ExistingFolderNames, AiPromptLimits.MaximumExistingFolderNames);
         var preferredFolders = BoundStrings(preferences.PreferredFolders, AiPromptLimits.MaximumPreferenceValues);
         var rejectedValues = BoundStrings(preferences.RejectedValues, AiPromptLimits.MaximumPreferenceValues);
+        var sourceMappings = orderedFiles
+            .Select((file, index) => new AiPromptSourceMapping($"item-{index + 1:D3}", file.Id, file.DisplayFileName))
+            .ToArray();
         var prompt = new
         {
             taskIdentifier = FolderStructureTaskId,
             objective = "Suggest one logical preview-only folder hierarchy and assignments for supplied known file metadata.",
             inputData = new
             {
-                files = orderedFiles.Select(file => new
+                totalAvailableItemCount = request.Files.Count,
+                includedItemCount = orderedFiles.Length,
+                omittedItemCount = Math.Max(0, request.Files.Count - orderedFiles.Length),
+                files = orderedFiles.Select((file, index) => new
                 {
-                    sourceFileId = Bound(file.Id, 128),
-                    fileName = Bound(file.DisplayFileName, 255),
+                    sourceFileId = sourceMappings[index].RequestSourceId,
+                    fileName = file.DisplayFileName,
                     extension = Bound(file.NormalizedExtension, 32),
                     deterministicCategory = Bound(file.ClassificationDisplay, 128),
+                    sizeInBytes = file.SizeInBytes,
                 }).ToArray(),
                 existingLogicalFolderNames = existingFolders.Values,
                 preferredLogicalFolderNames = preferredFolders.Values,
@@ -154,13 +182,14 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
             allowedReasoningScope = new[]
             {
                 "Use only supplied filenames, extensions, categories, logical folder names, and bounded preferences.",
-                "Suggest logical parent-child relationships and assign only supplied sourceFileIds.",
+                "Given only the supplied exact filenames and bounded metadata, propose a logical folder hierarchy and assign every supplied request-local sourceFileId to one proposed folder.",
             },
             mandatoryRules = new[]
             {
                 "Use unique short folderId values and reference only those values from parentFolderId and assignments.",
                 "Use one safe folder-name component per folder; never return a path as a folder name.",
-                "Reference only supplied sourceFileIds and assign each source at most once.",
+                "Copy request-local sourceFileIds exactly, reference only supplied IDs, and assign every supplied item exactly once.",
+                "Keep the folder count bounded by the supplied response schema and use concise portable folder names.",
                 "Use status no_suggestion when no safe useful hierarchy is justified.",
                 "Keep every reason at or below 240 characters and confidence between 0 and 1 when supplied.",
             },
@@ -189,7 +218,7 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
                 {
                     new
                     {
-                        sourceFileId = "exact supplied opaque id",
+                        sourceFileId = "exact supplied request-local item-NNN id",
                         folderId = "returned folderId",
                     },
                 },
@@ -203,7 +232,11 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
             FolderStructureTaskId,
             JsonSerializer.Serialize(prompt, JsonOptions),
             Array.AsReadOnly(orderedFiles.Select(file => file.Id).ToArray()),
-            orderedFiles.Length < request.Files.Count || existingFolders.WasBounded || preferredFolders.WasBounded || rejectedValues.WasBounded);
+            orderedFiles.Length < request.Files.Count || existingFolders.WasBounded || preferredFolders.WasBounded || rejectedValues.WasBounded)
+        {
+            SourceMappings = Array.AsReadOnly(sourceMappings),
+            TotalInputCount = request.Files.Count,
+        };
     }
 
     private static (IReadOnlyList<string> Values, bool WasBounded) BoundStrings(IReadOnlyList<string> values, int limit)

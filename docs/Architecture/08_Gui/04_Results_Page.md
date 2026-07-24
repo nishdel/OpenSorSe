@@ -1,6 +1,6 @@
-# Results Explorer
+# Results Explorer and Duplicate View
 
-> This document defines the read-only Results Explorer delivered in v0.2 and extended through v0.6.
+> This document defines the read-only Results Explorer delivered in v0.2 and extended through the v0.9.1 correction pass.
 
 ---
 
@@ -24,6 +24,8 @@ The Results Explorer is responsible for:
 * Performing metadata-aware ranked search with concise match explanations.
 * Showing accepted in-memory tags and optional validated AI suggestion previews.
 * Adding/removing up to twelve accepted non-deterministic OpenSorSe metadata tags for the selected result.
+* Presenting responsive Duplicate View groups with plain-language summaries, selected-member controls, and theoretical possible savings.
+* Explicitly opening a bounded set of known current-scan files or containing folders through the operating system for comparison.
 
 ---
 
@@ -32,6 +34,8 @@ The Results Explorer is responsible for:
 The page and its view models do not perform filesystem traversal, read file contents, calculate hashes, execute rules, or modify files. They obtain completed state through application-layer services and keep presentation state separate from the scan pipeline.
 
 Filtering, sorting, paging, selection, ranked search, and accepted tags operate on the current snapshot. User-tag controls update only application associations and raise the existing catalog-persistence signal for catalog-backed snapshots. They are not embedded metadata editing, a document-content search engine, or semantic search. Optional AI suggestions are never execution controls: accepting, rejecting, or editing records a decision only.
+
+Duplicate View can ask `IExternalFileLauncher` to open only direct paths represented by known rows in the current snapshot. A command opens at most five targets, uses an argument-safe platform launch rather than a constructed command line, supports cancellation, continues after individual failures, and reports partial success. Two-member groups alone expose **Open both files**. Historical catalog entries and unknown or stale rows are not launchable.
 
 ---
 
@@ -44,7 +48,9 @@ flowchart LR
     Explorer --> Select["Select an item"]
     Select --> Details["Read-only details panel"]
     Details --> Tags["Manage OpenSorSe tags"]
-    Explorer --> Duplicates["Review exact duplicate groups"]
+    Explorer --> Duplicates["Open Duplicate View"]
+    Duplicates --> Compare["Open up to five known files/folders"]
+    Duplicates --> Explorer
 ```
 
 ---
@@ -56,12 +62,13 @@ flowchart LR
 * UI updates are marshalled safely to the UI thread.
 * Cancellation belongs to the scan operation; changing filters or pages must not mutate the completed scan data.
 * No command in this page performs a selected-file-system write. Optional persistence is confined to the application-owned catalog path.
+* External opening is explicit and bounded; it is not an OpenSorSe file operation or cleanup recommendation.
 
 ---
 
 ## Deferred Capabilities
 
-Content previews, AI summaries, suggested actions, approval workflows, document-content search, exports, and file-changing workflows are not part of v0.2. They require explicit future scope and must preserve the product's safety guarantees.
+Content previews, AI summaries, automatic duplicate cleanup, document-content search, exports, and file-changing workflows are not part of v0.9.1. They require explicit future scope and must preserve the product's safety guarantees.
 
 ---
 

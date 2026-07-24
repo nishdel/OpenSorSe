@@ -20,9 +20,17 @@ Unknown properties are ignored for forward compatibility. Required properties, t
 
 No partially valid suggestion is published. A duplicate, invented identity, invalid folder graph, unsafe name, or other issue rejects the complete response so no ambiguous subset can reach the review workflow.
 
-## No provider preflight for generation
+## Exact-model preflight before generation
 
-Generation does not add a separate availability request. The explicit user request goes directly through the bounded provider call after local gates; this avoids unnecessary communication and lets Ollama return a typed missing-model or unsupported-response failure. Connection tests/model discovery remain explicit advanced actions.
+After local AI, capability, context, endpoint, model, and timeout gates pass, generation performs a bounded `/api/tags` preflight and requires an ordinal match for the configured model. This makes a stale or unavailable model explicit before the larger generation request. The preflight is never performed while AI or the requested capability is disabled, and its timeout/cancellation behavior uses the same request-scoped policy as generation.
+
+## Essential setup is regular AI UI
+
+Endpoint, connection check, discovery/refresh, exact model selection, timeout, and capability controls remain visible whenever AI is enabled. Advanced mode is reserved for technical inspection such as raw AI request diagnostics, detailed logging, comparison, Diagnostics, and Operation history. Raw request capture additionally requires its own default-off switch and is cleared when any of its three gates becomes inactive.
+
+## Safe duplicate comparison opening
+
+Duplicate View may open only validated paths from the current in-memory snapshot. The Desktop owns this narrow launcher abstraction; commands are capped at five targets, continue after individual failures, and never concatenate a shell command. Historical catalog paths and unknown/stale rows are not eligible.
 
 ## Review decisions are not execution
 

@@ -31,6 +31,10 @@ public sealed class AboutViewModelTests
         var addresses = new[] { viewModel.RepositoryAddress, viewModel.DocumentationAddress };
 
         Assert.All(addresses, address => Assert.Equal(Uri.UriSchemeHttps, new Uri(address, UriKind.Absolute).Scheme));
-        Assert.DoesNotContain(typeof(AboutViewModel).GetProperties(), property => property.Name.EndsWith("Command", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            typeof(AboutViewModel).GetProperties(),
+            property =>
+                property.Name.EndsWith("Command", StringComparison.Ordinal) &&
+                !string.Equals(property.Name, "HelpCommand", StringComparison.Ordinal));
     }
 }

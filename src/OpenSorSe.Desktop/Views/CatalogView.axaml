@@ -4,7 +4,11 @@
              x:Class="OpenSorSe.Desktop.Views.CatalogView"
              x:DataType="vm:CatalogViewModel">
     <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
-        <TextBlock Text="Saved catalog" FontSize="24" FontWeight="SemiBold" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock Text="Saved catalog" FontSize="24" FontWeight="SemiBold" />
+            <Button Grid.Column="1" Content="Help" Command="{Binding HelpCommand}"
+                    ToolTip.Tip="Open Saved catalog help" AutomationProperties.Name="Help for Saved catalog" />
+        </Grid>
         <StackPanel Grid.Row="1" Spacing="6">
             <TextBlock Text="Optional local review snapshots" FontSize="18" FontWeight="SemiBold" />
             <TextBlock Text="Saved entries contain display-safe metadata and accepted tags stored only in OpenSorSe application data. They are historical snapshots, not live filesystem views, and opening one never changes a file."

@@ -35,6 +35,9 @@ public enum NavigationDestination
     /// <summary>Displays explicit undo-record sessions supplied by the application controller.</summary>
     History,
 
+    /// <summary>Displays local contextual product help.</summary>
+    Help,
+
     /// <summary>Displays static application metadata and external-resource requests.</summary>
     About,
 }

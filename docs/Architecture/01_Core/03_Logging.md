@@ -4,7 +4,7 @@
 
 ## Implementation status
 
-OpenSorSe 0.9.1 implements centralized `Microsoft.Extensions.Logging` categories, process-lifetime severity statistics, Debug output, and optional local UTF-8 daily files. Detailed logging controls are advanced, but existing values remain preserved while hidden. Managed files are named `opensorse-owned-YYYY-MM-DD.log`, begin with an ownership marker, stop accepting entries at 10 MiB per UTC day, and are retained only when both marker and exact daily name match. A custom absolute log directory is supported; an unowned filename collision is preserved and disables the file sink for that process. Remote logging, telemetry, analytics, structured event storage, and log export are not implemented.
+OpenSorSe 0.9.1 implements centralized `Microsoft.Extensions.Logging` categories, process-lifetime severity statistics, Debug output, a newest-first 500-event in-memory diagnostic ring, and optional local UTF-8 daily files. Diagnostic events contain UTC time, severity, category, bounded summary, optional event ID, and a safe bounded exception summary; stack traces are not projected into the normal UI. Detailed logging controls and the Diagnostics page are advanced, but existing settings remain preserved while hidden. Managed files are named `opensorse-owned-YYYY-MM-DD.log`, begin with an ownership marker, stop accepting entries at 10 MiB per UTC day, and are retained only when both marker and exact daily name match. A custom absolute log directory is supported; an unowned filename collision is preserved and disables the file sink for that process. Remote logging, telemetry, analytics, persistent structured event storage, and log export are not implemented.
 
 ---
 
@@ -75,6 +75,7 @@ GUI --> Logging
 Plugins --> Logging
 Core --> Logging
 
+Logging --> SessionRing["500-event session ring"]
 Logging --> LogOutput
 ```
 

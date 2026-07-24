@@ -14,9 +14,9 @@ The Prompt Engine focuses solely on prompt construction. It does not execute AI 
 
 ## v0.9.1 implementation status
 
-`IAiPromptBuilder` and `AiPromptBuilder` implement two English internal templates: `file-rename-v1` and `folder-structure-v1`. Each prompt serializes clearly named objective, input, allowed scope, mandatory rules, forbidden behavior, response schema, and no-suggestion sections. Context is deterministic and bounded to one rename target plus at most 20 nearby filenames, or at most 25 selected files and 30 existing folder names. Preference lists are independently bounded. Absolute paths and file contents are excluded.
+`IAiPromptBuilder` and `AiPromptBuilder` implement two English internal templates: `file-rename-v1` and `folder-structure-v1`. Each prompt serializes clearly named objective, input, allowed scope, mandatory rules, forbidden behavior, response schema, and no-suggestion sections. Context is deterministic and bounded to one rename target plus at most 20 nearby filenames, or at most 25 selected files and 30 existing folder names. Included files are deterministically assigned request-local `item-NNN` identities; the private prompt package retains the mapping to application identities. Folder prompts report total, included, and omitted counts and require each included item exactly once. Preference lists are independently bounded. Absolute paths and file contents are excluded.
 
-Templates are application-owned and provider-neutral rather than embedded in ViewModels or views. English is fixed for this patch release, while stable task identifiers and isolated builders leave room for later localization. User-editable templates and prompt diagnostics are not shipped.
+Templates are application-owned and provider-neutral rather than embedded in ViewModels or views. English is fixed for this patch release, while stable task identifiers and isolated builders leave room for later localization. User-editable templates are not shipped. Exact prompts and responses can be inspected only in the explicitly enabled, redacted, 20-record session diagnostic buffer.
 
 ---
 

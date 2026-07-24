@@ -13,7 +13,7 @@ This index distinguishes historical foundation specifications from release-speci
 | v0.7 Saved Catalog Searches | Complete | [Release proposal](v0.7/00_v0.7_Release_Proposal.md), specifications 040–041, and decisions |
 | v0.8 Snapshot Identity and Scope | Complete | [Release proposal](v0.8/00_v0.8_Release_Proposal.md), specifications 042-043, and decisions |
 | v0.9 Historical Snapshot Comparison | Complete / audited | [Release proposal](v0.9/00_v0.9_Release_Proposal.md), specifications 044-045, [audit corrections](v0.9/AUDIT_CORRECTIONS.md), and decisions |
-| v0.9.1 Optional AI and Feature Controls | Complete; manual UI verification pending | [Release proposal](v0.9.1/00_v0.9.1_Release_Proposal.md), [specification 046](v0.9.1/046_Optional_AI_and_Advanced_Feature_Controls.md), and [decisions](v0.9.1/IMPLEMENTATION_DECISIONS.md) |
+| v0.9.1 Optional AI and Feature Controls | Implementation and corrective pass complete; manual GUI verification pending | [Release proposal](v0.9.1/00_v0.9.1_Release_Proposal.md), [specification 046](v0.9.1/046_Optional_AI_and_Advanced_Feature_Controls.md), [corrective specification 047](v0.9.1/047_Correction_Reliability_and_Usability_Pass.md), and [decisions](v0.9.1/IMPLEMENTATION_DECISIONS.md) |
 
 ## Current boundary
 

@@ -4,7 +4,7 @@
 
 ## Implementation status
 
-v0.9.1 uses a validated JSON settings file of at most 1 MiB in OpenSorSe local application data. Implemented groups cover diagnostic logging, `Features.ShowAdvancedFeatures`, optional AI endpoint/model/timeout/history reuse, `Ai.Enabled`, independent rename/folder capability flags, and `Catalog.Enabled`. All feature and catalog switches default `false`. Missing v0.9.1 properties deserialize to safe defaults, so an older file needs no schema rewrite or manual deletion; hidden values remain persisted and inactive. Named query presets remain separate bounded application data. Scan defaults, command-line options, profiles, import/export, localization, and plugin configuration are not implemented. The only environment override is `OPENSORSE_LOGGING__MINIMUMLEVEL`.
+v0.9.1 uses a validated JSON settings file of at most 1 MiB in OpenSorSe local application data. Implemented groups cover diagnostic logging, `Features.ShowAdvancedFeatures`, optional AI endpoint/model/5-300 second timeout/history reuse, `Ai.Enabled`, independent rename/folder capability flags, default-off session request diagnostics, and `Catalog.Enabled`. All feature, catalog, capability, and raw-diagnostic switches default `false`. Missing v0.9.1 properties deserialize to safe defaults, so an older file needs no schema rewrite or manual deletion; hidden values remain persisted and inactive. Raw request records themselves are never persisted. Named query presets remain separate bounded application data. Scan defaults, command-line options, profiles, import/export, localization, and plugin configuration are not implemented. The only environment override is `OPENSORSE_LOGGING__MINIMUMLEVEL`.
 
 ---
 

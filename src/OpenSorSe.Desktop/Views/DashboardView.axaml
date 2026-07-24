@@ -5,7 +5,11 @@
              x:DataType="vm:DashboardViewModel">
     <ScrollViewer>
         <StackPanel Spacing="16">
-            <TextBlock Text="Dashboard" FontSize="24" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Text="Dashboard" FontSize="24" FontWeight="SemiBold" />
+                <Button Grid.Column="1" Content="Help" Command="{Binding HelpCommand}"
+                        ToolTip.Tip="Open Dashboard help" AutomationProperties.Name="Help for Dashboard" />
+            </Grid>
             <TextBlock Text="{Binding StatusText}" />
             <Border IsVisible="{Binding IsAwaitingFirstScan}"
                     Padding="12"

@@ -116,6 +116,12 @@ public sealed class AiSettings
     /// <summary>Gets the maximum supported model identifier length.</summary>
     public const int MaximumModelIdentifierLength = 256;
 
+    /// <summary>Gets the minimum supported finite request timeout.</summary>
+    public const int MinimumRequestTimeoutSeconds = 5;
+
+    /// <summary>Gets the maximum supported finite request timeout.</summary>
+    public const int MaximumRequestTimeoutSeconds = 300;
+
     /// <summary>
     /// Gets or initializes whether AI suggestion requests are permitted.
     /// </summary>
@@ -126,6 +132,9 @@ public sealed class AiSettings
 
     /// <summary>Gets or initializes whether review-only folder-structure suggestions are enabled.</summary>
     public bool FolderStructureSuggestionsEnabled { get; init; }
+
+    /// <summary>Gets or initializes opt-in, session-only raw AI request diagnostics.</summary>
+    public bool RequestDiagnosticsEnabled { get; init; }
 
     /// <summary>
     /// Gets or initializes the Ollama-compatible endpoint. The default is the local Ollama endpoint.
@@ -169,11 +178,11 @@ public sealed class AiSettings
             !Uri.TryCreate(Endpoint.Trim(), UriKind.Absolute, out var endpoint) ||
             endpoint.Scheme is not ("http" or "https") ||
             string.IsNullOrWhiteSpace(endpoint.Host) ||
-            RequestTimeoutSeconds is < 1 or > 120 ||
+            RequestTimeoutSeconds is < MinimumRequestTimeoutSeconds or > MaximumRequestTimeoutSeconds ||
             SelectedModel is { } model &&
             (model.Length > MaximumModelIdentifierLength || model.Any(char.IsControl)))
         {
-            throw new ConfigurationValidationException("AI settings are invalid.");
+            throw new ConfigurationValidationException($"AI settings are invalid. Request timeout must be between {MinimumRequestTimeoutSeconds} and {MaximumRequestTimeoutSeconds} seconds.");
         }
     }
 }

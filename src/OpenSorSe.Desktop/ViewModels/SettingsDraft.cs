@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using OpenSorSe.Core.Configuration;
+using System.Globalization;
 
 namespace OpenSorSe.Desktop.ViewModels;
 
@@ -16,9 +17,11 @@ public sealed class SettingsDraft : ViewModelBase
     private bool _aiEnabled;
     private bool _fileRenameSuggestionsEnabled;
     private bool _folderStructureSuggestionsEnabled;
+    private bool _aiRequestDiagnosticsEnabled;
     private string _aiEndpoint = "http://127.0.0.1:11434";
     private string? _selectedAiModel;
     private int _aiRequestTimeoutSeconds = 30;
+    private string _aiRequestTimeoutText = "30";
     private bool _preferenceAdaptationEnabled = true;
     private bool _catalogEnabled;
 
@@ -86,6 +89,13 @@ public sealed class SettingsDraft : ViewModelBase
         set => SetProperty(ref _folderStructureSuggestionsEnabled, value);
     }
 
+    /// <summary>Gets or sets whether bounded raw AI request diagnostics are retained for this session.</summary>
+    public bool AiRequestDiagnosticsEnabled
+    {
+        get => _aiRequestDiagnosticsEnabled;
+        set => SetProperty(ref _aiRequestDiagnosticsEnabled, value);
+    }
+
     /// <summary>Gets or sets the user-configured Ollama-compatible endpoint.</summary>
     public string AiEndpoint
     {
@@ -104,7 +114,20 @@ public sealed class SettingsDraft : ViewModelBase
     public int AiRequestTimeoutSeconds
     {
         get => _aiRequestTimeoutSeconds;
-        set => SetProperty(ref _aiRequestTimeoutSeconds, value);
+        set
+        {
+            if (SetProperty(ref _aiRequestTimeoutSeconds, value))
+            {
+                AiRequestTimeoutText = value.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+    }
+
+    /// <summary>Gets or sets timeout entry text so invalid input can be explained predictably.</summary>
+    public string AiRequestTimeoutText
+    {
+        get => _aiRequestTimeoutText;
+        set => SetProperty(ref _aiRequestTimeoutText, value ?? string.Empty);
     }
 
     /// <summary>Gets or sets whether local decision history may influence concise suggestion context.</summary>
@@ -139,9 +162,11 @@ public sealed class SettingsDraft : ViewModelBase
             AiEnabled = settings.Ai.Enabled,
             FileRenameSuggestionsEnabled = settings.Ai.FileRenameSuggestionsEnabled,
             FolderStructureSuggestionsEnabled = settings.Ai.FolderStructureSuggestionsEnabled,
+            AiRequestDiagnosticsEnabled = settings.Ai.RequestDiagnosticsEnabled,
             AiEndpoint = settings.Ai.Endpoint,
             SelectedAiModel = settings.Ai.SelectedModel,
             AiRequestTimeoutSeconds = settings.Ai.RequestTimeoutSeconds,
+            AiRequestTimeoutText = settings.Ai.RequestTimeoutSeconds.ToString(CultureInfo.InvariantCulture),
             PreferenceAdaptationEnabled = settings.Ai.PreferenceAdaptationEnabled,
             CatalogEnabled = settings.Catalog.Enabled,
         };
@@ -151,8 +176,15 @@ public sealed class SettingsDraft : ViewModelBase
     /// Creates validated application settings from this draft.
     /// </summary>
     /// <returns>The settings ready for persistence.</returns>
-    public ApplicationSettings ToSettings() => new()
+    public ApplicationSettings ToSettings()
     {
+        if (!int.TryParse(AiRequestTimeoutText, NumberStyles.None, CultureInfo.InvariantCulture, out var timeoutSeconds))
+        {
+            throw new ConfigurationValidationException($"AI request timeout must be a whole number from {AiSettings.MinimumRequestTimeoutSeconds} through {AiSettings.MaximumRequestTimeoutSeconds} seconds.");
+        }
+
+        return new ApplicationSettings
+        {
         Features = new FeatureSettings
         {
             ShowAdvancedFeatures = ShowAdvancedFeatures,
@@ -169,14 +201,16 @@ public sealed class SettingsDraft : ViewModelBase
             Enabled = AiEnabled,
             FileRenameSuggestionsEnabled = FileRenameSuggestionsEnabled,
             FolderStructureSuggestionsEnabled = FolderStructureSuggestionsEnabled,
+            RequestDiagnosticsEnabled = AiRequestDiagnosticsEnabled,
             Endpoint = AiEndpoint?.Trim() ?? string.Empty,
             SelectedModel = string.IsNullOrWhiteSpace(SelectedAiModel) ? null : SelectedAiModel.Trim(),
-            RequestTimeoutSeconds = AiRequestTimeoutSeconds,
+            RequestTimeoutSeconds = timeoutSeconds,
             PreferenceAdaptationEnabled = PreferenceAdaptationEnabled,
         },
         Catalog = new CatalogSettings
         {
             Enabled = CatalogEnabled,
         },
-    };
+        };
+    }
 }

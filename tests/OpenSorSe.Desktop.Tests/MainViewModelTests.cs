@@ -39,6 +39,39 @@ public sealed class MainViewModelTests
         Assert.Contains(NavigationDestination.CatalogSearch, viewModel.Destinations);
     }
 
+    /// <summary>Verifies Help is regular, immediately precedes About, and contextual Back restores its origin.</summary>
+    [Fact]
+    public void ContextualHelp_OpensExpectedTopicAndReturnsToOrigin()
+    {
+        using var viewModel = new MainViewModel();
+        var labels = viewModel.NavigationItems.Select(item => item.Label).ToArray();
+        Assert.Equal(Array.IndexOf(labels, "About") - 1, Array.IndexOf(labels, "Help"));
+        viewModel.Navigate(NavigationDestination.CatalogSearch);
+
+        viewModel.CatalogSearch.HelpCommand.Execute(null);
+
+        Assert.Equal(NavigationDestination.Help, viewModel.SelectedDestination);
+        Assert.Equal(HelpTopicId.CatalogSearch, viewModel.Help.SelectedTopic.Id);
+        Assert.Equal(NavigationDestination.CatalogSearch, viewModel.Help.PreviousDestination);
+        viewModel.Help.BackCommand.Execute(null);
+        Assert.Equal(NavigationDestination.CatalogSearch, viewModel.SelectedDestination);
+    }
+
+    /// <summary>Verifies the shell retains one Settings instance across navigation and Help round-trips.</summary>
+    [Fact]
+    public void Navigation_RetainsLongLivedSettingsInstance()
+    {
+        using var viewModel = new MainViewModel();
+        var settings = viewModel.Settings;
+        viewModel.Navigate(NavigationDestination.Settings);
+        settings.HelpCommand.Execute(null);
+        viewModel.Help.BackCommand.Execute(null);
+        viewModel.Navigate(NavigationDestination.Dashboard);
+        viewModel.Navigate(NavigationDestination.Settings);
+
+        Assert.Same(settings, viewModel.Settings);
+    }
+
     /// <summary>
     /// Verifies navigation updates the selected destination and presentation title without business work.
     /// </summary>

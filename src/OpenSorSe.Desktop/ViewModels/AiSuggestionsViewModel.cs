@@ -22,6 +22,10 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     private AiFolderStructurePlan? _folderStructurePlan;
     private string? _proposedFileName;
     private string _statusText = "Enable an AI capability in Settings to request review-only suggestions.";
+    private StatusPresentation _status = StatusPresentation.Information("Enable an AI capability in Settings to request review-only suggestions.");
+    private AiRequestStage? _progressStage;
+    private string _progressText = "No AI request is active.";
+    private string _elapsedText = string.Empty;
     private bool _isBusy;
     private bool _hasContext;
     private CancellationTokenSource? _operationCancellation;
@@ -129,6 +133,34 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _statusText, value);
     }
 
+    /// <summary>Gets the consistently presented AI workflow status.</summary>
+    public StatusPresentation Status
+    {
+        get => _status;
+        private set => SetProperty(ref _status, value);
+    }
+
+    /// <summary>Gets the latest truthful typed request stage.</summary>
+    public AiRequestStage? ProgressStage
+    {
+        get => _progressStage;
+        private set => SetProperty(ref _progressStage, value);
+    }
+
+    /// <summary>Gets the latest progress-stage explanation.</summary>
+    public string ProgressText
+    {
+        get => _progressText;
+        private set => SetProperty(ref _progressText, value);
+    }
+
+    /// <summary>Gets elapsed-time text updated at stage transitions and completion.</summary>
+    public string ElapsedText
+    {
+        get => _elapsedText;
+        private set => SetProperty(ref _elapsedText, value);
+    }
+
     /// <summary>Gets whether one explicit provider or local-review operation is active.</summary>
     public bool IsBusy
     {
@@ -215,6 +247,10 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         StatusText = IsVisible
             ? "AI capabilities are ready for an explicit review-only request."
             : "Enable an AI capability in Settings to request review-only suggestions.";
+        Status = StatusPresentation.Information(StatusText);
+        ProgressStage = null;
+        ProgressText = "No AI request is active.";
+        ElapsedText = string.Empty;
         NotifyCommandStates();
     }
 
@@ -266,11 +302,14 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
 
         var (cancellation, version) = BeginOperation();
         StatusText = "Requesting an AI-generated rename suggestion...";
+        Status = StatusPresentation.Progress(StatusText);
+        var progress = new Progress<AiRequestProgress>(value => ApplyProgress(value, cancellation, version));
         try
         {
             var result = await _aiSuggestionService.GenerateFileRenameAsync(
                 new AiFileRenameRequest(_selectedFile, _siblingFileNames),
                 _configurationService.Current.Ai,
+                progress,
                 cancellation.Token);
             if (!IsCurrentOperation(cancellation, version))
             {
@@ -280,12 +319,14 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             RenameSuggestion = result.Suggestion;
             ProposedFileName = result.Suggestion?.SuggestedFileName;
             StatusText = result.Message;
+            Status = PresentResult(result.State, result.Message);
         }
         catch (OperationCanceledException)
         {
             if (version == Volatile.Read(ref _operationVersion))
             {
                 StatusText = "The AI rename request was cancelled.";
+                Status = StatusPresentation.Information(StatusText);
             }
         }
         catch (Exception)
@@ -293,6 +334,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             if (version == Volatile.Read(ref _operationVersion))
             {
                 StatusText = "The AI rename request failed safely. No file was changed.";
+                Status = StatusPresentation.Error(StatusText);
             }
         }
         finally
@@ -310,11 +352,14 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
 
         var (cancellation, version) = BeginOperation();
         StatusText = "Requesting an AI-generated folder-structure suggestion...";
+        Status = StatusPresentation.Progress(StatusText);
+        var progress = new Progress<AiRequestProgress>(value => ApplyProgress(value, cancellation, version));
         try
         {
             var result = await _aiSuggestionService.GenerateFolderStructureAsync(
                 new AiFolderStructureRequest(_pageFiles, _existingFolderNames),
                 _configurationService.Current.Ai,
+                progress,
                 cancellation.Token);
             if (!IsCurrentOperation(cancellation, version))
             {
@@ -332,12 +377,14 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             }
 
             StatusText = result.Message;
+            Status = PresentResult(result.State, result.Message);
         }
         catch (OperationCanceledException)
         {
             if (version == Volatile.Read(ref _operationVersion))
             {
                 StatusText = "The AI folder-structure request was cancelled.";
+                Status = StatusPresentation.Information(StatusText);
             }
         }
         catch (Exception)
@@ -345,6 +392,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             if (version == Volatile.Read(ref _operationVersion))
             {
                 StatusText = "The AI folder-structure request failed safely. No folder or file was changed.";
+                Status = StatusPresentation.Error(StatusText);
             }
         }
         finally
@@ -373,12 +421,14 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
                     out var error))
             {
                 StatusText = error;
+                Status = StatusPresentation.Error(error);
                 return;
             }
 
             if (string.Equals(normalized, _selectedFile.DisplayFileName, StringComparison.OrdinalIgnoreCase))
             {
                 StatusText = "The reviewed filename does not propose a change. No decision was saved and no file was changed.";
+                Status = StatusPresentation.Warning(StatusText);
                 return;
             }
 
@@ -403,6 +453,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         StatusText = outcome == AiSuggestionDecisionOutcome.Rejected && result.State == AiAvailabilityState.ModelSelected
             ? "The AI-generated rename suggestion was rejected. No file was changed."
             : result.Message;
+        Status = PresentResult(result.State, StatusText);
     }
 
     private async Task RecordFolderStructureAsync(AiSuggestionDecisionOutcome outcome)
@@ -429,6 +480,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         StatusText = outcome == AiSuggestionDecisionOutcome.Rejected && result.State == AiAvailabilityState.ModelSelected
             ? "The AI-generated folder-structure suggestion was rejected. No folder or file was changed."
             : result.Message;
+        Status = PresentResult(result.State, StatusText);
     }
 
     private bool CanGenerateRename() =>
@@ -498,5 +550,41 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         cancellation.Dispose();
         IsBusy = false;
         StatusText = "The active AI operation was cancelled. No file or folder was changed.";
+        ProgressStage = AiRequestStage.RequestCancelled;
+        ProgressText = StatusText;
+        Status = StatusPresentation.Information(StatusText);
     }
+
+    private void ApplyProgress(
+        AiRequestProgress progress,
+        CancellationTokenSource cancellation,
+        long version)
+    {
+        if (!IsCurrentOperation(cancellation, version))
+        {
+            return;
+        }
+
+        ProgressStage = progress.Stage;
+        ProgressText = progress.Message;
+        ElapsedText = $"Elapsed: {progress.Elapsed.TotalSeconds:0.0} seconds";
+        StatusText = progress.Message;
+        Status = progress.Stage switch
+        {
+            AiRequestStage.SuggestionReady => StatusPresentation.Success(progress.Message),
+            AiRequestStage.RequestCancelled => StatusPresentation.Information(progress.Message),
+            AiRequestStage.RequestTimedOut => StatusPresentation.Error(progress.Message),
+            AiRequestStage.RequestFailed => StatusPresentation.Error(progress.Message),
+            _ => StatusPresentation.Progress(progress.Message),
+        };
+    }
+
+    private static StatusPresentation PresentResult(AiAvailabilityState state, string message) => state switch
+    {
+        AiAvailabilityState.ModelSelected => StatusPresentation.Success(message),
+        AiAvailabilityState.NoSuggestion or AiAvailabilityState.RequestCancelled => StatusPresentation.Information(message),
+        AiAvailabilityState.NoModelsAvailable or AiAvailabilityState.ModelUnavailable or AiAvailabilityState.ResponseInvalid => StatusPresentation.Warning(message),
+        AiAvailabilityState.Disabled or AiAvailabilityState.CapabilityDisabled or AiAvailabilityState.InvalidContext => StatusPresentation.Warning(message),
+        _ => StatusPresentation.Error(message),
+    };
 }

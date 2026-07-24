@@ -28,6 +28,24 @@ public sealed class OllamaSuggestionProviderTests
         Assert.Equal(["llama3:latest", "mistral"], result.Models.Select(model => model.Id));
     }
 
+    /// <summary>Verifies the dedicated connection check uses version without discovering or selecting models.</summary>
+    [Fact]
+    public async Task CheckConnectionAsync_ReachableProvider_UsesVersionEndpointOnly()
+    {
+        using var client = new HttpClient(new StubHandler(request =>
+        {
+            Assert.Equal("/api/version", request.RequestUri!.AbsolutePath);
+            return Json(HttpStatusCode.OK, """{"version":"0.9.0"}""");
+        }));
+        var provider = new OllamaSuggestionProvider(client, new LoggingService());
+
+        var result = await provider.CheckConnectionAsync(EnabledSettings(), CancellationToken.None);
+
+        Assert.Equal(AiAvailabilityState.Connected, result.State);
+        Assert.Equal("0.9.0", result.ProviderVersion);
+        Assert.Empty(result.Models);
+    }
+
     /// <summary>Verifies provider-controlled model names cannot inject controls or unbounded text into UI and logs.</summary>
     [Fact]
     public async Task GetConnectionAsync_InvalidModelIdentifiers_AreExcluded()
@@ -123,10 +141,10 @@ public sealed class OllamaSuggestionProviderTests
 
         var result = await provider.GenerateAsync(new AiProviderGenerationRequest(
             AiSuggestionKind.FileRename,
-            "http://127.0.0.1:11434",
+            "http://127.0.0.1:11434/api/tags",
             "llama3:latest",
             "redacted test prompt",
-            TimeSpan.FromSeconds(1)), CancellationToken.None);
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds)), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Equal("{\"fileName\":null}", result.StructuredJson);
@@ -148,7 +166,7 @@ public sealed class OllamaSuggestionProviderTests
             "http://127.0.0.1:11434",
             "model",
             "prompt",
-            TimeSpan.FromSeconds(1)), CancellationToken.None);
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds)), CancellationToken.None);
 
         Assert.Equal(expected, result.FailureKind);
         Assert.Null(result.StructuredJson);
@@ -194,7 +212,7 @@ public sealed class OllamaSuggestionProviderTests
             "http://127.0.0.1:11434",
             "bad\nmodel",
             "prompt",
-            TimeSpan.FromSeconds(1)), CancellationToken.None);
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds)), CancellationToken.None);
 
         Assert.Equal(AiProviderFailureKind.Configuration, result.FailureKind);
         Assert.Equal(0, requestCount);
@@ -217,7 +235,7 @@ public sealed class OllamaSuggestionProviderTests
             "http://127.0.0.1:11434",
             "model",
             new string('p', OllamaTransportLimits.MaximumPromptBytes + 1),
-            TimeSpan.FromSeconds(1)), CancellationToken.None);
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds)), CancellationToken.None);
 
         Assert.Equal(AiProviderFailureKind.Configuration, result.FailureKind);
         Assert.Equal(0, requestCount);
@@ -236,7 +254,7 @@ public sealed class OllamaSuggestionProviderTests
             "http://127.0.0.1:11434",
             "model",
             "prompt",
-            TimeSpan.FromSeconds(1)), CancellationToken.None);
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds)), CancellationToken.None);
 
         Assert.Equal(AiProviderFailureKind.InvalidResponse, result.FailureKind);
         Assert.Null(result.StructuredJson);
@@ -248,13 +266,17 @@ public sealed class OllamaSuggestionProviderTests
     [Fact]
     public async Task GenerateAsync_TimeoutAndCancellation_ReturnDistinctFailures()
     {
-        using var client = new HttpClient(new StubHandler(async (_, cancellationToken) =>
+        using var client = new HttpClient(new StubHandler((_, _) =>
         {
-            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-            return Json(HttpStatusCode.OK, "{}");
+            return Task.FromCanceled<HttpResponseMessage>(new CancellationToken(canceled: true));
         }));
         var provider = new OllamaSuggestionProvider(client, new LoggingService());
-        var request = new AiProviderGenerationRequest(AiSuggestionKind.FileRename, "http://127.0.0.1:11434", "model", "prompt", TimeSpan.FromMilliseconds(25));
+        var request = new AiProviderGenerationRequest(
+            AiSuggestionKind.FileRename,
+            "http://127.0.0.1:11434",
+            "model",
+            "prompt",
+            TimeSpan.FromSeconds(AiSettings.MinimumRequestTimeoutSeconds));
 
         var timeout = await provider.GenerateAsync(request, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();

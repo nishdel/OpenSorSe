@@ -4,6 +4,7 @@ using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Application.Tags;
 using OpenSorSe.Core.Configuration;
+using OpenSorSe.Desktop.Services;
 using OpenSorSe.Scanner.Models;
 
 namespace OpenSorSe.Desktop.ViewModels;
@@ -45,7 +46,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// Initializes the result explorer and its non-mutating navigation commands.
     /// </summary>
     public ResultsViewModel()
-        : this(new PreviewConfigurationService(), null)
+        : this(new PreviewConfigurationService(), null, null)
     {
     }
 
@@ -55,6 +56,17 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <param name="configurationService">The centralized configuration source used only by the optional suggestion workflow.</param>
     /// <param name="aiSuggestionService">The optional application-owned suggestion service.</param>
     public ResultsViewModel(IConfigurationService configurationService, IAiSuggestionService? aiSuggestionService)
+        : this(configurationService, aiSuggestionService, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes Results with optional AI suggestions and controlled Duplicate View shell-open support.
+    /// </summary>
+    public ResultsViewModel(
+        IConfigurationService configurationService,
+        IAiSuggestionService? aiSuggestionService,
+        IExternalFileLauncher? externalFileLauncher)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         PageRows = new ReadOnlyObservableCollection<ResultsFileRow>(_pageRows);
@@ -64,7 +76,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         ExtensionOptions = new ReadOnlyObservableCollection<ResultsExtensionFilterOption>(_extensionOptions);
         CategoryOptions = new ReadOnlyObservableCollection<ResultsCategoryFilterOption>(_categoryOptions);
         UserTags = new ReadOnlyObservableCollection<ResultTagRow>(_userTags);
-        DuplicateReview = new DuplicateReviewViewModel();
+        DuplicateReview = new DuplicateReviewViewModel(externalFileLauncher);
         DuplicateReview.ShowGroupFilesRequested += OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested += OnBackToExplorerRequested;
         AiSuggestions = new AiSuggestionsViewModel(configurationService, aiSuggestionService);
@@ -550,6 +562,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     {
         DuplicateReview.ShowGroupFilesRequested -= OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested -= OnBackToExplorerRequested;
+        DuplicateReview.Dispose();
         AiSuggestions.Dispose();
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();

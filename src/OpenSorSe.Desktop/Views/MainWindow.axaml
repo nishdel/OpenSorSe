@@ -84,6 +84,9 @@
                 <Grid IsVisible="{Binding IsHistorySelected}">
                     <views:UndoHistoryView DataContext="{Binding UndoHistory}" />
                 </Grid>
+                <Grid IsVisible="{Binding IsHelpSelected}">
+                    <views:HelpView DataContext="{Binding Help}" />
+                </Grid>
                 <Grid IsVisible="{Binding IsAboutSelected}">
                     <views:AboutView DataContext="{Binding About}" />
                 </Grid>

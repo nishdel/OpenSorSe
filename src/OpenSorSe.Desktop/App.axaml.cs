@@ -14,6 +14,7 @@ using OpenSorSe.Application.Catalog;
 using OpenSorSe.Application.CatalogComparison;
 using OpenSorSe.Application.CatalogSearch;
 using OpenSorSe.AI;
+using OpenSorSe.Desktop.Services;
 
 namespace OpenSorSe.Desktop;
 
@@ -88,10 +89,13 @@ public partial class App : Avalonia.Application
                 Path.Combine(settingsDirectory, "saved-catalog-searches.json"),
                 serviceProvider.GetRequiredService<OpenSorSe.Core.Logging.ILoggingService>());
         });
-        services.AddSingleton<HttpClient>();
+        services.AddSingleton(new HttpClient { Timeout = Timeout.InfiniteTimeSpan });
         services.AddSingleton<IAiSuggestionProvider, OllamaSuggestionProvider>();
         services.AddSingleton<IAiPromptBuilder, AiPromptBuilder>();
         services.AddSingleton<IAiResponseParser, AiResponseParser>();
+        services.AddSingleton<IAiRequestDiagnosticsStore, AiRequestDiagnosticsStore>();
+        services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
+        services.AddSingleton<IExternalFileLauncher, ExternalFileLauncher>();
         services.AddSingleton<IDecisionHistoryStore>(serviceProvider =>
         {
             var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;

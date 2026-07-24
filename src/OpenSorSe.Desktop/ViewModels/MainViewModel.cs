@@ -9,6 +9,7 @@ using OpenSorSe.Application.Models;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 using OpenSorSe.Scanner.Models;
+using OpenSorSe.Desktop.Services;
 
 namespace OpenSorSe.Desktop.ViewModels;
 
@@ -29,6 +30,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         new(NavigationDestination.Settings, "Settings", FeatureRequirement.Regular),
         new(NavigationDestination.Diagnostics, "Diagnostics", FeatureRequirement.Advanced),
         new(NavigationDestination.History, "Operation history", FeatureRequirement.Advanced),
+        new(NavigationDestination.Help, "Help", FeatureRequirement.Regular),
         new(NavigationDestination.About, "About", FeatureRequirement.Regular),
     ]);
     private readonly IApplicationController? _applicationController;
@@ -199,6 +201,37 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
     }
 
+    /// <summary>
+    /// Initializes the production shell with diagnostics inspection and clipboard support.
+    /// </summary>
+    public MainViewModel(
+        IConfigurationService configurationService,
+        ILoggingService loggingService,
+        IApplicationController applicationController,
+        IResultsSnapshotProjector resultsSnapshotProjector,
+        IAiSuggestionService aiSuggestionService,
+        IResultsCatalogStore resultsCatalogStore,
+        ISavedCatalogSearchStore savedCatalogSearchStore,
+        ICatalogComparisonService catalogComparisonService,
+        IClipboardService clipboardService,
+        IAiRequestDiagnosticsStore aiRequestDiagnosticsStore,
+        IExternalFileLauncher externalFileLauncher)
+        : this(
+            configurationService,
+            loggingService,
+            applicationController ?? throw new ArgumentNullException(nameof(applicationController)),
+            resultsSnapshotProjector ?? throw new ArgumentNullException(nameof(resultsSnapshotProjector)),
+            aiSuggestionService ?? throw new ArgumentNullException(nameof(aiSuggestionService)),
+            resultsCatalogStore ?? throw new ArgumentNullException(nameof(resultsCatalogStore)),
+            savedCatalogSearchStore ?? throw new ArgumentNullException(nameof(savedCatalogSearchStore)),
+            catalogComparisonService ?? throw new ArgumentNullException(nameof(catalogComparisonService)),
+            true,
+            clipboardService ?? throw new ArgumentNullException(nameof(clipboardService)),
+            aiRequestDiagnosticsStore ?? throw new ArgumentNullException(nameof(aiRequestDiagnosticsStore)),
+            externalFileLauncher ?? throw new ArgumentNullException(nameof(externalFileLauncher)))
+    {
+    }
+
     private MainViewModel(
         IConfigurationService configurationService,
         ILoggingService loggingService,
@@ -208,7 +241,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IResultsCatalogStore? catalogStore,
         ISavedCatalogSearchStore? savedSearchStore,
         ICatalogComparisonService comparisonService,
-        bool _)
+        bool _,
+        IClipboardService? clipboardService = null,
+        IAiRequestDiagnosticsStore? aiRequestDiagnosticsStore = null,
+        IExternalFileLauncher? externalFileLauncher = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(loggingService);
@@ -219,16 +255,17 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Dashboard = new DashboardViewModel(Navigate);
         FolderSelection = new FolderSelectionViewModel();
         ScanProgress = new ScanProgressViewModel();
-        Results = new ResultsViewModel(configurationService, aiSuggestionService);
+        Results = new ResultsViewModel(configurationService, aiSuggestionService, externalFileLauncher);
         Catalog = new CatalogViewModel(configurationService, catalogStore);
         CatalogSearch = new CatalogSearchViewModel(configurationService, catalogStore, savedSearchStore);
         CatalogComparison = new CatalogComparisonViewModel(configurationService, catalogStore, comparisonService);
         RuleEditor = new RuleEditorViewModel();
-        Settings = new SettingsViewModel(configurationService, aiSuggestionService);
+        Settings = new SettingsViewModel(configurationService, aiSuggestionService, aiRequestDiagnosticsStore);
         NavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_navigationItems);
         RefreshNavigationItems(configurationService.Current);
-        LogViewer = new LogViewerViewModel(loggingService);
+        LogViewer = new LogViewerViewModel(loggingService, clipboardService, configurationService, aiRequestDiagnosticsStore);
         UndoHistory = new UndoHistoryViewModel();
+        Help = new HelpViewModel();
         About = new AboutViewModel();
         Notifications = new NotificationCenterViewModel();
         FolderSelection.ScanRequested += OnScanRequested;
@@ -239,6 +276,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogSearch.EntryOpened += OnCatalogEntryOpened;
         CatalogComparison.EntryOpened += OnCatalogEntryOpened;
         Settings.SettingsSaved += OnSettingsSaved;
+        Help.BackRequested += OnHelpBackRequested;
+        ConfigureContextualHelp();
     }
 
     /// <summary>
@@ -295,6 +334,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// Gets the explicit undo-session review state hosted by the shell.
     /// </summary>
     public UndoHistoryViewModel UndoHistory { get; }
+
+    /// <summary>Gets the structured local Help page.</summary>
+    public HelpViewModel Help { get; }
 
     /// <summary>
     /// Gets the static application-information state hosted by the shell.
@@ -360,6 +402,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(IsSettingsSelected));
                 OnPropertyChanged(nameof(IsDiagnosticsSelected));
                 OnPropertyChanged(nameof(IsHistorySelected));
+                OnPropertyChanged(nameof(IsHelpSelected));
                 OnPropertyChanged(nameof(IsAboutSelected));
                 OnPropertyChanged(nameof(IsFeaturePageSelected));
             }
@@ -381,6 +424,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         NavigationDestination.Settings => "Settings",
         NavigationDestination.Diagnostics => "Diagnostics",
         NavigationDestination.History => "Operation history",
+        NavigationDestination.Help => "Help",
         NavigationDestination.About => "About OpenSorSe",
         _ => throw new InvalidOperationException("The navigation destination is unsupported."),
     };
@@ -464,6 +508,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool IsHistorySelected => SelectedDestination == NavigationDestination.History;
 
+    /// <summary>Gets whether local Help is selected.</summary>
+    public bool IsHelpSelected => SelectedDestination == NavigationDestination.Help;
+
     /// <summary>
     /// Gets whether the application-information page is currently selected.
     /// </summary>
@@ -472,7 +519,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets whether a later feature-page destination is currently selected.
     /// </summary>
-    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsCatalogComparisonSelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsAboutSelected;
+    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsCatalogComparisonSelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
 
     /// <summary>
     /// Selects a documented application-shell destination.
@@ -532,6 +579,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogSearch.EntryOpened -= OnCatalogEntryOpened;
         CatalogComparison.EntryOpened -= OnCatalogEntryOpened;
         Settings.SettingsSaved -= OnSettingsSaved;
+        Help.BackRequested -= OnHelpBackRequested;
         _processingCancellation?.Cancel();
         Results.Dispose();
         Catalog.Dispose();
@@ -545,6 +593,43 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         RefreshNavigationItems(settings);
         Results.RefreshFeatureAvailability();
+    }
+
+    private void ConfigureContextualHelp()
+    {
+        Dashboard.ConfigureHelp(HelpTopicId.Dashboard, OpenHelp);
+        FolderSelection.ConfigureHelp(HelpTopicId.ScanFolders, OpenHelp);
+        ScanProgress.ConfigureHelp(HelpTopicId.ScanFolders, OpenHelp);
+        Results.ConfigureHelp(HelpTopicId.Results, OpenHelp);
+        Results.DuplicateReview.ConfigureHelp(HelpTopicId.DuplicateView, OpenHelp);
+        Results.AiSuggestions.ConfigureHelp(HelpTopicId.AiSuggestions, OpenHelp);
+        Catalog.ConfigureHelp(HelpTopicId.SavedCatalog, OpenHelp);
+        CatalogSearch.ConfigureHelp(HelpTopicId.CatalogSearch, OpenHelp);
+        CatalogComparison.ConfigureHelp(HelpTopicId.CompareSnapshots, OpenHelp);
+        RuleEditor.ConfigureHelp(HelpTopicId.Rules, OpenHelp);
+        Settings.ConfigureHelp(HelpTopicId.Settings, OpenHelp);
+        LogViewer.ConfigureHelp(HelpTopicId.Diagnostics, OpenHelp);
+        UndoHistory.ConfigureHelp(HelpTopicId.OperationHistory, OpenHelp);
+        Help.ConfigureHelp(HelpTopicId.HelpOverview, OpenHelp);
+        About.ConfigureHelp(HelpTopicId.About, OpenHelp);
+    }
+
+    private void OpenHelp(HelpTopicId topicId)
+    {
+        NavigationDestination? previous = SelectedDestination == NavigationDestination.Help ? null : SelectedDestination;
+        Help.Open(topicId, previous);
+        Navigate(NavigationDestination.Help);
+    }
+
+    private void OnHelpBackRequested(object? sender, EventArgs eventArgs)
+    {
+        var destination = Help.PreviousDestination ?? NavigationDestination.Dashboard;
+        if (_navigationItems.All(item => item.Destination != destination))
+        {
+            destination = NavigationDestination.Dashboard;
+        }
+
+        Navigate(destination);
     }
 
     private void RefreshNavigationItems(ApplicationSettings settings)
