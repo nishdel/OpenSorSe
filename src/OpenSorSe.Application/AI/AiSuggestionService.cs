@@ -320,7 +320,7 @@ public sealed class AiSuggestionService : IAiSuggestionService
         };
         if (capability is null)
         {
-            return new AiDecisionResult(AiAvailabilityState.InvalidContext, "That AI decision type is not supported in v0.9.1.");
+            return new AiDecisionResult(AiAvailabilityState.InvalidContext, "That AI decision type is not supported in OpenSorSe 1.0.");
         }
 
         if (!TryValidateEnabled(settings, capability.Value, out var state, out var message))

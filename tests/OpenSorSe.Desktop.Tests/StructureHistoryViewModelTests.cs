@@ -1,4 +1,5 @@
 using OpenSorSe.Application.Structure;
+using OpenSorSe.Core.Configuration;
 using OpenSorSe.Desktop.ViewModels;
 
 namespace OpenSorSe.Desktop.Tests;
@@ -91,7 +92,10 @@ public sealed class StructureHistoryViewModelTests
         var snapshots = new FolderStructureSnapshotService();
         using var viewModel = new StructureHistoryViewModel(
             store,
-            new FolderRestructuringService(snapshots, store),
+            new FolderRestructuringService(
+                snapshots,
+                store,
+                new Configuration()),
             snapshots,
             new StructureComparisonService())
         {
@@ -220,6 +224,22 @@ public sealed class StructureHistoryViewModelTests
         public Task ClearAsync(CancellationToken cancellationToken)
         {
             Records.Clear();
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class Configuration : IConfigurationService
+    {
+        public ApplicationSettings Current { get; private set; } = new()
+        {
+            Features = new FeatureSettings { ShowAdvancedFeatures = true },
+        };
+
+        public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+        {
+            Current = settings;
             return Task.CompletedTask;
         }
     }

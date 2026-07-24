@@ -1,3 +1,5 @@
+using OpenSorSe.Core.Configuration;
+
 namespace OpenSorSe.Application.Structure;
 
 /// <summary>
@@ -9,14 +11,17 @@ public sealed class FolderRestructuringService : IFolderRestructuringService
     private const string AlgorithmVersion = "deterministic-extension-groups/1";
     private readonly IFolderStructureSnapshotService _snapshotService;
     private readonly IStructureHistoryStore _historyStore;
+    private readonly IConfigurationService _configurationService;
 
     /// <summary>Initializes the service with bounded snapshot and history dependencies.</summary>
     public FolderRestructuringService(
         IFolderStructureSnapshotService snapshotService,
-        IStructureHistoryStore historyStore)
+        IStructureHistoryStore historyStore,
+        IConfigurationService configurationService)
     {
         _snapshotService = snapshotService ?? throw new ArgumentNullException(nameof(snapshotService));
         _historyStore = historyStore ?? throw new ArgumentNullException(nameof(historyStore));
+        _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
     }
 
     /// <inheritdoc />
@@ -25,6 +30,15 @@ public sealed class FolderRestructuringService : IFolderRestructuringService
         bool explicitOverride,
         CancellationToken cancellationToken)
     {
+        if (!_configurationService.Current.Features.ShowAdvancedFeatures)
+        {
+            return new RestructuringPreviewResult(
+                false,
+                RestructuringProtectionState.FirstRun,
+                null,
+                "Folder restructuring is unavailable while Advanced features are disabled.");
+        }
+
         var source = await _snapshotService.CaptureAsync(rootPath, cancellationToken).ConfigureAwait(false);
         var history = await _historyStore.ListAsync(cancellationToken).ConfigureAwait(false);
         var latestForRoot = history
@@ -98,6 +112,25 @@ public sealed class FolderRestructuringService : IFolderRestructuringService
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        if (!_configurationService.Current.Features.ShowAdvancedFeatures)
+        {
+            const string disabledMessage =
+                "Folder restructuring is unavailable while Advanced features are disabled.";
+            var disabledRecord = ToHistoryRecord(
+                plan,
+                RestructuringApprovalState.Rejected,
+                RestructuringStatus.Failed,
+                null,
+                [],
+                disabledMessage,
+                DateTimeOffset.UtcNow);
+            return new RestructuringApplyResult(
+                false,
+                RestructuringStatus.Failed,
+                disabledRecord,
+                disabledMessage);
+        }
+
         var outcomes = new List<RestructuringItemOutcome>();
         FolderStructureSnapshot? appliedSnapshot = null;
         var approval = string.Equals(

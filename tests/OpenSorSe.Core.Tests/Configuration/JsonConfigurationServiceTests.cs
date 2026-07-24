@@ -76,6 +76,9 @@ public sealed class JsonConfigurationServiceTests
             Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
             Assert.False(service.Current.Ai.RequestDiagnosticsEnabled);
             Assert.False(service.Current.Features.ShowAdvancedFeatures);
+            Assert.True(service.Current.Content.MetadataExtractionEnabled);
+            Assert.False(service.Current.Content.OcrEnabled);
+            Assert.False(service.Current.SemanticSearch.Enabled);
         }
         finally
         {

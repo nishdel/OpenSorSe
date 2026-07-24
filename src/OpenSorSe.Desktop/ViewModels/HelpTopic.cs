@@ -56,7 +56,7 @@ public sealed record HelpTopic(
     string SafetyNotes,
     IReadOnlyList<HelpTopicId> RelatedTopics);
 
-/// <summary>Owns the complete bounded v0.9.1 internal Help catalog.</summary>
+/// <summary>Owns the complete bounded OpenSorSe 1.0 internal Help catalog.</summary>
 public static class HelpCatalog
 {
     private static readonly IReadOnlyList<HelpTopic> TopicsValue = Array.AsReadOnly(
@@ -87,7 +87,7 @@ public static class HelpCatalog
             "File content, names, locations, or timestamps.",
             ["Complete a scan or open a saved snapshot.", "Search or filter.", "Select a row for details.", "Open Duplicate View for grouped exact matches."],
             ["Search", "Filters", "Paging", "Duplicate View", "Tag controls"], "No rows means no snapshot or no rows match current filters.",
-            "Clear filters when a known file is not visible.", "All Results actions are review-only in v0.9.1.",
+            "Clear filters when a known file is not visible.", "All Results actions are review-only in 1.0.",
             [HelpTopicId.DuplicateView, HelpTopicId.AiSuggestions]),
         Topic(HelpTopicId.DuplicateView, "Duplicate View", "Groups files with matching supported SHA-256 hashes for comparison.",
             "Known members and metadata from the current immutable Results snapshot.", "Selection and external open requests only.",
@@ -133,7 +133,7 @@ public static class HelpCatalog
             "Only successful applies activate repeat protection. Clearing history never changes files but removes that protection record.", [HelpTopicId.AdvancedFeatures, HelpTopicId.OperationHistory]),
         Topic(HelpTopicId.Rules, "Rules", "Reviews deterministic rule data supplied in memory.",
             "Rule names, conditions, and action previews.", "Only in-memory rule state exposed by the current surface.",
-            "Files; the v0.9.1 desktop does not execute rules.", ["Select a rule.", "Review its state and preview information."],
+            "Files; the 1.0 desktop does not execute rules.", ["Select a rule.", "Review its state and preview information."],
             ["Current rules", "Enable or disable", "Delete"], "No rules is a valid state.",
             "Unsupported or incomplete rule data is reported safely.", "Rule complexity does not grant file mutation authority.", [HelpTopicId.Results]),
         Topic(HelpTopicId.Settings, "Settings", "Controls persisted OpenSorSe preferences and optional features.",
@@ -153,7 +153,7 @@ public static class HelpCatalog
         Topic(HelpTopicId.OperationHistory, "Operation history", "Reviews operation records supplied to the application.",
             "In-memory operation/undo session records.", "Selection only.",
             "Files or current Results.", ["Select a supplied session.", "Review its record count and status."],
-            ["Operation-history sessions"], "No sessions is expected because v0.9.1 has no desktop execution workflow.",
+            ["Operation-history sessions"], "No sessions is expected because 1.0 has no generic rule-execution workflow.",
             "Unavailable records remain isolated.", "This page is not a duplicate of application Diagnostics.", [HelpTopicId.Diagnostics]),
         Topic(HelpTopicId.AiSetup, "AI setup", "Connects optional local Ollama and selects an exact installed model.",
             "The configured endpoint, Ollama version/model metadata, and selected settings.", "OpenSorSe settings only after Save.",

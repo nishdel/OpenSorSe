@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenSorSe.Application.Structure;
+using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 
 namespace OpenSorSe.Application.Tests;
@@ -26,6 +27,30 @@ public sealed class StructureHistoryTests
         Assert.False(Directory.Exists(temporary.PathFor("Documents")));
         Assert.All(history.Records, record => Assert.Equal(RestructuringStatus.Previewed, record.Status));
         Assert.Equal(RestructuringProtectionState.PreviousIncomplete, second.ProtectionState);
+    }
+
+    /// <summary>Verifies disabled Advanced mode blocks even a direct service invocation before snapshot/history work.</summary>
+    [Fact]
+    public async Task Preview_AdvancedDisabled_PerformsNoHistoryOrFilesystemWork()
+    {
+        using var temporary = new TemporaryDirectory();
+        temporary.Write("invoice.pdf", "invoice");
+        var history = new MemoryHistoryStore();
+        var snapshots = new CountingSnapshotService();
+        var service = new FolderRestructuringService(
+            snapshots,
+            history,
+            new Configuration(advancedEnabled: false));
+
+        var result = await service.PreviewAsync(
+            temporary.Path,
+            false,
+            CancellationToken.None);
+
+        Assert.False(result.HasProposal);
+        Assert.Equal(0, snapshots.CaptureCount);
+        Assert.Empty(history.Records);
+        Assert.True(File.Exists(temporary.PathFor("invoice.pdf")));
     }
 
     /// <summary>Verifies exact confirmation is required before a preview can mutate files.</summary>
@@ -250,7 +275,8 @@ public sealed class StructureHistoryTests
             new Logging());
         var service = new FolderRestructuringService(
             new FolderStructureSnapshotService(),
-            store);
+            store,
+            new Configuration(advancedEnabled: true));
         var preview = Assert.IsType<RestructuringPlan>(
             (await service.PreviewAsync(temporary.Path, false, CancellationToken.None)).Plan);
 
@@ -303,7 +329,10 @@ public sealed class StructureHistoryTests
     }
 
     private static FolderRestructuringService CreateService(IStructureHistoryStore history) =>
-        new(new FolderStructureSnapshotService(), history);
+        new(
+            new FolderStructureSnapshotService(),
+            history,
+            new Configuration(advancedEnabled: true));
 
     private static StructureNode Node(string path, string identity) =>
         new(path, false, 1, DateTimeOffset.UnixEpoch, identity);
@@ -337,6 +366,35 @@ public sealed class StructureHistoryTests
         public Task ClearAsync(CancellationToken cancellationToken)
         {
             Records.Clear();
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CountingSnapshotService : IFolderStructureSnapshotService
+    {
+        public int CaptureCount { get; private set; }
+
+        public Task<FolderStructureSnapshot> CaptureAsync(
+            string rootPath,
+            CancellationToken cancellationToken)
+        {
+            CaptureCount++;
+            throw new InvalidOperationException("Disabled restructuring must not capture a root.");
+        }
+    }
+
+    private sealed class Configuration(bool advancedEnabled) : IConfigurationService
+    {
+        public ApplicationSettings Current { get; private set; } = new()
+        {
+            Features = new FeatureSettings { ShowAdvancedFeatures = advancedEnabled },
+        };
+
+        public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+        {
+            Current = settings;
             return Task.CompletedTask;
         }
     }

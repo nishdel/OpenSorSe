@@ -1,4 +1,5 @@
 using OpenSorSe.Desktop.ViewModels;
+using System.Reflection;
 
 namespace OpenSorSe.Desktop.Tests;
 
@@ -16,7 +17,13 @@ public sealed class AboutViewModelTests
         var viewModel = new AboutViewModel();
 
         Assert.Equal("OpenSorSe", viewModel.ApplicationName);
-        Assert.Equal("0.9.1", viewModel.Version);
+        Assert.Equal("1.0.0", viewModel.Version);
+        Assert.Equal(new Version(1, 0, 0, 0), typeof(AboutViewModel).Assembly.GetName().Version);
+        Assert.Equal(
+            "1.0.0",
+            typeof(AboutViewModel).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion);
         Assert.Equal("MIT License", viewModel.License);
         Assert.NotEmpty(viewModel.Acknowledgements);
     }
