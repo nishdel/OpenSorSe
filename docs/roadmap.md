@@ -4,9 +4,9 @@
 
 ## Current direction
 
-OpenSorSe is a local-first, read-only desktop application for analyzing selected folders and reviewing the results safely. The project is implemented in .NET 8, C#, Avalonia UI, and MVVM.
+OpenSorSe is a local-first, review-oriented desktop application for analyzing selected folders and organizing explicitly reviewed disposable/user-approved roots. The project is implemented in .NET 8, C#, Avalonia UI, and MVVM.
 
-The current v0.9.1 application does not modify selected user files. It provides default-off, capability-specific local Ollama suggestions and metadata-aware ranked search, but not OCR, content readers, embeddings, semantic search, automatic organization, or plugins.
+OpenSorSe 1.0 keeps scanning, extraction, indexing, duplicate review, diagrams, and AI suggestions non-mutating. Its only new source mutation is a deterministic, separately confirmed, root-confined restructuring plan. OCR Beta and Semantic Search Beta are local and independent of AI.
 
 ## Completed releases
 
@@ -115,17 +115,35 @@ Complete.
 - Contextual Help, a simplified Catalog Search hierarchy, scroll-stable Settings, reusable status feedback, and a responsive Duplicate View improve normal desktop usability.
 - Duplicate View can explicitly open a bounded set of known current-scan files or containing folders for comparison through the operating system, without adding any OpenSorSe mutation action.
 
-This refinement is not the v1.0 plugin, localization, packaging, database, semantic-search, or cross-platform release programme.
+This refinement is not the v1.0 milestone.
+
+## v1.0 - Integrated local understanding and structure history
+
+Release candidate; automated validation complete where the environment permits and manual GUI verification pending.
+
+- Results has a permanently visible filter toolbar and independently scrolling rows.
+- Duplicate details use a responsive right-side drawer while groups remain visible.
+- AI and Advanced switches are globally available from the shell.
+- Defensive local metadata extraction supports filesystem, PDF, Open XML, and image fields with provenance.
+- OCR Beta uses a detected local Tesseract CLI for supported images, skips reliable native text, and honestly reports scanned-PDF rasterization as unavailable when unsupported.
+- Provenance-aware tags can be accepted or rejected without modifying embedded file metadata.
+- Semantic Search Beta builds a bounded local deterministic hybrid index and explains filename, tag, metadata, native-text, OCR, and similarity signals.
+- Structure history stores bounded source, proposed, and applied snapshots, plus per-item outcomes.
+- Only successful confirmed applies activate repeat protection; new files can receive incremental proposals, material changes are detected, and explicit override remains available.
+- The advanced Structure history page provides current capture, filters, read-only diagrams, and accessible change summaries.
+- Versioned new stores and safe defaults preserve v0.9.1 settings, catalogs, tags, saved searches, and AI decisions.
+
+The release does not add plugins, broad localization, installers, cloud indexing, live monitoring, reports/export, autonomous AI file control, or generic rule execution.
 
 ## Future release ideas
 
 The following are longer-term ideas, not current capabilities or committed release scope:
 
-- PDF, DOCX, and Excel content readers.
-- OCR.
-- Embedding-based semantic search and vector indexes.
+- Rich full-fidelity document/content readers beyond the bounded 1.0 extractors.
+- Bundled scanned-PDF rasterization and OCR language/model packaging.
+- Learned or external semantic embedding models and GPU acceleration.
 - Database-backed scan catalogs, tags, and search indexes.
-- Safe, explicitly authorized operation execution.
+- Generic rule execution and undo integration beyond the narrow restructuring apply workflow.
 - Plugin system.
 - Live filesystem monitoring or scheduled comparisons.
 - Exportable reports and rename inference.

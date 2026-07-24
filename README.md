@@ -1,51 +1,63 @@
 # OpenSorSe
 
-> Open Sort & Search — a local-first, read-only desktop tool for analyzing selected folders safely.
+> Open Sort & Search — a local-first, review-oriented desktop tool for understanding and organizing selected folders safely.
 
 ## Project status
 
-OpenSorSe v0.9.1, including its reliability and usability correction pass, is implemented on the local `v0.9.1` branch as a focused refinement of v0.9.
+OpenSorSe 1.0.0 is implemented on the local `v1.0` branch as an integrated release candidate. It builds on the completed v0.9.1 baseline and adds local metadata extraction, optional OCR Beta, provenance-aware tags, local Semantic Search Beta, and durable folder-structure history.
 
-- Restore, build, and test validation results are recorded in [Release Status](docs/RELEASE_STATUS.md).
-- AI and advanced interface features are independently disabled by default.
-- The Desktop workflow remains read-only with respect to selected user files.
+- AI and Advanced interface features remain independently disabled by default.
+- OCR and Semantic Search are separate opt-ins; neither requires or activates AI.
+- Scanning, duplicate review, extraction, indexing, diagrams, and AI suggestions do not modify source files.
+- AI remains metadata-only, suggestion-only, and blocked from provider communication when disabled.
+- The only new source-file mutation is a deterministic folder-restructuring plan that the user previews and then confirms separately. It is confined to one root, bounded, conflict checked, never overwrites or deletes, and records its result.
+- Restore, build, test, and environment results are recorded in [Release Status](docs/RELEASE_STATUS.md).
 
-OpenSorSe does not rename, move, delete, overwrite, or otherwise modify selected user files. Optional Ollama-compatible rename and logical folder-structure suggestions are explicitly enabled, capability-specific, unverified, and review-only. Disabling AI blocks provider detection and model communication. The opt-in local catalog stores display-safe snapshot metadata in OpenSorSe application data only; its remove/clear controls never affect selected user folders. See [Safety and Privacy](docs/SAFETY_AND_PRIVACY.md) for the complete storage, network, and dormant-executor boundary.
+Do not merge the release candidate into `main` until the inherited v0.9.1 and complete [v1.0 manual checklist](docs/MANUAL_TESTING_v1.0.md) have been completed.
 
-## What the application does today
+## What 1.0 provides
 
-| Area | Available in v0.9.1 |
+| Area | Implemented behavior |
 | --- | --- |
-| Folder analysis | Select local folders, traverse recursively, report progress, continue after recoverable issues, and support cancellation. |
-| File analysis | Read filesystem metadata, calculate SHA-256 hashes, apply deterministic classification, and detect exact duplicates. |
-| Results review | Explore one completed in-memory scan with filtering, sorting, bounded paging, and read-only file details. |
-| Duplicate View | Inspect responsive exact-duplicate groups, select known members, and safely ask the operating system to open up to five files or containing folders for comparison. No cleanup action is recommended or performed. |
-| Ranked search | Search filenames, paths, extensions, deterministic categories, and accepted session tags with deterministic ranking and match explanations. This is not semantic search. |
-| Saved catalog | Opt in to retain up to ten bounded completed snapshots locally, label them, review captured source scope, reopen them after restart, search their stored metadata, and explicitly remove application-owned catalog entries. |
-| User-managed tags | Add or remove up to twelve accepted OpenSorSe metadata tags for a selected result without AI or any file-metadata change; catalog-backed tags remain searchable after restart. |
-| Saved searches | Retain up to 25 named catalog query presets locally, rerun them against current snapshots, and explicitly remove or reset query text without persisting hits. |
-| Snapshot comparison | Select two distinct saved snapshots and review added, removed, modified, and unchanged stored metadata with scope warnings, tag-change detection, cancellation, filters, and bounded rows. No stored path is accessed. |
-| Optional AI | Explicitly enable AI and either rename or folder-structure suggestions, then request bounded, metadata-only, strictly validated previews with visible request stages. Essential Ollama setup remains visible with AI; raw request diagnostics additionally require advanced mode and explicit opt-in. |
-| Preference adaptation | Record local accept/reject/edit decisions and optionally reuse concise approved patterns. It does not train or fine-tune a model. |
-| Interface modes | Keep the primary workflow simple by default, or enable advanced mode for Compare snapshots, Diagnostics, Operation history internals, detailed logging, and provider configuration. Hidden values remain persisted. |
-| Application workflow | Use Dashboard, Scan, Results, Duplicate View, Saved catalog, Catalog search, contextual Help, Settings, and About. Rules remain a regular review-only foundation. Advanced mode additionally exposes Compare snapshots, Diagnostics, and Operation history. |
-| Safety | Avoid execution and any modification of selected user files. Explicit duplicate-comparison opening passes only validated known paths to the operating-system shell; it never constructs a shell command. Catalog persistence is local, opt-in, bounded, and separate from user folders. |
+| Folder analysis | Select roots, scan recursively, report progress, isolate recoverable errors, support cancellation, hash supported files, classify metadata, and detect exact duplicates. Scanning is read-only. |
+| Results | Keep search/filter/status controls fixed while independently scrolling bounded result rows; retain sorting, filters, paging, details, tags, and match explanations. |
+| Duplicate View | Keep duplicate groups visible while selected-group details open in a responsive right drawer. Known paths can be opened through a capped launcher; no delete or cleanup command exists. |
+| Metadata | Extract bounded filesystem metadata, defensive PDF fields/native text, Open XML document metadata/native text, and image dimensions with provenance. Malformed files fail per item. |
+| OCR Beta | Optionally use a detected local Tesseract CLI for bounded PNG, JPEG, and TIFF OCR. Reliable native text skips OCR. Scanned-PDF OCR honestly reports unavailable because no PDF rasterizer is bundled. |
+| Tags | Distinguish user-approved, deterministic, embedded-metadata, OCR, semantic, file-type, date, folder-context, AI, and preference provenance. Generated candidates can be accepted or rejected locally. |
+| Semantic Search Beta | Build a bounded, local, rebuildable index using deterministic feature hashing and hybrid filename/tag/metadata/native-text/OCR signals. Results explain why they matched; indexes never modify source files. |
+| Saved catalog | Opt in to bounded historical snapshots, names, source scope, accepted tags, saved searches, and deterministic snapshot comparison. |
+| Optional AI | Explicitly enable metadata-only rename or logical folder-structure suggestions through an externally managed Ollama-compatible endpoint. Strict structured validation keeps every result unverified and review-only. |
+| Structure history | Preview deterministic extension-group proposals, review source/proposed/applied/current structures, inspect Added/Removed/Moved/Renamed/Unchanged labels, and retain bounded local history. |
+| Repeat protection | Only a successful confirmed restructuring apply suppresses a redundant full proposal. New root-level files receive an incremental proposal; material changes are reported; an explicit override remains available. |
+| Interface modes | Global shell switches keep AI and Advanced controls available from every page. Advanced mode adds comparison, diagnostics, operation internals, and Structure history without resetting hidden values. |
+| Help and diagnostics | Every major page has local contextual Help. Diagnostics and raw AI request capture remain bounded, separated, and privacy-aware. |
 
-Planned operations and AI suggestions are presentation-only in the Desktop application. Rules and Operation history accept only caller-supplied in-memory data; the production shell supplies none and exposes no execution or undo action.
+## Safety and privacy
 
-## Technology stack
+OpenSorSe prefers metadata-only, local processing and treats model output and malformed documents as untrusted input.
 
-- .NET 8 target framework and C#.
-- Avalonia UI desktop application.
-- MVVM with CommunityToolkit.Mvvm.
-- Microsoft dependency injection and logging abstractions.
-- xUnit automated tests.
+- AI is disabled by default. Disabled AI blocks provider discovery and requests at the service boundary.
+- OCR, extracted text, semantic vectors, and structure history stay in OpenSorSe application data.
+- Ordinary logs do not include raw OCR/document text, vectors, credentials, or raw AI payloads.
+- A custom Ollama endpoint can be remote; only the documented bounded filename/metadata request is sent after explicit enablement.
+- AI suggestions never enter the restructuring executor. Folder restructuring is deterministic and separately confirmed.
+- Every restructuring destination must remain under the selected root; traversal, reparse destinations, missing sources, changed previews, conflicts, duplicates, and overwrites are rejected.
+- Clear-index, clear-cache, clear-history, catalog, saved-search, and diagnostic actions affect only OpenSorSe-owned data.
 
-The repository currently pins the .NET SDK in [global.json](global.json). See the [technology stack document](docs/Architecture/99_Appendix/Technology_Stack.md) for current and future technology boundaries.
+See [Safety and Privacy](docs/SAFETY_AND_PRIVACY.md) and the [v1.0 specification](docs/Implementation_Spec/v1.0/048_v1.0_Integrated_Release.md).
+
+## Technology
+
+- .NET 8 and C#.
+- Avalonia UI with MVVM and CommunityToolkit.Mvvm.
+- Microsoft dependency injection and logging.
+- Atomic bounded JSON stores for settings, catalog/search definitions, content cache, semantic index, AI decisions, and structure history.
+- xUnit tests with fake providers/engines and disposable filesystem fixtures.
+
+The SDK is pinned in [global.json](global.json). No installer or published package is included.
 
 ## Build from source
-
-There is no installer or published package in this repository. To build from source, install the SDK version specified in [global.json](global.json), then run:
 
 ```powershell
 dotnet restore .\OpenSorSe.sln
@@ -54,73 +66,50 @@ dotnet test .\OpenSorSe.sln --configuration Debug --no-build
 dotnet run --project .\src\OpenSorSe.Desktop\OpenSorSe.Desktop.csproj
 ```
 
-For a Release build:
+Some existing checkout-generated `bin`/`obj` files can be host-write-protected. The repository-local ignored validation route is:
 
 ```powershell
-dotnet build .\OpenSorSe.sln --configuration Release
+dotnet restore .\OpenSorSe.sln --artifacts-path .\.artifacts
+dotnet build .\OpenSorSe.sln --configuration Debug --no-restore --artifacts-path .\.artifacts
+dotnet test .\OpenSorSe.sln --configuration Debug --no-build --artifacts-path .\.artifacts
+```
+
+For a current-source release build:
+
+```powershell
+dotnet build .\OpenSorSe.sln --configuration Release --no-restore --artifacts-path .\.artifacts
 ```
 
 ## Project structure
 
 ```text
 src/
-  OpenSorSe.Core/          Shared infrastructure, configuration, events, logging, state, and tasks
-  OpenSorSe.Scanner/       Read-only scan, metadata, hashing, classification, and duplicate detection
+  OpenSorSe.Core/          Configuration, logging, lifecycle, events, state, and tasks
+  OpenSorSe.Scanner/       Read-only discovery, metadata, hashing, classification, and duplicates
   OpenSorSe.Rules/         Deterministic rule evaluation, planning, and conflict resolution
-  OpenSorSe.Executor/      Dormant historical execution/undo components; not registered by the current Desktop
-  OpenSorSe.Application/   Read-only processing orchestration, sessions, and result snapshots
-  OpenSorSe.AI/            Ollama HTTP transport and local decision-history persistence
-  OpenSorSe.Desktop/       Avalonia UI and MVVM presentation layer
-tests/                     Automated unit and integration tests for each implemented project
-docs/                      Architecture, specifications, release status, and roadmap documentation
+  OpenSorSe.Executor/      Historical generic executor/undo library; not registered in the Desktop
+  OpenSorSe.Application/   Orchestration, results, extraction, tags, semantic index, and structure history
+  OpenSorSe.AI/            Ollama transport and bounded decision-history persistence
+  OpenSorSe.Desktop/       Avalonia views, ViewModels, navigation, Help, and composition
+tests/                     Automated tests for every project
+docs/                      Architecture, specifications, migration, safety, release, and manual validation
 ```
 
-## Release roadmap
+## Release history
 
-| Release | Status | Scope |
-| --- | --- | --- |
-| v0.1 Foundation | Complete | Scanning, metadata, hashing, deterministic rules, configuration, diagnostics, and Dashboard foundation. |
-| v0.2 Results Exploration | Complete | Results Explorer, filtering, sorting, paging, details, and exact-duplicate review. |
-| v0.3 | Complete | Optional local Ollama suggestions, local decision history, metadata-aware ranked search, session tags, and product-quality improvements while preserving read-only safety. |
-| v0.4 Local Catalog | Complete | Opt-in bounded JSON persistence for display-safe completed snapshots and accepted tags, plus historical snapshot review. |
-| v0.5 Catalog Search and Maintenance | Complete | Deterministic catalog-wide metadata search, historical-hit opening, selected-entry removal, and two-step clear of application-owned catalog data. |
-| v0.6 User-Managed Tags | Complete | Explicit bounded add/remove controls for application-owned result tags, immediate ranked-search integration, and existing opt-in catalog persistence. |
-| v0.7 Saved Catalog Searches | Complete | Atomic bounded named query persistence, explicit rerun/remove/reset workflows, corruption recovery, and no stored hits. |
-| v0.8 Snapshot Identity and Scope | Complete | Backward-compatible catalog schema 2, optional snapshot names, captured source roots, and explicit legacy unknown-scope behavior. |
-| v0.9 Historical Snapshot Comparison | Complete | Deterministic bounded metadata/tag comparison, scope compatibility, filters, cancellation, and baseline/current historical opening. |
-| v0.9.1 Optional AI and Feature Controls | Complete; manual GUI verification pending | Default-off AI and advanced switches, constrained suggestions, hardened Ollama setup, bounded diagnostics, contextual Help, simpler catalog search, responsive Duplicate View, and consistent status feedback. |
-| Future releases | Ideas only | Content readers, OCR, embedding-based semantic search, database-backed indexes, safe execution workflows, and plugins. |
+Releases v0.1 through v0.9.1 are complete and preserved. OpenSorSe 1.0 integrates the fixed Results toolbar, Duplicate drawer, global shell toggles, local content pipeline, provenance tags, Semantic Search Beta, and Structure history. Plugins, broad localization, packaging/release automation, cloud indexing, live monitoring, reports/export, autonomous AI operations, and general rule execution remain deferred.
 
-See the [roadmap](docs/roadmap.md) and [release status](docs/RELEASE_STATUS.md) for details.
+See the [roadmap](docs/roadmap.md), [changelog](docs/CHANGELOG.md), [version notes](docs/VERSION_NOTES_v1.0.md), and [release checklist](docs/RELEASE_CHECKLIST_v1.0.md).
 
-## Manual validation checklist
+## Manual verification
 
-For the new switches and suggestion workflow, use the focused [v0.9.1 manual test checklist](docs/MANUAL_TESTING_v0.9.1.md) in addition to the existing regression smoke test below.
+Use disposable data for restructuring tests. The [121-step v1.0 guide](docs/MANUAL_TESTING_v1.0.md) covers Results, the Duplicate drawer, global toggles, OCR, metadata, tags, semantic search, restructuring protection, diagrams, migration, and inherited regressions. Also complete the [v0.9.1 checklist](docs/MANUAL_TESTING_v0.9.1.md).
 
-1. Launch the desktop application and verify that the main window opens.
-2. Scan a small, non-critical local folder and confirm progress, results, and warnings are understandable.
-3. Filter, sort, page, use ranked search, and inspect completed results without opening or changing a file.
-4. Use a controlled duplicate fixture to review exact duplicate groups and return to their filtered result rows.
-5. Cancel a second scan and confirm the application remains responsive.
-6. Select a result, add a user tag, search for it, remove it, and confirm the selected file metadata did not change.
-7. In Settings, enable the local catalog, complete a small test scan, reopen it from **Saved catalog**, and search it from **Catalog search**. Confirm results are explicitly historical.
-8. Save a named catalog query, restart, refresh saved searches, and rerun it. Confirm query text—but no hits—is retained.
-9. On disposable application data, remove one saved snapshot and use the separate confirmation actions to clear catalog snapshots and reset saved-query text; confirm no selected user file changed.
-10. Compare a before/after manifest of the test folder and confirm that no selected user file changed.
-11. Name a saved snapshot, restart, and confirm its name and captured source roots remain visible; clear the name and confirm the snapshot remains.
-12. Save a second scan of the same disposable roots, open **Compare snapshots**, select distinct baseline/current entries, and verify change totals, source-scope text, filters, cancellation, and historical opening.
+## Optional Ollama
 
-## Optional Ollama setup
+Ollama is optional and externally managed. Enable AI, check the configured endpoint, discover exact installed model identifiers, select one, enable an individual capability, and save. Enabling the shell switch alone performs no provider detection or communication. Essential endpoint/model controls remain available with AI; raw request diagnostics additionally require Advanced mode and explicit opt-in.
 
-Ollama is optional and externally managed. Open **Settings**, select **Enable AI features**, keep the default local endpoint (`http://127.0.0.1:11434`) or enter your own endpoint, use **Check connection**, then **Discover models**, select an exact installed model, enable one or both capabilities, and save Settings. These essential setup controls do not require advanced mode. Advanced mode adds troubleshooting controls, including a separate default-off session-only AI request diagnostic capture.
-
-When AI is disabled, OpenSorSe performs no provider discovery, background communication, or model request. When Ollama is unavailable, has no configured or installed model, times out, is cancelled, or returns invalid or unsafe JSON, scanning and every non-AI feature continue to work. Suggestions are validated previews only: accepting, rejecting, or editing one records a local decision but never changes a file or folder.
-
-The default endpoint is local. A custom remote endpoint can receive only the bounded request metadata OpenSorSe supplies (request-local identities, exact filenames, extensions, deterministic categories, existing logical folder names, and concise local preferences); it never sends document contents or absolute paths. See the [v0.9.1 feature specification](docs/Implementation_Spec/v0.9.1/046_Optional_AI_and_Advanced_Feature_Controls.md) and [correction specification](docs/Implementation_Spec/v0.9.1/047_Correction_Reliability_and_Usability_Pass.md) for the exact boundary.
-
-## Contributing
-
-Keep contributions focused, preserve the read-only safety boundary, update affected documentation, and run the build and test commands above. v0.9.1 authorizes only constrained suggestion generation and progressive interface visibility on top of v0.9; it does not authorize live verification, file modification, OCR, semantic search, monitoring, report export, automatic execution, or the future plugin system.
+Unavailable endpoints/models, timeout, cancellation, malformed or oversized output, and unsafe values return controlled states without affecting scanning or other non-AI features. The local deterministic Semantic Search Beta and folder restructuring service do not use Ollama.
 
 ## License
 

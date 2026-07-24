@@ -4,7 +4,7 @@
 
 ## Implementation status
 
-This component remains future architecture. v0.9's bounded catalog entries are user-enabled historical snapshots, and its comparison result is process-local stored-metadata analysis. Neither is an append-only event history, audit log, database timeline, live monitor, or rollback system.
+This general document-lifecycle history component remains future architecture. The bounded catalog stores user-enabled historical snapshots, while 1.0's separate `structure-history.json` records source/proposed/applied structure snapshots and deterministic restructuring outcomes for review and repeat protection. Neither store is a relational audit log, live filesystem monitor, general operation timeline, or arbitrary undo system.
 
 ---
 

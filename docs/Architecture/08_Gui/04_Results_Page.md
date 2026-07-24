@@ -1,6 +1,6 @@
 # Results Explorer and Duplicate View
 
-> This document defines the read-only Results Explorer delivered in v0.2 and extended through the v0.9.1 correction pass.
+> This document defines the read-only Results Explorer delivered in v0.2 and refined through OpenSorSe 1.0.
 
 ---
 
@@ -33,7 +33,7 @@ The Results Explorer is responsible for:
 
 The page and its view models do not perform filesystem traversal, read file contents, calculate hashes, execute rules, or modify files. They obtain completed state through application-layer services and keep presentation state separate from the scan pipeline.
 
-Filtering, sorting, paging, selection, ranked search, and accepted tags operate on the current snapshot. User-tag controls update only application associations and raise the existing catalog-persistence signal for catalog-backed snapshots. They are not embedded metadata editing, a document-content search engine, or semantic search. Optional AI suggestions are never execution controls: accepting, rejecting, or editing records a decision only.
+Filtering, sorting, paging, selection, ranked search, and accepted tags operate on the current snapshot. The toolbar remains fixed while the bounded row region scrolls independently. User-tag controls update only application associations and raise the existing catalog-persistence signal for catalog-backed snapshots. They are not embedded metadata editing. The separate Semantic Search Beta page owns bounded content-aware search. Optional AI suggestions are never execution controls: accepting, rejecting, or editing records a decision only.
 
 Duplicate View can ask `IExternalFileLauncher` to open only direct paths represented by known rows in the current snapshot. A command opens at most five targets, uses an argument-safe platform launch rather than a constructed command line, supports cancellation, continues after individual failures, and reports partial success. Two-member groups alone expose **Open both files**. Historical catalog entries and unknown or stale rows are not launchable.
 
@@ -68,7 +68,7 @@ flowchart LR
 
 ## Deferred Capabilities
 
-Content previews, AI summaries, automatic duplicate cleanup, document-content search, exports, and file-changing workflows are not part of v0.9.1. They require explicit future scope and must preserve the product's safety guarantees.
+Content previews, AI summaries, automatic duplicate cleanup, and exports are not part of 1.0. Results Explorer contains no file-changing command. The separately enabled Semantic Search Beta page provides bounded content-aware retrieval, and the separately confirmed deterministic restructuring workflow owns the only 1.0 source-location changes.
 
 ---
 

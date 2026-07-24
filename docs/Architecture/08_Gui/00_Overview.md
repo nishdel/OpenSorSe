@@ -1,6 +1,6 @@
 # GUI Overview
 
-> The current GUI is an Avalonia MVVM desktop application focused on a safe, read-only scan and review workflow.
+> The current GUI is an Avalonia MVVM desktop application focused on safe analysis, review, and separately confirmed restructuring.
 
 ---
 
@@ -17,13 +17,15 @@ The implemented Desktop application hosts these user-facing areas:
 | Saved Catalog | Lists, names, and opens opt-in application-owned historical snapshots; it shows captured source scope and offers explicit local catalog maintenance only. |
 | Catalog Search | Searches metadata already saved in catalog snapshots with deterministic ranking/explanations and manages bounded named query presets. |
 | Compare Snapshots | Compares two explicit historical entries in memory with source-scope status, bounded filters, cancellation, and no live path access. |
+| Semantic Search Beta | Builds/searches a separately enabled bounded local index and explains filename/tag/metadata/native/OCR/similarity matches. |
+| Structure History | Advanced preview/apply/history page with exact confirmation, repeat protection, filters, source/proposed/applied/current structures, and accessible diagrams. |
 | Rules | Reviews and validates caller-supplied in-memory rule data. The current shell does not create, persist, or execute rules. |
 | Settings | Edits implemented application settings. |
 | Diagnostics | Presents aggregate logging health. |
 | Operation History | Presents a review-only empty/in-memory foundation. The current workflow supplies no execution sessions and exposes no undo action. |
 | Notifications | Shows non-blocking user-safe status messages. |
 
-The current GUI does not expose execution, undo, file opening, file revealing, result export, live monitoring, OCR, semantic search, or selected-user-file mutation controls. Optional AI controls remain review-only, and catalog maintenance changes only OpenSorSe application data after explicit action.
+The current GUI exposes capped known-file/folder opening, local metadata/OCR controls, Semantic Search Beta, and one deterministic restructuring apply. It does not expose duplicate deletion, generic rule execution/undo, autonomous AI mutation, export, or live monitoring. AI remains review-only, and catalog/index/history maintenance changes only OpenSorSe application data.
 
 ## Presentation boundary
 
@@ -36,7 +38,7 @@ flowchart LR
     Results --> ViewModels
 ```
 
-Views and view models present already-computed application data. They must not perform filesystem access, execute planned operations, or bypass the Application layer.
+Views contain layout/bindings only. ViewModels coordinate application interfaces asynchronously; filesystem extraction, opening, semantic indexing, and restructuring remain behind injected application/service boundaries.
 
 ## Current usability guarantees
 
@@ -49,6 +51,9 @@ Views and view models present already-computed application data. They must not p
 - User tags are application metadata only. Saved searches store names/query text only and always recalculate hits from the current catalog.
 - Primary navigation uses readable labels; dense catalog action groups wrap at constrained widths; critical catalog inputs expose accessible names.
 - Empty, limitation, and error states use user-safe messages.
+- Fixed Results filters remain outside the independently scrolling result list; Duplicate details use a right drawer.
+- Global AI and Advanced controls remain visible in the shell and hide stale gated destinations safely.
+- Structure diagrams are capped at 500 visible nodes and provide text labels for every change state.
 
 ## Future design material
 

@@ -1,26 +1,26 @@
 # Readers Overview
 
-> This document describes a possible future subsystem for extracting structured content from supported file types.
+> This document distinguishes the bounded 1.0 content pipeline from richer future readers.
 
 ---
 
 ## Implementation Status
 
-Readers are not implemented in the validated v0.2 release. The current application reads filesystem metadata and calculates SHA-256 hashes during scanning, but it does not read document contents or provide PDF, DOCX, spreadsheet, image, media, archive, or OCR processing.
+OpenSorSe 1.0 implements `IMetadataExtractor` and `IMetadataExtractionPipeline` for filesystem metadata, defensive PDF fields/native text, bounded DOCX/XLSX core properties/native text, and PNG/JPEG dimensions. It also provides separately enabled OCR Beta through a capability-detected local Tesseract CLI for PNG/JPEG/TIFF. Extractors are read-only, bounded, cancellable, never execute macros, and never fetch remote resources.
 
-The documents in this directory record future architectural direction only. They do not describe shipped components, supported file formats, or a committed release plan.
+Scanned-PDF OCR, rich document layout, media/archive readers, formula evaluation, embedded-object execution, and full-fidelity content parsing remain future work. Format-specific documents in this directory are authoritative only where the v1.0 implementation/specification explicitly says a capability is delivered.
 
 ---
 
 ## Purpose
 
-A future Readers subsystem could provide a consistent boundary for extracting content and format-specific metadata from supported files. It would keep format handling separate from scanning, rules, and presentation while allowing individual reader implementations to evolve independently.
+The Readers/content boundary provides consistent defensive extraction while keeping format handling separate from scanning, rules, semantic indexing, and presentation.
 
 ---
 
 ## Prospective Responsibilities
 
-If introduced in a future release, the subsystem would be responsible for:
+The implemented narrow subsystem is responsible for:
 
 * Selecting a reader for a supported file type.
 * Extracting content and format-specific metadata without modifying the source file.
@@ -33,7 +33,7 @@ It would not own filesystem traversal, result presentation, persistence, AI infe
 
 ## Relationship to the Current Release
 
-The v0.2 Scanner remains the current boundary for recursive traversal, basic metadata collection, hashing, error reporting, progress, and cancellation. Reader architecture should be introduced only when a release explicitly scopes content extraction and its privacy, performance, and failure-handling requirements.
+The Scanner remains responsible for recursive traversal, basic metadata, hashing, errors, progress, and cancellation. After scan enrichment, the optional application content stage caches supported extracted metadata/text by source fingerprint and isolates every per-file failure.
 
 ---
 

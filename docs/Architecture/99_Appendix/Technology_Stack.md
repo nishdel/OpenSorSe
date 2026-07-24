@@ -1,6 +1,6 @@
 # Technology Stack
 
-> This document distinguishes technologies used by the v0.9.1 release from longer-term technology ideas.
+> This document distinguishes technologies used by OpenSorSe 1.0 from post-1.0 design ideas.
 
 ---
 
@@ -17,23 +17,25 @@
 | Testing | xUnit, Microsoft.NET.Test.Sdk, coverlet collector | Automated unit and integration test coverage. |
 | Documentation | Markdown and Mermaid | Repository documentation and architecture diagrams. |
 | Version control | Git | Local repository history and collaboration workflow. |
+| Local OCR integration | Tesseract CLI capability detection | Optional bounded PNG/JPEG/TIFF OCR Beta; the engine remains externally installed. |
+| Local similarity | Deterministic feature hashing | Rebuildable Semantic Search Beta vectors without a model download or network service. |
+| Local persistence | `System.Text.Json` + atomic replace | Separate bounded versioned settings/catalog/content/semantic/history stores. |
 
 The repository pins an SDK version in the root [global.json](../../../global.json). The pinned SDK may be newer than the .NET 8 target framework; the application runtime target remains .NET 8.
 
 ## Current non-adoptions
 
-The v0.9.1 release does not use the following as implemented product capabilities:
+The 1.0 release does not use the following as implemented product capabilities:
 
-- SQLite or another database; bounded schema-2 scan snapshots and named query text use separate JSON stores, while comparison is in memory.
-- Full-text or vector search.
-- Embeddings or cloud AI APIs. Ollama is the single optional provider for validated review-only suggestions.
-- OCR or format-specific content readers.
+- SQLite or a database-backed full-text/vector engine.
+- Learned embedding models, cloud AI APIs, or GPU acceleration. Ollama remains the single optional provider for validated review-only suggestions; Semantic Search uses deterministic local feature hashing.
+- Bundled Tesseract models or a scanned-PDF rasterizer.
 - Plugin loading or a plugin marketplace.
 - Python, PySide, or other legacy desktop stack components.
 
 ## Future technology considerations
 
-Readers, OCR, additional AI providers, database/index storage, semantic search, reports, and plugins are future architectural ideas. Deterministic metadata search and bounded JSON application data are implemented. A technology named in a future architecture document is not a dependency or delivered capability until a dedicated proposal and implementation add it.
+Richer readers, additional AI providers, database indexes, learned embeddings, reports, packaging, localization, and plugins are future architectural ideas. The bounded 1.0 extractors, local image OCR integration, deterministic semantic index, and JSON structure history are implemented. A technology named in a future architecture document is not a dependency until a release specification and code add it.
 
 Future technology selection should continue to prioritize local-first privacy, user control, maintainability, and explicit safety boundaries for any feature that could affect user files.
 

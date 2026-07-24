@@ -10,5 +10,6 @@ OpenSorSe 1.0.0 is the first integrated local-understanding release candidate.
 - Semantic Search is Beta, local, deterministic, explainable, and independent of AI.
 - Provenance-aware tags connect metadata, OCR, search, and organization.
 - Structure history, repeat protection, and read-only diagrams retain organization context.
+- A separately confirmed deterministic restructuring plan can move only reviewed root-confined files; it never uses AI output, overwrites, or deletes.
 
 Index quality may evolve and indexes may need rebuilding after future upgrades. OCR and indexing never modify source files. GPU acceleration and cross-platform packaging are not claimed as verified by this Windows development environment.

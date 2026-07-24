@@ -1,87 +1,54 @@
-# System Overview
+# OpenSorSe 1.0 System Overview
 
-> This document describes the current OpenSorSe implementation and identifies broader architecture material that remains future design intent.
+OpenSorSe is a local-first Avalonia desktop application for understanding selected folders and reviewing organization decisions. It uses .NET 8, C#, MVVM, dependency injection, bounded asynchronous work, and versioned local JSON stores.
 
----
+## Product boundary
 
-## Current product boundary
+Scanning, exact-duplicate review, metadata extraction, OCR Beta, tag generation, Semantic Search Beta, catalog/history comparison, diagrams, and optional AI suggestions are non-mutating. AI is disabled by default, metadata-only, untrusted, and suggestion-only.
 
-OpenSorSe is a local-first desktop application for safely analyzing selected folders. The v0.9.1 release is implemented in .NET 8, C#, Avalonia UI, and MVVM.
+OpenSorSe 1.0 adds one narrow mutation boundary: a deterministic folder-restructuring proposal can be applied only after a second exact-preview confirmation. The service revalidates the unchanged explicit root, rejects traversal/reparse/conflict/overwrite/missing-source cases, moves at most 500 listed files, attempts rollback on interruption, and persists outcomes. It does not consume AI output.
 
-The Desktop workflow is intentionally read-only. It scans selected folders, enriches file information in memory, and presents review data without renaming, moving, deleting, overwriting, or otherwise modifying selected user files.
+## Implemented components
 
-The current release includes default-off, capability-specific validated suggestions through an explicitly configured Ollama-compatible endpoint, an independent default-off advanced-interface mode, deterministic metadata search, an opt-in bounded local catalog, user-managed result tags, named saved catalog queries, snapshot names/source scope, and bounded historical snapshot comparison. The default AI endpoint is local, but a custom endpoint can be remote. AI suggestions are metadata-only, unverified, and review-only. The release does not implement live monitoring, OCR, content readers, semantic search, a persistent search index, database-backed storage, report generation/export, automatic file organization, or plugins.
-
-## Implemented architecture
-
-| Component | Current responsibility |
+| Project | Responsibility |
 | --- | --- |
-| `OpenSorSe.Core` | Configuration, logging, events, application state, lifecycle, error handling, dependency injection, and task infrastructure. |
-| `OpenSorSe.Scanner` | Read-only folder traversal, file discovery, metadata extraction, SHA-256 hashing, deterministic classification, and exact duplicate detection. |
-| `OpenSorSe.Rules` | Deterministic rule evaluation, planning, and lexical conflict resolution. |
-| `OpenSorSe.Executor` | Historical execution and undo components retained for isolated testing; the current Desktop neither registers nor exposes them. |
-| `OpenSorSe.Application` | Read-only orchestration, immutable snapshots, central feature gates, bounded AI prompts and response validation, tag validation, bounded catalog/query persistence, and pure historical comparison. |
-| `OpenSorSe.AI` | Optional configured Ollama-compatible transport and bounded AI-review-decision persistence. |
-| `OpenSorSe.Desktop` | Avalonia MVVM shell, feature-aware navigation/settings, regular analysis/catalog workflows, advanced review/diagnostics pages, and constrained AI proposal review. |
+| `OpenSorSe.Core` | Validated settings, logging, lifecycle, events, state, tasks, and dependency-injection support. |
+| `OpenSorSe.Scanner` | Read-only traversal, filesystem metadata, hashing, deterministic classification, and exact duplicate detection. |
+| `OpenSorSe.Rules` | Deterministic rule evaluation/planning and conflict resolution; no Desktop execution workflow. |
+| `OpenSorSe.Executor` | Historical generic executor/undo library retained for tests; not registered by the Desktop. |
+| `OpenSorSe.Application` | Processing orchestration, Results projection, AI gates/contracts, catalog/search/comparison, content extraction, OCR service, provenance tags, semantic index/search, and restructuring/history/comparison. |
+| `OpenSorSe.AI` | Optional Ollama-compatible HTTP transport and bounded AI review-decision persistence. |
+| `OpenSorSe.Desktop` | Avalonia shell, global feature controls, MVVM pages, preview/review workflows, Help, diagnostics, and explicit restructuring confirmation. |
 
 ```mermaid
 flowchart LR
-    UI["Avalonia Desktop / MVVM"] --> Application["Application"]
-    Application --> Scanner["Scanner"]
-    Application --> Rules["Rules"]
-    Application --> Core["Core"]
-    Scanner --> Results["Immutable results snapshot"]
-    Rules --> Results
-    Results --> Catalog["Opt-in local catalog"]
-    Catalog --> UI
-    Catalog --> Compare["Historical snapshot comparison"]
-    Compare --> UI
-    UI --> Queries["Saved query presets"]
-    Queries --> UI
+    UI["Avalonia Desktop / MVVM"] --> App["Application services"]
+    App --> Scanner["Read-only Scanner"]
+    App --> Rules["Rules planning"]
+    App --> Content["Metadata + OCR cache"]
+    Content --> Tags["Provenance tags"]
+    Content --> Semantic["Local Semantic index"]
+    App --> Catalog["Saved catalog"]
+    App --> Structure["Structure preview/history"]
+    Structure -->|exact confirmed plan only| Files["In-root file moves"]
+    UI --> AI["Optional Ollama transport"]
+    AI --> App
+    Scanner --> Results["Immutable Results"]
     Results --> UI
 ```
 
-## Read-only processing flow
+## Local stores
 
-1. The user selects one or more local folders.
-2. The Scanner discovers entries and reads filesystem metadata.
-3. The pipeline calculates hashes, applies deterministic classification, detects exact duplicates, and evaluates rules.
-4. The Application layer produces an in-memory result snapshot for a completed session.
-5. The Desktop application presents the Results Explorer and duplicate review.
-6. A user can add or remove bounded OpenSorSe metadata tags for the selected result; no embedded or sidecar file metadata is changed.
-7. When explicitly enabled, a completed bounded snapshot and accepted tags may be stored in OpenSorSe application data and later reopened or searched as historical metadata.
-8. Named query text may be saved separately and explicitly rerun against the current catalog; search hits are never persisted.
-9. New catalog entries capture bounded selected source roots and can receive an application-owned name. Two explicit entries can be compared in memory without checking a stored path.
+Settings, logs, AI decisions, saved catalog/searches, extracted content, semantic index, and structure history live in separate bounded OpenSorSe application-data files. Missing optional stores are valid empty states. Corrupt optional caches/index/history fail closed and cannot activate a file operation.
 
-The current Desktop composition root does not register or invoke execution or undo components. By default result data is process-local and discarded when the application closes. The optional catalog is a bounded application-owned historical snapshot, never a live filesystem view or user-folder sidecar.
+## Deferred
 
-## Architecture maturity
-
-The architecture documentation also contains longer-term designs for Readers, Database, Search, Reports, and Plugins. Those sections are future architectural intent unless a current release document explicitly identifies a narrow implementation through v0.9.1.
-
-Future work should preserve the current component boundaries and receive its own implementation proposal before changing the read-only safety model.
-
-## Documentation structure
-
-| Section | Status in current release |
-| --- | --- |
-| `00_System` | Current system guidance and future design context. |
-| `01_Core` | Implemented foundation. |
-| `02_Scanner` | Implemented read-only analysis pipeline. |
-| `03_Readers` | Future design intent. |
-| `04_AI` | Two constrained v0.9.1 suggestion capabilities; enrichment, embeddings, multi-provider orchestration, agents, and plugins remain future intent. |
-| `05_Database` | Future design intent; the bounded catalog and saved-query JSON files are not a database. |
-| `06_Search` | Deterministic in-memory/catalog search, v0.6 user tags, and v0.7 named query presets; v0.9 comparison is separate stored-metadata analysis, not a search index. |
-| `07-Rules` | Implemented deterministic evaluation and planning infrastructure; no Desktop execution workflow. |
-| `08_Gui` | Implemented read-only pages include Results, Catalog, Catalog Search, and Compare Snapshots; broader pages remain future design. |
-| `09_Reports` | Future design intent. |
-| `10_Plugins` | Future design intent. |
+Plugins, broad localization, installers/release automation, cloud indexing, live monitoring, report export, autonomous AI actions, learned/external embedding models, bundled PDF rasterization, and generic rule execution remain post-1.0 work.
 
 ## Related documents
 
-- [Release Status](../../RELEASE_STATUS.md)
-- [System Goals](01_System_Goals.md)
 - [Component Map](03_Component_Map.md)
 - [Data Flow](04_Data_Flow.md)
-- [Technology Stack](../99_Appendix/Technology_Stack.md)
+- [User Flow](06_User_Flow.md)
 - [Safety and Privacy](../../SAFETY_AND_PRIVACY.md)
+- [v1.0 specification](../../Implementation_Spec/v1.0/048_v1.0_Integrated_Release.md)

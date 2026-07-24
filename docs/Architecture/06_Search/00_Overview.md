@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-v0.3 implements deterministic metadata-aware ranked search over the current in-memory results snapshot. v0.5 reuses the same filename, path, extension, deterministic-category, and accepted-tag semantics across opt-in saved catalog snapshots. v0.6 adds explicit user-managed tags to those inputs, and v0.7 stores up to 25 names/query-text presets that rerun the same current-catalog search. v0.8 adds snapshot-name context to hits without changing ranking. v0.9 comparison is a separate pure analysis service, not search or an index. Search hits and comparison results are never persisted. There is no extracted-text index, semantic search, embedding, or persistent search index. The broader design below remains future architecture unless a current release specification says otherwise.
+OpenSorSe retains deterministic current-Results and catalog metadata search from v0.3-v0.9. OpenSorSe 1.0 additionally implements separately enabled Semantic Search Beta over a bounded local `semantic-index.json`. It combines exact filename, confirmed tag, path, metadata, native-text, OCR, and deterministic feature-hashing similarity signals and explains each match. The index is incremental, cancellable, rebuildable, and independent of AI. Search hits and comparison rows remain in memory. The broader database-backed/full-text/learned-embedding design below remains future architecture.
 
 ---
 

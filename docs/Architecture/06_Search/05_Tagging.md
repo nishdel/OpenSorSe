@@ -4,7 +4,7 @@
 
 ## Implementation status
 
-v0.9 implements a narrow application-owned subset. Deterministic extension tags, accepted AI tags, and up to twelve accepted user-managed tags per result participate in in-memory and catalog metadata search. A selected result can add or remove non-deterministic tags; deterministic extension tags are protected. Tags remain associations with opaque snapshot file IDs and are persisted only when the active snapshot is catalog-backed. Historical comparison maps accepted non-deterministic normalized tag sets through each snapshot's file IDs and reports differences without writing them. There is no global taxonomy, database, bulk propagation, plugin tagging, embedded file-metadata write, or sidecar file.
+OpenSorSe 1.0 preserves the bounded application-owned tag model and adds explicit provenance for user-approved, deterministic, embedded-metadata, OCR, semantic, file-type, date, folder-context, AI, and preference-derived candidates. Deterministic and accepted tags participate in Results, catalog, and Semantic Search Beta. Generated candidates remain distinguishable from confirmed evidence and may be accepted or rejected locally; rejected candidates are suppressed by the stored decision state. A selected result can add or remove up to twelve non-deterministic tags, while protected deterministic tags remain immutable. Tags are never written into source documents or sidecar files. There is no global taxonomy, relational database, bulk propagation, or plugin tagging.
 
 ---
 

@@ -6,7 +6,7 @@
 
 ## Implementation Status
 
-The Database subsystem remains future architecture. v0.9 has no database or persistent full-text/semantic search index. It persists settings, a small local JSON AI decision history, an opt-in bounded schema-2 `catalog.json` of display-safe snapshots/tags/names/source roots, and a separate bounded `saved-catalog-searches.json` containing names/query text only. Catalog schema-1-to-2 compatibility is a JSON-envelope migration, not implementation of the Database subsystem. Historical comparison is process-local. The design below is not a shipped feature set or release commitment.
+The general Database subsystem remains future architecture; 1.0 does not add SQLite. Current persistence uses separate bounded atomic JSON envelopes for settings, AI decisions, opt-in catalog snapshots, saved query definitions, extracted content, a rebuildable deterministic semantic index, and structure history. Catalog schema-1/2 compatibility and schema-1 content/semantic/history envelopes are JSON migrations, not a relational database. The broader design below is not a shipped feature set.
 
 ---
 

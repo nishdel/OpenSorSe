@@ -2,6 +2,12 @@
 
 > This document defines the Semantic Search component, which is responsible for retrieving documents based on semantic meaning rather than exact keyword matches.
 
+## 1.0 implementation status
+
+Semantic Search Beta is implemented locally behind `IEmbeddingProvider`, `ISemanticIndexer`, `ISemanticIndexStore`, and `ISemanticSearchService`. The current provider uses deterministic 256-dimensional feature hashing, not a learned language model. Hybrid ranking combines exact filename, accepted tag, path, metadata, native-text, OCR, and cosine-similarity signals with user evidence weighted above low-confidence generated candidates. Results explain concrete matches and never expose vectors as certainty.
+
+The feature is disabled by default, bounded to configured document/result limits, incremental by source/tag fingerprints, cancellable, and rebuildable after corruption or future upgrades. It does not require AI, contact Ollama, or modify source files. The later sections describe broader semantic-search direction; learned embeddings and GPU/model acceleration are not 1.0 claims.
+
 ---
 
 ## Purpose

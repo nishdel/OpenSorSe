@@ -1,50 +1,26 @@
-# System Goals
+# OpenSorSe 1.0 System Goals
 
-> These goals guide the current read-only product and future proposals for OpenSorSe.
+## Goals
 
----
+1. Analyze selected folders safely with read-only traversal, metadata, hashes, classification, exact duplicates, progress, and cancellation.
+2. Keep Results usable through fixed filters, bounded paging, independent scrolling, explanations, provenance tags, and a responsive duplicate drawer.
+3. Add local understanding through defensive metadata extraction, optional OCR Beta, and independently enabled local Semantic Search Beta.
+4. Preserve user control: AI remains optional and suggestion-only; restructuring remains deterministic, preview-first, separately confirmed, root-confined, bounded, and auditable.
+5. Avoid repeated organization by activating protection only after a successful apply, while allowing incremental new-file proposals, material-change detection, and explicit override.
+6. Keep data local, stores bounded/atomic/versioned, logs privacy-aware, and v0.9.1 settings/catalog/tags/searches backward compatible.
+7. Maintain responsive asynchronous MVVM workflows with cancellation, bounded memory, lazy/bounded presentation, and failure isolation.
 
-## Current release goals
+## Non-goals
 
-### 1. Analyze selected folders safely
+OpenSorSe 1.0 does not provide:
 
-OpenSorSe discovers files and folders, reads filesystem metadata, calculates hashes, classifies deterministically, and detects exact duplicates without changing selected user files.
+- Autonomous or AI-driven filesystem control.
+- Duplicate deletion or automatic cleanup.
+- Generic rule execution/undo from the Desktop.
+- Bundled scanned-PDF rasterization, GPU acceleration, or externally learned embeddings.
+- Plugins, broad localization, packaging overhaul, live monitoring, cloud indexing, or report export.
+- Claims of cross-platform packaging validation beyond portable architecture and current Windows build/test validation.
 
-### 2. Make completed scans understandable
+## Safety invariant
 
-Users can review a completed in-memory scan through the Results Explorer, filtering, sorting, paging, details, warnings, and exact-duplicate review.
-
-### 3. Preserve user control and privacy
-
-The Desktop workflow is local-first and read-only. It does not execute planned operations, invoke undo, open files, reveal paths, or send scan data to external services.
-
-### 4. Remain reliable and maintainable
-
-The implementation uses clear project boundaries, dependency injection, MVVM, immutable result snapshots, cancellation, user-safe errors, and comprehensive automated tests.
-
-### 5. Keep the UI responsive
-
-Long-running processing reports progress and supports cancellation. Result review uses bounded paging and versioned local query work rather than rendering an unbounded result set.
-
-### 6. Make bounded history understandable
-
-Opt-in catalog snapshots can be named, retain captured source scope, and be compared deterministically from stored metadata. Historical workflows remain bounded, cancellable, and explicitly separate from live filesystem state.
-
-## Future product goals
-
-The project may later explore content readers, OCR, AI assistance, richer search, reporting, plugins, and carefully designed workflow improvements. Those ideas are not current capabilities and must not weaken the safety, privacy, or user-control principles above.
-
-## Current non-goals
-
-The v0.9.1 release does not:
-
-- Modify, delete, move, rename, or overwrite selected user files.
-- Perform OCR, semantic search, content extraction, live monitoring, or automatic operation execution. Optional Ollama provides validated previews only.
-- Persist unbounded result history, comparison reports, extracted content, or scan/search indexes. The opt-in JSON catalog remains bounded application data.
-- Replace the operating system file manager, provide cloud storage, or act as a document editor.
-
-## Related documents
-
-- [System Overview](00_Overview.md)
-- [Release Status](../../RELEASE_STATUS.md)
-- [Roadmap](../../roadmap.md)
+No operation may infer mutation authority from scanning, indexing, an AI response, a preview, or a history record. Only the explicit exact-plan restructuring confirmation grants bounded authority for that one operation.

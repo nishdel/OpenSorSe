@@ -1,54 +1,35 @@
-# User Flow
-
-> This document describes the validated v0.9.1 read-only user workflow.
-
----
-
-## Primary workflow
+# OpenSorSe 1.0 User Flow
 
 ```mermaid
 flowchart LR
-    A["Launch OpenSorSe"] --> B["Select local folders"]
-    B --> C["Run read-only processing"]
-    C -->|Cancelled| D["Return to Scan with safe status"]
-    C -->|Completed| E["Review immutable results"]
-    E --> F["Filter, sort, page, and inspect details"]
-    E --> G["Review exact duplicate groups"]
-    E --> H["Optionally save/reopen historical snapshot"]
-    H --> I["Search saved metadata or maintain catalog"]
-    E --> J["Add/remove OpenSorSe metadata tags"]
-    I --> K["Save and rerun named query text"]
-    H --> L["Name snapshots and review captured scope"]
-    L --> M["Compare two historical snapshots"]
-    G --> F
+    Launch --> Scan["Select and scan folders"]
+    Scan --> Results["Review Results"]
+    Results --> Duplicate["Open duplicate drawer"]
+    Results --> Tags["Review/manage tags"]
+    Results --> Catalog["Optionally save/search/compare snapshots"]
+    Scan --> Content["Local metadata/OCR indexing"]
+    Content --> Semantic["Build/search Semantic Search Beta"]
+    Launch --> Structure["Open advanced Structure history"]
+    Structure --> Preview["Preview proposal + diagrams"]
+    Preview --> Decision{"Apply exact reviewed plan?"}
+    Decision -- No --> Dismiss["Dismiss; no source change"]
+    Decision -- Yes --> Apply["Validated bounded in-root moves"]
+    Apply --> History["Review applied/current history"]
 ```
 
-## User actions available today
+## Primary actions
 
-| Action | Behavior |
+| Action | Effect |
 | --- | --- |
-| Scan | Select one or more local folders and start a read-only analysis pipeline. |
-| Cancel | Request cancellation of active processing; incomplete results are not presented as completed review data. |
-| Review results | Filter, sort, page, and inspect the in-memory output of a completed scan. |
-| Review duplicates | Inspect existing exact SHA-256 groups and return to their result rows. |
-| Saved catalog | Opt in to store bounded display-safe snapshots locally, reopen them, and explicitly remove application-owned catalog data. |
-| Catalog search | Deterministically search metadata already stored in saved snapshots and open the related historical result view. |
-| User tags | Add/remove bounded application-owned labels for the selected result; catalog-backed labels are searchable after restart. |
-| Saved searches | Save named query text, rerun it against the current catalog, and explicitly remove/reset it without storing hits. |
-| Snapshot identity | Set, replace, or clear an application-owned snapshot name and review captured scan roots; legacy scope remains explicitly unknown. |
-| Compare snapshots | Compare two distinct stored snapshots, filter bounded changes, cancel work, and open either historical snapshot without live path access. |
-| Configure | Update implemented application settings. |
-| Diagnose | Review aggregate diagnostic information. |
-| View history | Review available in-memory operation-history state without performing operations. |
+| Scan/cancel | Reads selected roots asynchronously; never modifies them. |
+| Results/search/filter/tags | Changes view state or OpenSorSe-owned tag metadata only. |
+| Duplicate drawer/open | Reviews exact groups and asks the OS to open capped known paths; never deletes. |
+| Catalog/search/comparison | Reads/writes bounded OpenSorSe-owned historical metadata only. |
+| OCR/metadata | Locally reads supported files under bounds; source files remain unchanged. |
+| Semantic build/search/clear | Writes or removes only the local rebuildable semantic index. |
+| AI generate/review | Sends bounded metadata only after explicit enablement; accept/edit/reject remains a local decision. |
+| Structure preview/diagram/current capture | Reads metadata and writes preview history only. |
+| Structure apply | After a separate exact confirmation, moves only listed files under one root after full revalidation. |
+| Clear structure history | Removes only OpenSorSe history; does not undo or modify files. |
 
-## Safety boundary
-
-Users cannot rename, move, delete, overwrite, open, reveal, execute, or undo files through the validated Desktop workflow. Planned operations are informational only.
-
-AI suggestions remain review-only. Live monitoring, OCR, semantic search, content readers, database-backed indexes, scheduled/background search, report export, automatic organization, and selected-user-file mutation are not part of the current user flow.
-
-## Related documents
-
-- [System Overview](00_Overview.md)
-- [GUI Overview](../08_Gui/00_Overview.md)
-- [Release Status](../../RELEASE_STATUS.md)
+Global AI and Advanced switches remain visible from every page. Disabling a switch hides affected pages and safely returns stale hidden navigation to Dashboard without resetting saved dependent values.

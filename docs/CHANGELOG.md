@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.0.0
+
+Integrated local-understanding and structure-history release candidate.
+
+### Added
+
+- Local, bounded metadata extraction for filesystem, PDF, Open XML, and image metadata with source provenance and per-file failure isolation.
+- Optional OCR Beta through capability-detected local Tesseract CLI execution for supported images; reliable native text skips OCR and scanned-PDF OCR reports unavailable without a rasterizer.
+- Provenance-aware confirmed, suggested, accepted, and rejected tags sourced from users, deterministic rules, file type/date/folder context, embedded metadata, local OCR, preferences, semantic inference, and optional AI review.
+- Default-off local Semantic Search Beta with deterministic feature-hashing vectors, hybrid exact/tag/metadata/native-text/OCR ranking, match explanations, incremental refresh, cancellation, stale-file removal, and clear/rebuild controls.
+- Versioned atomic `content-index.json`, `semantic-index.json`, and `structure-history.json` stores with explicit bounds and controlled corrupt optional-index recovery.
+- Advanced Structure history page with root/status filters, source/proposed/applied/current snapshots, bounded tree projection, accessible text, and Added/Removed/Moved/Renamed/Unchanged comparison labels.
+- Deterministic preview-first root-level folder proposals, separately confirmed bounded apply, current-root revalidation, traversal/reparse/conflict/overwrite protection, rollback attempts, and per-item outcomes.
+- Successful-apply repeat protection, incremental proposals for new files, material-change detection, and an explicit **Propose restructuring again** override.
+- Contextual Help for Semantic Search Beta and Structure history.
+
+### Changed
+
+- Results search/filter/status controls remain fixed while the virtualized result list scrolls independently.
+- Duplicate View keeps its group list visible and opens selected details in a responsive right-side drawer with Escape/close support.
+- Global **Enable AI** and **Advanced features** controls remain visible in the navigation shell and synchronize with Settings.
+- Assembly, package, informational, file, and About versions report `1.0.0`.
+- Advanced navigation now includes Structure history; Semantic Search Beta remains independently enabled and does not require AI or Advanced mode.
+- Existing v0.9.1 settings, catalog schemas, accepted tags, saved searches, and AI decisions remain readable with safe defaults for new settings.
+
+### Safety
+
+- Scanning, OCR, extraction, indexing, duplicate review, diagrams, and AI suggestions never modify source files.
+- AI remains default-off, capability-specific, metadata-only, untrusted, and suggestion-only; no AI result enters a filesystem operation.
+- The only new source-file mutation is a deterministic restructuring plan applied after a separate exact-preview confirmation. It moves only listed files under one explicit root and never overwrites or deletes.
+- Raw OCR/document text and semantic vectors are excluded from ordinary logs.
+
+### Fixed
+
+- Generated content tags no longer trigger a re-entrant Results refresh, and loading them no longer replaces the deterministic extension tag.
+- Navigation falls back safely when Advanced mode hides Structure history or any other selected advanced page.
+- Changed roots are rejected between restructuring preview and apply, preventing stale proposals from moving files.
+- Failed or preview-only restructuring records cannot activate repeat protection.
+
 ## v0.9.1
 
 Focused optional-AI and interface-complexity refinement; this is not the v1.0 milestone.

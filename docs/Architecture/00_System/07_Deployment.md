@@ -16,13 +16,13 @@ The deployment architecture is designed around a **local-first** philosophy wher
 
 # Deployment Overview
 
-OpenSorSe v0.9 runs as a .NET 8 Avalonia desktop application built from source; this repository has no installer or published package.
+OpenSorSe 1.0 runs as a .NET 8 Avalonia desktop application built from source; this repository has no installer or published package.
 
 All primary components execute locally and communicate internally through the application's architecture.
 
 No internet connection is required for core functionality.
 
-An explicitly configured Ollama endpoint is optional for review-only suggestions. It is not required for scanning, Results, tags, catalog search, saved searches, snapshot identity, or historical comparison.
+An explicitly configured Ollama endpoint is optional for review-only suggestions. It is not required for scanning, Results, OCR, metadata extraction, tags, Semantic Search Beta, catalog functions, structure history, or deterministic restructuring.
 
 ---
 
@@ -37,13 +37,13 @@ flowchart TB
 
     Filesystem["Local Filesystem"]
 
-    AppData["OpenSorSe local application data\nsettings/logs/decisions/catalog/saved queries"]
+    AppData["OpenSorSe local application data\nsettings/logs/catalog/content/index/history"]
 
     Ollama["Optional Ollama endpoint"]
 
     User --> App
 
-    App -->|Read-only analysis| Filesystem
+    App -->|Read-only analysis; separately confirmed bounded restructuring| Filesystem
     App --> AppData
     App -. Explicit optional metadata requests .-> Ollama
 ```
@@ -57,8 +57,8 @@ The deployed application consists of the following runtime components.
 | Component               | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |
 | Desktop Application     | Hosts the user interface and application logic.              |
-| Local Filesystem | Source of folders analyzed through the read-only scanner. |
-| Local application data | Holds JSON settings, bounded logs/decision history, optional bounded `catalog.json`, and bounded `saved-catalog-searches.json`. |
+| Local Filesystem | Source of folders analyzed read-only; only the separate deterministic restructuring service may move reviewed files after exact confirmation. |
+| Local application data | Holds bounded JSON settings, logs, AI decisions, catalog/search definitions, extracted-content cache, deterministic semantic index, and structure history. |
 | Optional Ollama endpoint | Receives bounded metadata only when enabled for validated review-only suggestions. |
 
 ---
@@ -67,9 +67,9 @@ The deployed application consists of the following runtime components.
 
 Application data is stored locally.
 
-Implemented stored information is application settings, diagnostic logs, bounded AI decision history, optional schema-2 display-safe catalog snapshots/accepted tags/names/source roots, and up to 25 saved query names/text values. Historical comparison results and filters are process-local. OpenSorSe does not store extracted contents, hashes in the Results snapshot, persistent search hits, full-text/vector indexes, plugin data, or sidecars beside selected files.
+Implemented stored information includes application settings, diagnostic logs, bounded AI decision history, optional schema-2 display-safe catalog snapshots and accepted tags, up to 25 saved query definitions, bounded extracted native/OCR text, a rebuildable deterministic semantic index, and bounded folder-structure history. Historical catalog-comparison results, structure-diagram projections, and UI filters remain process-local. OpenSorSe does not write sidecars beside selected files, persist raw scan hashes as search results, store model files, or store plugin data.
 
-Production settings, decision history, catalog, saved searches, and default logs are rooted below `Environment.SpecialFolder.LocalApplicationData/OpenSorSe`. The user can explicitly select another absolute log directory; ownership-aware names and markers ensure retention never targets an unowned collision. Tests use unique disposable temporary directories.
+Production settings, decision history, catalog, saved searches, content cache, semantic index, structure history, and default logs are rooted below `Environment.SpecialFolder.LocalApplicationData/OpenSorSe`. The user can explicitly select another absolute log directory; ownership-aware names and markers ensure retention never targets an unowned collision. Tests use unique disposable temporary directories.
 
 ---
 

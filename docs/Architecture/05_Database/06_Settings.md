@@ -12,9 +12,9 @@ Its primary purpose is to ensure that application behavior can be configured con
 
 Settings influence application behavior but do not contain document-specific information.
 
-## v0.9.1 implementation status
+## 1.0 implementation status
 
-The implemented settings store is bounded atomic JSON, not a database. It persists default-off catalog, AI, advanced-interface, rename-suggestion, and folder-structure-suggestion switches together with existing validated provider and logging values. Older JSON without the new properties loads with safe defaults, and disabling or hiding a setting never erases its stored dependent values. `FeatureAccess` consumes these settings centrally for UI visibility and application-service enforcement.
+The implemented settings store is bounded atomic JSON, not a database. It persists catalog, AI, advanced-interface, rename/folder suggestion, metadata/OCR, and Semantic Search settings together with validated provider and logging values. AI, Advanced, OCR, catalog, and Semantic Search opt-ins default off; metadata extraction defaults on under conservative bounds. Older JSON without 1.0 properties loads with safe defaults, and disabling or hiding a setting never erases dependent values. `FeatureAccess` centralizes UI visibility and application-service enforcement. Extracted content, semantic vectors, and structure history are deliberately not embedded in settings.
 
 ---
 

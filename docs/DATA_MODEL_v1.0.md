@@ -2,19 +2,19 @@
 
 ## Extracted content
 
-`ExtractedMetadataValue` stores key, display value, normalized value, provenance, optional confidence, and source detail. `ContentExtractionRecord` stores file identity, source fingerprint, MIME/type facts, native/OCR availability, bounded normalized text, fields, warnings, and timestamps.
+`ExtractedMetadataField` stores name, bounded value, `ContentProvenance`, and confidence. `ContentRecord` stores normalized absolute path, source length/last-write fingerprint, indexed time, metadata, bounded native/OCR text, OCR state/engine, warnings, and provenance-aware tags.
 
 ## Tags
 
-`ProvenanceTag` stores identity, file identity, display/normalized name, source, state, confidence, timestamps, source fingerprint, and provenance detail.
+`TagAssociation` stores identity, file identity, display/normalized name, category, `TagSource`, `TagAcceptanceState`, confidence, timestamps, source fingerprint, system status, and provenance detail.
 
 ## Semantic index
 
-`SemanticIndexDocument` stores file identity, source fingerprint, display name/path, category, tags with states/sources, bounded metadata/text tokens, dates, 256-dimensional normalized vector, and indexed time. No raw file bytes are stored.
+`SemanticIndexEntry` stores normalized path, source/index fingerprints, filename, bounded tags, metadata/native/OCR terms, a 256-dimensional normalized deterministic vector, and indexed time. No raw file bytes are stored.
 
 ## Folder structure
 
-`FolderStructureSnapshot` contains root identity, normalized root path, captured time, stable structure hash, and bounded nodes. Each node has a relative path, kind, optional file identity/fingerprint, size, and status. `RestructuringHistoryRecord` contains source/proposed/applied snapshots, approval/result state, proposal source, counts, per-item outcomes, application/schema versions, and current-match state.
+`FolderStructureSnapshot` contains root identity, normalized root path, captured time, stable structure fingerprint, and up to 4,000 nodes. Each `StructureNode` has a relative path, directory flag, length, last-write time, and content-independent identity fingerprint. `RestructuringHistoryRecord` contains source/proposed/optional applied snapshots, approval/result state, up to 500 relative moves and outcomes, algorithm version, explicit-override flag, summary, and previous applied record link. The schema-1 envelope stores at most 250 records.
 
 ## Compatibility
 

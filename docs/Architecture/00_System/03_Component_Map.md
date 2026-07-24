@@ -1,52 +1,38 @@
-# Component Map
-
-> The map below reflects the implemented v0.9.1 component relationships. Longer-term components are listed separately as future design intent.
-
----
-
-## Implemented components
+# OpenSorSe 1.0 Component Map
 
 ```mermaid
 flowchart TB
-    Desktop["OpenSorSe.Desktop\nAvalonia + MVVM"]
-    Application["OpenSorSe.Application\nOrchestration + feature gates + AI prompts/validation + catalog/comparison"]
-    AI["OpenSorSe.AI\nBounded Ollama transport + local decision history"]
-    Core["OpenSorSe.Core\nConfiguration + feature settings + logging + lifecycle"]
-    Scanner["OpenSorSe.Scanner\nRead-only analysis"]
-    Rules["OpenSorSe.Rules\nEvaluation + planning"]
-    Executor["OpenSorSe.Executor\nNot registered by Desktop"]
+    Desktop["Desktop\nAvalonia + MVVM"]
+    Application["Application\nworkflows + contracts + stores"]
+    Core["Core\nsettings + logging + lifecycle"]
+    Scanner["Scanner\nread-only analysis"]
+    Rules["Rules\nplanning only"]
+    AI["AI\noptional Ollama transport"]
+    Content["Content\nmetadata + OCR"]
+    Semantic["Semantic\nlocal hybrid index"]
+    Structure["Structure\nsnapshot + plan + history + compare"]
+    Executor["Executor\ndormant generic library"]
 
     Desktop --> Application
-    Desktop --> AI
     Desktop --> Core
     Application --> Scanner
     Application --> Rules
-    Application --> Core
+    Application --> Content
+    Application --> Semantic
+    Application --> Structure
     AI --> Application
     AI --> Core
-    Rules -. produces planned operations .-> Executor
+    Rules -. no Desktop registration .-> Executor
 ```
 
-| Component | Implemented responsibility | Current safety boundary |
-| --- | --- | --- |
-| Desktop | Presents regular and advanced scan/review workflows plus capability-specific AI proposal panels. | Central visibility requirements and command gates; contains no selected-user-file operation control. |
-| Application | Coordinates processing, immutable results, central feature access, bounded prompts, strict AI response validation, catalog snapshots/queries, and stored-metadata comparison. | Rejects disabled/unsafe AI requests before transport; no AI result flows to an operation API. |
-| AI | Implements optional bounded Ollama transport and local decision-history persistence behind application-owned contracts. | Does not expose transport DTOs to Desktop and cannot mutate files. |
-| Scanner | Traverses selected folders, reads metadata, hashes files, classifies deterministically, and detects exact duplicates. | Read-only filesystem access. |
-| Rules | Evaluates supplied rules and produces display-only plans and conflict resolution. | Does not execute plans. |
-| Core | Provides shared infrastructure and local application configuration/logging support. | Does not create a user-file mutation path. |
-| Executor | Contains execution and undo infrastructure from the foundation work. | Not registered, invoked, or surfaced by the validated Desktop workflow. |
+| Boundary | Enforcement |
+| --- | --- |
+| Feature visibility | `FeatureRequirement` and `FeatureAccess` combine AI, Advanced, and Semantic settings for navigation and commands. |
+| AI | `IAiSuggestionService` checks global/capability/provider/context state before `IAiSuggestionProvider`; structured parsers/validators reject unsafe output. |
+| Content | Extractors and OCR use read-only, bounded, cancellable requests; `IContentStore` is independent of source files. |
+| Semantic | `ISemanticIndexer` and `ISemanticSearchService` use a local deterministic provider and versioned index store; disabled calls do no store/provider work. |
+| Structure | `IFolderRestructuringService` separates preview from exact confirmation and uses `IFolderStructureSnapshotService` plus `IStructureHistoryStore`. |
+| UI | ViewModels own asynchronous state/commands; views contain layout and bindings, not filesystem business logic. |
+| Generic execution | `IActionExecutor`/`IUndoEngine` are not registered in the Desktop composition root. |
 
-## Future design areas
-
-Readers, the broader Database subsystem, Reports, and Plugins remain future architectural design areas. Search and AI have only the narrow capabilities documented through v0.9.1: deterministic metadata search, bounded historical comparison, and two optional constrained Ollama suggestion types. They are not live-monitoring, content-reader, report-export, persistent-index, semantic-search, agent, or plugin implementations.
-
-As of v0.9, bounded comparison is an implemented Application service over two loaded catalog entries. It is not live monitoring, a report-export subsystem, a database index, or semantic search.
-
-Future additions should use the implemented boundaries above rather than bypassing the Application layer or coupling UI code directly to scanner models.
-
-## Related documents
-
-- [System Overview](00_Overview.md)
-- [Data Flow](04_Data_Flow.md)
-- [Release Status](../../RELEASE_STATUS.md)
+The production service provider validates every registration in automated tests.
