@@ -49,6 +49,7 @@ public sealed class DuplicateReviewViewModel : ViewModelBase, IDisposable
         OpenFileCommand = new AsyncRelayCommand<DuplicateFileRow>(OpenOneFileAsync, CanOpenOne);
         OpenContainingFolderCommand = new AsyncRelayCommand<DuplicateFileRow>(OpenOneFolderAsync, CanOpenOne);
         CancelOpenCommand = new RelayCommand(CancelOpen, () => IsOpening);
+        CloseDrawerCommand = new RelayCommand(CloseDrawer, () => IsDrawerOpen);
     }
 
     /// <summary>Occurs when the selected group's known members should be shown in the Results explorer.</summary>
@@ -158,6 +159,9 @@ public sealed class DuplicateReviewViewModel : ViewModelBase, IDisposable
     /// <summary>Gets whether a duplicate group is selected.</summary>
     public bool HasSelectedGroup => SelectedGroup is not null;
 
+    /// <summary>Gets whether the read-only duplicate detail drawer is open.</summary>
+    public bool IsDrawerOpen => HasSelectedGroup;
+
     /// <summary>Gets whether the selected group contains exactly two files.</summary>
     public bool IsExactPair => SelectedGroup?.MemberCount == 2;
 
@@ -236,6 +240,9 @@ public sealed class DuplicateReviewViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets the command that cancels the current bounded launch loop.</summary>
     public IRelayCommand CancelOpenCommand { get; }
+
+    /// <summary>Gets the command that closes the duplicate detail drawer.</summary>
+    public IRelayCommand CloseDrawerCommand { get; }
 
     /// <summary>Replaces review state when a genuinely different completed snapshot is loaded.</summary>
     public void LoadSnapshot(ResultsSnapshot? snapshot)
@@ -417,6 +424,7 @@ public sealed class DuplicateReviewViewModel : ViewModelBase, IDisposable
     private void NotifySelectionStateChanged()
     {
         OnPropertyChanged(nameof(HasSelectedGroup));
+        OnPropertyChanged(nameof(IsDrawerOpen));
         OnPropertyChanged(nameof(IsExactPair));
         OnPropertyChanged(nameof(IsLargeGroup));
         OnPropertyChanged(nameof(SelectedGroupCountText));
@@ -428,8 +436,11 @@ public sealed class DuplicateReviewViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(CanOpenSelectedFiles));
         OnPropertyChanged(nameof(CanOpenSelectedFolders));
         ShowGroupFilesCommand.NotifyCanExecuteChanged();
+        CloseDrawerCommand.NotifyCanExecuteChanged();
         NotifyLaunchCommands();
     }
+
+    private void CloseDrawer() => SelectedGroupRow = null;
 
     private void NotifyLaunchCommands()
     {

@@ -8,6 +8,25 @@ namespace OpenSorSe.Desktop.Tests;
 /// <summary>Verifies Duplicate View navigation state and bounded non-destructive launcher coordination.</summary>
 public sealed class DuplicateReviewViewModelTests
 {
+    /// <summary>Verifies selecting a group opens the drawer and the explicit close action clears only presentation state.</summary>
+    [Fact]
+    public void CloseDrawer_SelectedGroup_ClearsSelectionWithoutLaunchingAnything()
+    {
+        var launcher = new RecordingLauncher();
+        using var viewModel = new DuplicateReviewViewModel(launcher);
+        viewModel.LoadSnapshot(CreateSnapshot("session:drawer", 2));
+        viewModel.SelectedGroupRow = Assert.Single(viewModel.VisibleGroupRows);
+
+        Assert.True(viewModel.IsDrawerOpen);
+        Assert.True(viewModel.CloseDrawerCommand.CanExecute(null));
+
+        viewModel.CloseDrawerCommand.Execute(null);
+
+        Assert.False(viewModel.IsDrawerOpen);
+        Assert.Null(viewModel.SelectedGroup);
+        Assert.Empty(launcher.OpenedFiles);
+    }
+
     /// <summary>Verifies a two-member group opens exactly its two known files through the injected abstraction.</summary>
     [Fact]
     public async Task OpenBothFiles_ExactPair_UsesKnownPathsOnly()
