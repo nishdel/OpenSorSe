@@ -87,6 +87,18 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     /// <summary>Occurs after validated settings have been persisted and made active.</summary>
     public event EventHandler<ApplicationSettings>? SettingsSaved;
 
+    /// <summary>
+    /// Synchronizes the two globally visible shell switches into the editable Settings draft.
+    /// This does not test a provider, discover models, or send an AI request.
+    /// </summary>
+    public void SynchronizeShellFeatureSwitches(bool aiEnabled, bool showAdvancedFeatures)
+    {
+        Draft.AiEnabled = aiEnabled;
+        Draft.ShowAdvancedFeatures = showAdvancedFeatures;
+        _aiRequestDiagnosticsStore?.SetEnabled(
+            aiEnabled && showAdvancedFeatures && Draft.AiRequestDiagnosticsEnabled);
+    }
+
     /// <summary>Gets whether AI capability switches are visible in the editable hierarchy.</summary>
     public bool IsAiCapabilitySettingsVisible => Draft.AiEnabled;
 

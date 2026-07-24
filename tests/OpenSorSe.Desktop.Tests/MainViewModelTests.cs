@@ -199,6 +199,53 @@ public sealed class MainViewModelTests
         Assert.Contains(viewModel.NavigationItems, item => item.Destination == NavigationDestination.Results);
     }
 
+    /// <summary>Verifies shell switches persist, synchronize the Settings draft, and never contact the AI provider.</summary>
+    [Fact]
+    public async Task ShellFeatureSwitches_UpdateSettingsWithoutProviderActivity()
+    {
+        var configuration = new TestConfigurationService();
+        var ai = new NoopAiSuggestionService();
+        using var viewModel = new MainViewModel(
+            configuration,
+            new TestLoggingService(),
+            new RecordingController(),
+            new ResultsSnapshotProjector(),
+            ai);
+
+        Assert.False(viewModel.EnableAi);
+        Assert.False(viewModel.ShowAdvancedFeatures);
+        Assert.Equal("AI: Off", viewModel.AiShellStatusText);
+
+        viewModel.EnableAi = true;
+        viewModel.ShowAdvancedFeatures = true;
+        await configuration.Saved.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(
+            () => configuration.Current.Ai.Enabled &&
+                  configuration.Current.Features.ShowAdvancedFeatures);
+
+        Assert.True(viewModel.Settings.Draft.AiEnabled);
+        Assert.True(viewModel.Settings.Draft.ShowAdvancedFeatures);
+        Assert.Equal("AI: On", viewModel.AiShellStatusText);
+        Assert.Equal("Advanced: On", viewModel.AdvancedShellStatusText);
+        Assert.Equal(0, ai.ProviderActivityCount);
+    }
+
+    /// <summary>Verifies the global Advanced switch safely leaves a page that becomes hidden.</summary>
+    [Fact]
+    public async Task ShellAdvancedSwitch_DisablingOnAdvancedPage_FallsBackToDashboard()
+    {
+        var configuration = new TestConfigurationService(advancedEnabled: true);
+        using var viewModel = new MainViewModel(configuration, new TestLoggingService());
+        viewModel.Navigate(NavigationDestination.Diagnostics);
+
+        viewModel.ShowAdvancedFeatures = false;
+        await configuration.Saved.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(() => viewModel.SelectedDestination == NavigationDestination.Dashboard);
+
+        Assert.DoesNotContain(NavigationDestination.Diagnostics, viewModel.Destinations);
+        Assert.False(viewModel.Settings.Draft.ShowAdvancedFeatures);
+    }
+
     /// <summary>
     /// Verifies unsupported navigation input is rejected before presentation state changes.
     /// </summary>
@@ -414,6 +461,9 @@ public sealed class MainViewModelTests
 
         public ApplicationSettings Current { get; private set; }
 
+        public TaskCompletionSource<ApplicationSettings> Saved { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public Task InitializeAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task SaveAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -421,8 +471,20 @@ public sealed class MainViewModelTests
         public Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken)
         {
             Current = settings;
+            Saved.TrySetResult(settings);
             return Task.CompletedTask;
         }
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var timeout = DateTime.UtcNow.AddSeconds(2);
+        while (!condition() && DateTime.UtcNow < timeout)
+        {
+            await Task.Delay(10);
+        }
+
+        Assert.True(condition());
     }
 
     private sealed class TestLoggingService : ILoggingService
@@ -501,13 +563,31 @@ public sealed class MainViewModelTests
 
     private sealed class NoopAiSuggestionService : IAiSuggestionService
     {
-        public Task<AiConnectionResult> TestConnectionAsync(ApplicationSettings settings, CancellationToken cancellationToken) => Task.FromResult(new AiConnectionResult(AiAvailabilityState.Disabled, "Disabled", []));
+        public int ProviderActivityCount { get; private set; }
 
-        public Task<AiConnectionResult> DiscoverModelsAsync(ApplicationSettings settings, CancellationToken cancellationToken) => Task.FromResult(new AiConnectionResult(AiAvailabilityState.Disabled, "Disabled", []));
+        public Task<AiConnectionResult> TestConnectionAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+        {
+            ProviderActivityCount++;
+            return Task.FromResult(new AiConnectionResult(AiAvailabilityState.Disabled, "Disabled", []));
+        }
 
-        public Task<AiFileRenameResult> GenerateFileRenameAsync(AiFileRenameRequest request, AiSettings settings, CancellationToken cancellationToken) => Task.FromResult(new AiFileRenameResult(AiAvailabilityState.Disabled, "Disabled", null));
+        public Task<AiConnectionResult> DiscoverModelsAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+        {
+            ProviderActivityCount++;
+            return Task.FromResult(new AiConnectionResult(AiAvailabilityState.Disabled, "Disabled", []));
+        }
 
-        public Task<AiFolderStructureResult> GenerateFolderStructureAsync(AiFolderStructureRequest request, AiSettings settings, CancellationToken cancellationToken) => Task.FromResult(new AiFolderStructureResult(AiAvailabilityState.Disabled, "Disabled", null));
+        public Task<AiFileRenameResult> GenerateFileRenameAsync(AiFileRenameRequest request, AiSettings settings, CancellationToken cancellationToken)
+        {
+            ProviderActivityCount++;
+            return Task.FromResult(new AiFileRenameResult(AiAvailabilityState.Disabled, "Disabled", null));
+        }
+
+        public Task<AiFolderStructureResult> GenerateFolderStructureAsync(AiFolderStructureRequest request, AiSettings settings, CancellationToken cancellationToken)
+        {
+            ProviderActivityCount++;
+            return Task.FromResult(new AiFolderStructureResult(AiAvailabilityState.Disabled, "Disabled", null));
+        }
 
         public Task<AiDecisionResult> RecordDecisionAsync(AiSuggestionDecision decision, AiSettings settings, CancellationToken cancellationToken) => Task.FromResult(new AiDecisionResult(AiAvailabilityState.Disabled, "Disabled"));
 

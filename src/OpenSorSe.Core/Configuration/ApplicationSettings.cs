@@ -28,6 +28,31 @@ public sealed class ApplicationSettings
     public CatalogSettings Catalog { get; init; } = new();
 
     /// <summary>
+    /// Creates a settings snapshot with only the two shell-wide feature switches changed.
+    /// All detailed provider, capability, catalog, and logging values are preserved.
+    /// </summary>
+    public ApplicationSettings WithShellFeatureSwitches(bool aiEnabled, bool showAdvancedFeatures) => new()
+    {
+        Features = new FeatureSettings
+        {
+            ShowAdvancedFeatures = showAdvancedFeatures,
+        },
+        Logging = Logging,
+        Ai = new AiSettings
+        {
+            Enabled = aiEnabled,
+            FileRenameSuggestionsEnabled = Ai.FileRenameSuggestionsEnabled,
+            FolderStructureSuggestionsEnabled = Ai.FolderStructureSuggestionsEnabled,
+            RequestDiagnosticsEnabled = Ai.RequestDiagnosticsEnabled,
+            Endpoint = Ai.Endpoint,
+            SelectedModel = Ai.SelectedModel,
+            RequestTimeoutSeconds = Ai.RequestTimeoutSeconds,
+            PreferenceAdaptationEnabled = Ai.PreferenceAdaptationEnabled,
+        },
+        Catalog = Catalog,
+    };
+
+    /// <summary>
     /// Validates settings before they are made available to the application.
     /// </summary>
     /// <exception cref="ConfigurationValidationException">

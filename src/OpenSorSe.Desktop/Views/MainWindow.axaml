@@ -33,16 +33,35 @@
                 Padding="8"
                 BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                 BorderThickness="0,0,1,0">
-            <ListBox ItemsSource="{Binding NavigationItems}"
-                     SelectedItem="{Binding SelectedNavigationItem, Mode=TwoWay}"
-                     SelectionChanged="OnNavigationSelectionChanged"
-                     AutomationProperties.Name="Primary navigation">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:NavigationItem">
-                        <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Grid RowDefinitions="*,Auto" RowSpacing="10">
+                <ListBox ItemsSource="{Binding NavigationItems}"
+                         SelectedItem="{Binding SelectedNavigationItem, Mode=TwoWay}"
+                         SelectionChanged="OnNavigationSelectionChanged"
+                         AutomationProperties.Name="Primary navigation">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NavigationItem">
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <Border Grid.Row="1"
+                        Padding="8"
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                        BorderThickness="1"
+                        AutomationProperties.Name="Global feature controls">
+                    <StackPanel Spacing="7">
+                        <TextBlock Text="Global controls" FontWeight="SemiBold" />
+                        <CheckBox Content="Enable AI"
+                                  IsChecked="{Binding EnableAi, Mode=TwoWay}"
+                                  ToolTip.Tip="Allows explicitly enabled, preview-only AI features. Enabling this switch does not contact a provider." />
+                        <TextBlock Text="{Binding AiShellStatusText}" FontSize="12" />
+                        <CheckBox Content="Advanced features"
+                                  IsChecked="{Binding ShowAdvancedFeatures, Mode=TwoWay}"
+                                  ToolTip.Tip="Shows specialist and troubleshooting pages without changing their saved values." />
+                        <TextBlock Text="{Binding AdvancedShellStatusText}" FontSize="12" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
 
         <Border Grid.Row="1"

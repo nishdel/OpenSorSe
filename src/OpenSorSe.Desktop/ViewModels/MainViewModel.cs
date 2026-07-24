@@ -37,6 +37,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private readonly IConfigurationService _configurationService;
     private readonly IResultsSnapshotProjector _resultsSnapshotProjector;
     private readonly IResultsCatalogStore? _catalogStore;
+    private readonly SemaphoreSlim _shellFeatureSaveGate = new(1, 1);
     private readonly ObservableCollection<NavigationItem> _navigationItems = [];
     private NavigationDestination _selectedDestination = NavigationDestination.Dashboard;
     private NavigationItem _selectedNavigationItem = AllNavigationItems[0];
@@ -44,6 +45,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private bool _isProcessing;
     private string _statusText = "Ready";
     private string? _currentCatalogEntryId;
+    private bool _enableAi;
+    private bool _showAdvancedFeatures;
 
     /// <summary>
     /// Initializes the shell with its dashboard presentation model.
@@ -261,6 +264,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogComparison = new CatalogComparisonViewModel(configurationService, catalogStore, comparisonService);
         RuleEditor = new RuleEditorViewModel();
         Settings = new SettingsViewModel(configurationService, aiSuggestionService, aiRequestDiagnosticsStore);
+        _enableAi = configurationService.Current.Ai.Enabled;
+        _showAdvancedFeatures = configurationService.Current.Features.ShowAdvancedFeatures;
         NavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_navigationItems);
         RefreshNavigationItems(configurationService.Current);
         LogViewer = new LogViewerViewModel(loggingService, clipboardService, configurationService, aiRequestDiagnosticsStore);
@@ -347,6 +352,42 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// Gets the non-blocking in-memory notification queue hosted by the shell.
     /// </summary>
     public NotificationCenterViewModel Notifications { get; }
+
+    /// <summary>Gets or sets the globally visible AI master switch.</summary>
+    public bool EnableAi
+    {
+        get => _enableAi;
+        set
+        {
+            if (SetProperty(ref _enableAi, value))
+            {
+                OnPropertyChanged(nameof(AiShellStatusText));
+                Settings.SynchronizeShellFeatureSwitches(EnableAi, ShowAdvancedFeatures);
+                _ = PersistShellFeatureSwitchesAsync();
+            }
+        }
+    }
+
+    /// <summary>Gets or sets the globally visible advanced-interface switch.</summary>
+    public bool ShowAdvancedFeatures
+    {
+        get => _showAdvancedFeatures;
+        set
+        {
+            if (SetProperty(ref _showAdvancedFeatures, value))
+            {
+                OnPropertyChanged(nameof(AdvancedShellStatusText));
+                Settings.SynchronizeShellFeatureSwitches(EnableAi, ShowAdvancedFeatures);
+                _ = PersistShellFeatureSwitchesAsync();
+            }
+        }
+    }
+
+    /// <summary>Gets the compact shell AI state without provider or model details.</summary>
+    public string AiShellStatusText => EnableAi ? "AI: On" : "AI: Off";
+
+    /// <summary>Gets the compact shell advanced-mode state.</summary>
+    public string AdvancedShellStatusText => ShowAdvancedFeatures ? "Advanced: On" : "Advanced: Off";
 
     /// <summary>
     /// Gets the destinations offered by the primary application shell.
@@ -587,12 +628,56 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogComparison.Dispose();
         Settings.Dispose();
         Notifications.Dispose();
+        _shellFeatureSaveGate.Dispose();
     }
 
     private void OnSettingsSaved(object? sender, ApplicationSettings settings)
     {
+        UpdateShellFeatureState(settings);
         RefreshNavigationItems(settings);
         Results.RefreshFeatureAvailability();
+    }
+
+    private async Task PersistShellFeatureSwitchesAsync()
+    {
+        await _shellFeatureSaveGate.WaitAsync();
+        try
+        {
+            var updated = _configurationService.Current.WithShellFeatureSwitches(
+                EnableAi,
+                ShowAdvancedFeatures);
+            await _configurationService.SaveAsync(updated, CancellationToken.None);
+            RefreshNavigationItems(updated);
+            Results.RefreshFeatureAvailability();
+            StatusText = "Feature visibility settings saved.";
+        }
+        catch (Exception)
+        {
+            UpdateShellFeatureState(_configurationService.Current);
+            Settings.SynchronizeShellFeatureSwitches(EnableAi, ShowAdvancedFeatures);
+            StatusText = "Feature visibility settings could not be saved. Previous values were restored.";
+            Notifications.Publish(new NotificationRequest(NotificationSeverity.Warning, StatusText));
+        }
+        finally
+        {
+            _shellFeatureSaveGate.Release();
+        }
+    }
+
+    private void UpdateShellFeatureState(ApplicationSettings settings)
+    {
+        if (SetProperty(ref _enableAi, settings.Ai.Enabled, nameof(EnableAi)))
+        {
+            OnPropertyChanged(nameof(AiShellStatusText));
+        }
+
+        if (SetProperty(
+            ref _showAdvancedFeatures,
+            settings.Features.ShowAdvancedFeatures,
+            nameof(ShowAdvancedFeatures)))
+        {
+            OnPropertyChanged(nameof(AdvancedShellStatusText));
+        }
     }
 
     private void ConfigureContextualHelp()
