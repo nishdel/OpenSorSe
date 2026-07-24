@@ -306,6 +306,133 @@ public sealed class AiSuggestionService : IAiSuggestionService
     }
 
     /// <inheritdoc />
+    public async Task<AiDocumentInterpretationResult> GenerateDocumentInterpretationAsync(
+        AiDocumentTextRequest request,
+        AiSettings settings,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var diagnostic = new RequestDiagnosticScope(
+            _requestDiagnosticsStore,
+            settings,
+            AiSuggestionKind.DocumentTextInterpretation,
+            1,
+            null,
+            _timeProvider);
+        diagnostic.Report(AiRequestStage.CheckingSettings, "Checking AI and extracted-text capability settings.");
+        if (!TryValidateReadySettings(
+                settings,
+                AiCapability.DocumentTextInterpretation,
+                out var state,
+                out var message))
+        {
+            diagnostic.Complete(message, null, "Not started", [message]);
+            return new AiDocumentInterpretationResult(state, message, null);
+        }
+
+        if (!IsValidDocumentContext(request))
+        {
+            const string invalidContext = "Select one indexed document with bounded extracted text before requesting interpretation.";
+            diagnostic.Complete(invalidContext, null, "Context rejected", [invalidContext]);
+            return new AiDocumentInterpretationResult(
+                AiAvailabilityState.InvalidContext,
+                invalidContext,
+                null);
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new AiDocumentInterpretationResult(
+                AiAvailabilityState.RequestCancelled,
+                "The AI document interpretation request was cancelled.",
+                null);
+        }
+
+        diagnostic.Report(AiRequestStage.Connecting, "Connecting to the configured Ollama-compatible endpoint.");
+        var modelCheck = await GetSelectedModelAvailabilityAsync(settings, cancellationToken).ConfigureAwait(false);
+        diagnostic.SetConnection(modelCheck);
+        if (modelCheck.State != AiAvailabilityState.ModelSelected)
+        {
+            diagnostic.Complete(modelCheck.Message, null, "Not validated", [modelCheck.Message]);
+            return new AiDocumentInterpretationResult(modelCheck.State, modelCheck.Message, null);
+        }
+
+        diagnostic.Report(AiRequestStage.PreparingMetadata, "Preparing bounded extracted text with provenance.");
+        var prompt = _promptBuilder.BuildDocumentInterpretationPrompt(request);
+        diagnostic.SetPrompt(prompt);
+        var providerResult = await GenerateSafelyAsync(
+            new AiProviderGenerationRequest(
+                AiSuggestionKind.DocumentTextInterpretation,
+                settings.Endpoint,
+                settings.SelectedModel!,
+                prompt.Prompt,
+                TimeSpan.FromSeconds(settings.RequestTimeoutSeconds))
+            {
+                Progress = diagnostic,
+            },
+            cancellationToken).ConfigureAwait(false);
+        diagnostic.SetProviderResult(providerResult);
+        if (!providerResult.IsSuccess)
+        {
+            diagnostic.Complete(providerResult.Message, providerResult, "Not validated", [providerResult.Message]);
+            return new AiDocumentInterpretationResult(
+                MapFailure(providerResult.FailureKind),
+                providerResult.Message,
+                null,
+                prompt.WasInputBounded);
+        }
+
+        diagnostic.Report(AiRequestStage.ValidatingSuggestion, "Validating the complete untrusted interpretation response.");
+        var parsed = _responseParser.ParseDocumentInterpretation(
+            providerResult.StructuredJson!,
+            request,
+            prompt.SourceMappings);
+        if (!parsed.IsValid)
+        {
+            _logger.LogWarning("An AI document interpretation response was rejected during validation: {Reason}", parsed.Message);
+            diagnostic.Complete(parsed.Message, providerResult, "Rejected", [parsed.Message]);
+            return new AiDocumentInterpretationResult(
+                AiAvailabilityState.ResponseInvalid,
+                parsed.Message,
+                null,
+                prompt.WasInputBounded);
+        }
+
+        if (parsed.IsNoSuggestion)
+        {
+            diagnostic.Complete(parsed.Message, providerResult, "Valid no-suggestion", []);
+            return new AiDocumentInterpretationResult(
+                AiAvailabilityState.NoSuggestion,
+                parsed.Message,
+                null,
+                prompt.WasInputBounded);
+        }
+
+        var value = parsed.Value!;
+        var suggestion = new AiDocumentInterpretationSuggestion(
+            $"document-interpretation:{Guid.NewGuid():N}",
+            value.SourceFileId,
+            value.DocumentType,
+            value.Title,
+            value.Tags,
+            value.Dates,
+            value.Issuer,
+            value.SuggestedFolder,
+            value.Reason,
+            value.Confidence,
+            ProviderName,
+            settings.SelectedModel!,
+            _timeProvider.GetUtcNow());
+        diagnostic.Report(AiRequestStage.SuggestionReady, "The unverified interpretation is ready for review.");
+        diagnostic.Complete("Suggestion ready", providerResult, "Accepted", []);
+        return new AiDocumentInterpretationResult(
+            AiAvailabilityState.ModelSelected,
+            "AI-generated document interpretation is available for review. It is unverified and no source file was changed.",
+            suggestion,
+            prompt.WasInputBounded);
+    }
+
+    /// <inheritdoc />
     public async Task<AiDecisionResult> RecordDecisionAsync(
         AiSuggestionDecision decision,
         AiSettings settings,
@@ -568,9 +695,13 @@ public sealed class AiSuggestionService : IAiSuggestionService
         if (!settings.IsCapabilityEnabled(capability))
         {
             state = AiAvailabilityState.CapabilityDisabled;
-            message = capability == AiCapability.FileRenameSuggestions
-                ? "File rename suggestions are disabled in Settings."
-                : "Folder structure suggestions are disabled in Settings.";
+            message = capability switch
+            {
+                AiCapability.FileRenameSuggestions => "File rename suggestions are disabled in Settings.",
+                AiCapability.FolderStructureSuggestions => "Folder structure suggestions are disabled in Settings.",
+                AiCapability.DocumentTextInterpretation => "AI analysis of extracted document text is disabled in Settings.",
+                _ => "The requested AI capability is disabled in Settings.",
+            };
             return false;
         }
 
@@ -606,6 +737,17 @@ public sealed class AiSuggestionService : IAiSuggestionService
 
         return true;
     }
+
+    private static bool IsValidDocumentContext(AiDocumentTextRequest? request) =>
+        request is not null &&
+        !string.IsNullOrWhiteSpace(request.SourceFileId) &&
+        request.SourceFileId.Length <= 128 &&
+        !string.IsNullOrWhiteSpace(request.DisplayFileName) &&
+        request.DisplayFileName.Length <= 255 &&
+        request.Pages is not null &&
+        (!string.IsNullOrWhiteSpace(request.NativeText) ||
+         !string.IsNullOrWhiteSpace(request.OcrText) ||
+         request.Pages.Any(page => page is not null && !string.IsNullOrWhiteSpace(page.Text)));
 
     private static AiAvailabilityState MapFailure(AiProviderFailureKind failure) => failure switch
     {

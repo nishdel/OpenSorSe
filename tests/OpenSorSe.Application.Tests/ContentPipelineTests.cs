@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenSorSe.Application.Content;
+using OpenSorSe.Application.Models;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 using OpenSorSe.Scanner.Models;
@@ -20,7 +21,7 @@ public sealed class ContentPipelineTests
         var path = temporary.PathFor("sample.pdf");
         await File.WriteAllTextAsync(
             path,
-            "%PDF-1.4 /Title (Quarterly Report) /Author (Ada) /Type /Page BT (Revenue increased this quarter) Tj ET");
+            "%PDF-1.4 /Title (Quarterly Report) /Author (Ada) /Type /Page BT (Revenue increased substantially during this quarter) Tj ET");
         var file = Entry(path);
         var extractor = new PdfMetadataExtractor();
 
@@ -133,6 +134,26 @@ public sealed class ContentPipelineTests
         Assert.Contains(result.Warnings, warning => warning.Contains("malformed", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>Verifies one readable page cannot suppress OCR for another insufficient PDF page.</summary>
+    [Fact]
+    public async Task MetadataPipeline_MixedPdf_DoesNotClaimAllNativeTextIsReliable()
+    {
+        using var temporary = new TemporaryDirectory();
+        var path = temporary.PathFor("mixed.pdf");
+        await File.WriteAllBytesAsync(path, "%PDF-1.7"u8.ToArray());
+        var pages = new[]
+        {
+            new PdfPageText(1, "Readable native text for a complete invoice document page.", true),
+            new PdfPageText(2, "scan", false),
+        };
+        var pipeline = new MetadataExtractionPipeline([new FixedPdfExtractor(pages)]);
+
+        var result = await pipeline.ExtractAsync(Entry(path), 1024, 25, CancellationToken.None);
+
+        Assert.False(result.HasReliableNativeText);
+        Assert.Equal(2, result.PdfPages.Count);
+    }
+
     /// <summary>Verifies OCR disabled state rejects work before the engine is invoked.</summary>
     [Fact]
     public async Task OcrService_Disabled_DoesNotInvokeEngine()
@@ -158,11 +179,21 @@ public sealed class ContentPipelineTests
             engine);
 
         var result = await service.RecognizeAsync(
-            Request("C:\\known.png") with { HasReliableNativeText = true },
+            Request("C:\\known.pdf") with
+            {
+                HasReliableNativeText = true,
+                PdfPages =
+                [
+                    new PdfPageText(1, "Reliable native text for this complete document page.", true),
+                ],
+            },
             CancellationToken.None);
 
         Assert.Equal(OcrStatus.Skipped, result.Status);
         Assert.Equal(0, engine.RecognizeCount);
+        var page = Assert.Single(result.Pages);
+        Assert.Equal(OcrPageTextSource.NativeText, page.TextSource);
+        Assert.Equal(OcrStatus.Skipped, page.Status);
     }
 
     /// <summary>Verifies the file-size bound is checked before invoking a fake local engine.</summary>
@@ -236,6 +267,65 @@ public sealed class ContentPipelineTests
         Assert.Single(await store.ListAsync(CancellationToken.None));
     }
 
+    /// <summary>Verifies legacy cache records are stale-but-readable and accepted user tags survive reprocessing.</summary>
+    [Fact]
+    public async Task ContentIndexing_LegacyFingerprint_ReprocessesAndPreservesAcceptedUserTags()
+    {
+        using var temporary = new TemporaryDirectory();
+        var path = temporary.PathFor("scan.png");
+        await File.WriteAllBytesAsync(path, [1, 2, 3]);
+        var configuration = new Configuration(new ContentSettings
+        {
+            MetadataExtractionEnabled = true,
+            OcrEnabled = true,
+        });
+        var store = new MemoryContentStore();
+        var source = new FileInfo(path);
+        var userTag = new TagAssociation(
+            "tag:user:finance",
+            Path.GetFullPath(path),
+            "Finance",
+            "finance",
+            "User",
+            TagSource.UserApproved,
+            TagAcceptanceState.Accepted,
+            "User-created",
+            DateTimeOffset.UnixEpoch);
+        await store.UpsertAsync(
+            new ContentRecord(
+                Path.GetFullPath(path),
+                source.Length,
+                new DateTimeOffset(source.LastWriteTimeUtc, TimeSpan.Zero),
+                DateTimeOffset.UnixEpoch,
+                [],
+                null,
+                null,
+                OcrStatus.Skipped,
+                null,
+                [])
+            {
+                Tags = [userTag],
+                ExtractionFingerprint = null,
+            },
+            CancellationToken.None);
+        var engine = new FakeOcrEngine();
+        var indexing = new ContentIndexingService(
+            configuration,
+            new MetadataExtractionPipeline([new FilesystemMetadataExtractor()]),
+            new OcrService(configuration, engine),
+            store,
+            new Logging());
+
+        var result = await indexing.IndexAsync([Entry(path)], CancellationToken.None);
+
+        Assert.Equal(1, result.IndexedCount);
+        var updated = Assert.Single(await store.ListAsync(CancellationToken.None));
+        Assert.NotNull(updated.ExtractionFingerprint);
+        Assert.Contains(updated.Tags, tag =>
+            tag.Source == TagSource.UserApproved &&
+            tag.NormalizedValue == "finance");
+    }
+
     /// <summary>Verifies the JSON content store recovers from malformed legacy/local data and writes a valid replacement.</summary>
     [Fact]
     public async Task JsonContentStore_MalformedFile_RecoversWithAtomicReplacement()
@@ -301,6 +391,27 @@ public sealed class ContentPipelineTests
             Current = settings;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FixedPdfExtractor(IReadOnlyList<PdfPageText> pages) : IMetadataExtractor
+    {
+        public bool Supports(string normalizedExtension) =>
+            normalizedExtension.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
+
+        public Task<MetadataExtractionResult> ExtractAsync(
+            FileEntry file,
+            long maximumInputBytes,
+            int maximumPages,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new MetadataExtractionResult(
+                [],
+                string.Join(' ', pages.Select(page => page.NativeText)),
+                pages.All(page => page.HasReliableNativeText),
+                pages.Count,
+                [])
+            {
+                PdfPages = pages,
+            });
     }
 
     private sealed class FakeOcrEngine : IOcrEngine

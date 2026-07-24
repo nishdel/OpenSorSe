@@ -133,6 +133,49 @@ public sealed class AiSuggestionServiceTests
         Assert.Equal("Finance/Invoices", Assert.Single(plan.Items).DestinationFolder);
     }
 
+    /// <summary>Verifies the separate document-text switch blocks provider communication while global AI remains enabled.</summary>
+    [Fact]
+    public async Task GenerateDocumentInterpretation_CapabilityDisabled_DoesNotInvokeProvider()
+    {
+        var provider = new FakeProvider("{}");
+        var service = CreateService(provider, new InMemoryDecisionHistoryStore());
+
+        var result = await service.GenerateDocumentInterpretationAsync(
+            DocumentRequest(),
+            EnabledSettings(),
+            CancellationToken.None);
+
+        Assert.Equal(AiAvailabilityState.CapabilityDisabled, result.State);
+        Assert.Equal(0, provider.ConnectionCallCount);
+        Assert.Equal(0, provider.GenerateCallCount);
+    }
+
+    /// <summary>Verifies an enabled explicit document request produces only a validated review proposal.</summary>
+    [Fact]
+    public async Task GenerateDocumentInterpretation_ValidResponse_PublishesReviewOnlySuggestion()
+    {
+        const string json = """
+            {"taskId":"document-text-interpretation-v1","status":"suggestion","sourceFileId":"item-001",
+             "documentType":"Invoice","title":"Consulting invoice","tags":["Finance"],
+             "dates":["2026-07-24"],"issuer":"Local Studio","suggestedFolder":"Invoices",
+             "reason":"Explicit invoice fields are present.","confidence":0.71}
+            """;
+        var provider = new FakeProvider(json);
+        var service = CreateService(provider, new InMemoryDecisionHistoryStore());
+        var settings = EnabledSettings(documentText: true);
+
+        var result = await service.GenerateDocumentInterpretationAsync(
+            DocumentRequest(),
+            settings,
+            CancellationToken.None);
+
+        var suggestion = Assert.IsType<AiDocumentInterpretationSuggestion>(result.Suggestion);
+        Assert.Equal("known:1", suggestion.SourceFileId);
+        Assert.Equal("Invoices", suggestion.SuggestedFolder);
+        Assert.Contains(AiPromptBuilder.DocumentInterpretationTaskId, provider.LastPrompt, StringComparison.Ordinal);
+        Assert.Contains("Invoice date", provider.LastPrompt, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies typed provider failures are translated without parsing or throwing.</summary>
     [Theory]
     [InlineData(AiProviderFailureKind.Timeout, AiAvailabilityState.Unavailable)]
@@ -344,11 +387,12 @@ public sealed class AiSuggestionServiceTests
         null,
         false);
 
-    private static AiSettings EnabledSettings() => new()
+    private static AiSettings EnabledSettings(bool documentText = false) => new()
     {
         Enabled = true,
         FileRenameSuggestionsEnabled = true,
         FolderStructureSuggestionsEnabled = true,
+        DocumentTextInterpretationEnabled = documentText,
         SelectedModel = "local-model",
     };
 
@@ -357,6 +401,7 @@ public sealed class AiSuggestionServiceTests
         Enabled = enabled,
         FileRenameSuggestionsEnabled = settings.FileRenameSuggestionsEnabled,
         FolderStructureSuggestionsEnabled = settings.FolderStructureSuggestionsEnabled,
+        DocumentTextInterpretationEnabled = settings.DocumentTextInterpretationEnabled,
         Endpoint = settings.Endpoint,
         SelectedModel = settings.SelectedModel,
         RequestTimeoutSeconds = settings.RequestTimeoutSeconds,
@@ -365,6 +410,9 @@ public sealed class AiSuggestionServiceTests
 
     private static string RenameJson(string sourceId, string name) =>
         $$"""{"taskId":"file-rename-v1","status":"suggestion","sourceFileId":"{{sourceId}}","suggestedFileName":"{{name}}","reason":"Clearer supplied metadata name.","confidence":0.74}""";
+
+    private static AiDocumentTextRequest DocumentRequest() =>
+        new("known:1", "invoice.pdf", "Invoice date 2026-07-24 and issuer Local Studio.", null, []);
 
     private static AiSuggestionDecision CreateDecision(AiSuggestionDecisionKind kind, AiSuggestionDecisionOutcome outcome, string suggested, string? final) =>
         new(kind, outcome, ".pdf", suggested, final, "Ollama", "local-model", DateTimeOffset.UnixEpoch);

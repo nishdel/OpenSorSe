@@ -23,6 +23,7 @@ public sealed class SettingsDraft : ViewModelBase
     private int _aiRequestTimeoutSeconds = 30;
     private string _aiRequestTimeoutText = "30";
     private bool _preferenceAdaptationEnabled = true;
+    private bool _documentTextInterpretationEnabled;
     private bool _catalogEnabled;
     private bool _metadataExtractionEnabled = true;
     private bool _ocrEnabled;
@@ -31,6 +32,11 @@ public sealed class SettingsDraft : ViewModelBase
     private int _maximumContentFileSizeMiB = 50;
     private string _ocrLanguage = "eng";
     private int _maximumOcrDurationSeconds = 120;
+    private int _pdfRasterizationDpi = 240;
+    private int _maximumRasterDimension = 4096;
+    private int _maximumOcrTextCharacters = 65_536;
+    private int _maximumTemporaryStorageMiB = 256;
+    private string? _tesseractExecutablePath;
     private bool _backgroundContentProcessingEnabled;
     private bool _semanticSearchEnabled;
     private int _maximumSemanticDocuments = 10_000;
@@ -148,6 +154,13 @@ public sealed class SettingsDraft : ViewModelBase
         set => SetProperty(ref _preferenceAdaptationEnabled, value);
     }
 
+    /// <summary>Gets or sets whether explicit AI requests may include bounded locally extracted text.</summary>
+    public bool DocumentTextInterpretationEnabled
+    {
+        get => _documentTextInterpretationEnabled;
+        set => SetProperty(ref _documentTextInterpretationEnabled, value);
+    }
+
     /// <summary>Gets or sets whether OpenSorSe may retain bounded completed scan metadata in its own local application-data catalog.</summary>
     public bool CatalogEnabled
     {
@@ -204,6 +217,41 @@ public sealed class SettingsDraft : ViewModelBase
         set => SetProperty(ref _maximumOcrDurationSeconds, value);
     }
 
+    /// <summary>Gets or sets the PDF rasterization resolution.</summary>
+    public int PdfRasterizationDpi
+    {
+        get => _pdfRasterizationDpi;
+        set => SetProperty(ref _pdfRasterizationDpi, value);
+    }
+
+    /// <summary>Gets or sets the maximum rendered page edge.</summary>
+    public int MaximumRasterDimension
+    {
+        get => _maximumRasterDimension;
+        set => SetProperty(ref _maximumRasterDimension, value);
+    }
+
+    /// <summary>Gets or sets the maximum retained OCR text per document.</summary>
+    public int MaximumOcrTextCharacters
+    {
+        get => _maximumOcrTextCharacters;
+        set => SetProperty(ref _maximumOcrTextCharacters, value);
+    }
+
+    /// <summary>Gets or sets the temporary PDF page-image budget in MiB.</summary>
+    public int MaximumTemporaryStorageMiB
+    {
+        get => _maximumTemporaryStorageMiB;
+        set => SetProperty(ref _maximumTemporaryStorageMiB, value);
+    }
+
+    /// <summary>Gets or sets an optional absolute Tesseract executable path.</summary>
+    public string? TesseractExecutablePath
+    {
+        get => _tesseractExecutablePath;
+        set => SetProperty(ref _tesseractExecutablePath, value);
+    }
+
     /// <summary>Gets or sets whether bounded content work may continue in the background.</summary>
     public bool BackgroundContentProcessingEnabled
     {
@@ -256,6 +304,7 @@ public sealed class SettingsDraft : ViewModelBase
             AiRequestTimeoutSeconds = settings.Ai.RequestTimeoutSeconds,
             AiRequestTimeoutText = settings.Ai.RequestTimeoutSeconds.ToString(CultureInfo.InvariantCulture),
             PreferenceAdaptationEnabled = settings.Ai.PreferenceAdaptationEnabled,
+            DocumentTextInterpretationEnabled = settings.Ai.DocumentTextInterpretationEnabled,
             CatalogEnabled = settings.Catalog.Enabled,
             MetadataExtractionEnabled = settings.Content.MetadataExtractionEnabled,
             OcrEnabled = settings.Content.OcrEnabled,
@@ -264,6 +313,11 @@ public sealed class SettingsDraft : ViewModelBase
             MaximumContentFileSizeMiB = settings.Content.MaximumFileSizeMiB,
             OcrLanguage = settings.Content.OcrLanguage,
             MaximumOcrDurationSeconds = settings.Content.MaximumOcrDurationSeconds,
+            PdfRasterizationDpi = settings.Content.PdfRasterizationDpi,
+            MaximumRasterDimension = settings.Content.MaximumRasterDimension,
+            MaximumOcrTextCharacters = settings.Content.MaximumOcrTextCharacters,
+            MaximumTemporaryStorageMiB = settings.Content.MaximumTemporaryStorageMiB,
+            TesseractExecutablePath = settings.Content.TesseractExecutablePath,
             BackgroundContentProcessingEnabled = settings.Content.BackgroundProcessingEnabled,
             SemanticSearchEnabled = settings.SemanticSearch.Enabled,
             MaximumSemanticDocuments = settings.SemanticSearch.MaximumDocumentCount,
@@ -305,6 +359,7 @@ public sealed class SettingsDraft : ViewModelBase
             SelectedModel = string.IsNullOrWhiteSpace(SelectedAiModel) ? null : SelectedAiModel.Trim(),
             RequestTimeoutSeconds = timeoutSeconds,
             PreferenceAdaptationEnabled = PreferenceAdaptationEnabled,
+            DocumentTextInterpretationEnabled = DocumentTextInterpretationEnabled,
         },
         Catalog = new CatalogSettings
         {
@@ -319,6 +374,13 @@ public sealed class SettingsDraft : ViewModelBase
             MaximumFileSizeMiB = MaximumContentFileSizeMiB,
             OcrLanguage = OcrLanguage.Trim(),
             MaximumOcrDurationSeconds = MaximumOcrDurationSeconds,
+            PdfRasterizationDpi = PdfRasterizationDpi,
+            MaximumRasterDimension = MaximumRasterDimension,
+            MaximumOcrTextCharacters = MaximumOcrTextCharacters,
+            MaximumTemporaryStorageMiB = MaximumTemporaryStorageMiB,
+            TesseractExecutablePath = string.IsNullOrWhiteSpace(TesseractExecutablePath)
+                ? null
+                : TesseractExecutablePath.Trim(),
             BackgroundProcessingEnabled = BackgroundContentProcessingEnabled,
         },
         SemanticSearch = new SemanticSearchSettings

@@ -50,9 +50,15 @@ public sealed class JsonConfigurationServiceTests
         Assert.False(service.Current.Ai.FileRenameSuggestionsEnabled);
         Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
         Assert.False(service.Current.Ai.RequestDiagnosticsEnabled);
+        Assert.False(service.Current.Ai.DocumentTextInterpretationEnabled);
         Assert.True(service.Current.Content.MetadataExtractionEnabled);
         Assert.False(service.Current.Content.OcrEnabled);
         Assert.True(service.Current.Content.OcrOnlyWhenNativeTextUnavailable);
+        Assert.Equal(240, service.Current.Content.PdfRasterizationDpi);
+        Assert.Equal(4096, service.Current.Content.MaximumRasterDimension);
+        Assert.Equal(65_536, service.Current.Content.MaximumOcrTextCharacters);
+        Assert.Equal(256, service.Current.Content.MaximumTemporaryStorageMiB);
+        Assert.Null(service.Current.Content.TesseractExecutablePath);
         Assert.False(service.Current.SemanticSearch.Enabled);
     }
 
@@ -75,6 +81,7 @@ public sealed class JsonConfigurationServiceTests
             Assert.False(service.Current.Ai.FileRenameSuggestionsEnabled);
             Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
             Assert.False(service.Current.Ai.RequestDiagnosticsEnabled);
+            Assert.False(service.Current.Ai.DocumentTextInterpretationEnabled);
             Assert.False(service.Current.Features.ShowAdvancedFeatures);
             Assert.True(service.Current.Content.MetadataExtractionEnabled);
             Assert.False(service.Current.Content.OcrEnabled);
@@ -254,6 +261,7 @@ public sealed class JsonConfigurationServiceTests
                 SelectedModel = "llama3:latest",
                 RequestTimeoutSeconds = 45,
                 PreferenceAdaptationEnabled = false,
+                DocumentTextInterpretationEnabled = true,
             },
             Catalog = new CatalogSettings
             {
@@ -268,6 +276,11 @@ public sealed class JsonConfigurationServiceTests
                 MaximumFileSizeMiB = 20,
                 OcrLanguage = "deu+eng",
                 MaximumOcrDurationSeconds = 60,
+                PdfRasterizationDpi = 300,
+                MaximumRasterDimension = 5000,
+                MaximumOcrTextCharacters = 32_768,
+                MaximumTemporaryStorageMiB = 128,
+                TesseractExecutablePath = "C:\\Tools\\tesseract.exe",
                 BackgroundProcessingEnabled = true,
             },
             SemanticSearch = new SemanticSearchSettings
@@ -298,6 +311,7 @@ public sealed class JsonConfigurationServiceTests
             Assert.Equal("llama3:latest", reader.Current.Ai.SelectedModel);
             Assert.Equal(45, reader.Current.Ai.RequestTimeoutSeconds);
             Assert.False(reader.Current.Ai.PreferenceAdaptationEnabled);
+            Assert.True(reader.Current.Ai.DocumentTextInterpretationEnabled);
             Assert.True(reader.Current.Catalog.Enabled);
             Assert.True(reader.Current.Content.OcrEnabled);
             Assert.False(reader.Current.Content.OcrOnlyWhenNativeTextUnavailable);
@@ -305,6 +319,11 @@ public sealed class JsonConfigurationServiceTests
             Assert.Equal(20, reader.Current.Content.MaximumFileSizeMiB);
             Assert.Equal("deu+eng", reader.Current.Content.OcrLanguage);
             Assert.Equal(60, reader.Current.Content.MaximumOcrDurationSeconds);
+            Assert.Equal(300, reader.Current.Content.PdfRasterizationDpi);
+            Assert.Equal(5000, reader.Current.Content.MaximumRasterDimension);
+            Assert.Equal(32_768, reader.Current.Content.MaximumOcrTextCharacters);
+            Assert.Equal(128, reader.Current.Content.MaximumTemporaryStorageMiB);
+            Assert.Equal("C:\\Tools\\tesseract.exe", reader.Current.Content.TesseractExecutablePath);
             Assert.True(reader.Current.Content.BackgroundProcessingEnabled);
             Assert.True(reader.Current.SemanticSearch.Enabled);
             Assert.Equal(5000, reader.Current.SemanticSearch.MaximumDocumentCount);

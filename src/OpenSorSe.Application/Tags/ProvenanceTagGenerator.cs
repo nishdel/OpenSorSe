@@ -14,6 +14,8 @@ public static class ProvenanceTagGenerator
     {
         "about", "after", "before", "could", "document", "file", "from", "have",
         "into", "other", "page", "that", "their", "there", "these", "this", "with",
+        "aber", "datei", "dokument", "eine", "einer", "eines", "seite", "seiten",
+        "und", "oder", "diese", "dieser", "dieses", "mit", "von", "zum", "zur",
     };
 
     /// <summary>Generates deterministic tags without promoting uncertain text candidates to confirmed state.</summary>
@@ -240,8 +242,13 @@ public static class ProvenanceTagGenerator
     {
         var builder = new StringBuilder(value.Length);
         var separator = false;
-        foreach (var character in value.Normalize(NormalizationForm.FormKC))
+        foreach (var character in value.Normalize(NormalizationForm.FormD))
         {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
             if (char.IsLetterOrDigit(character))
             {
                 builder.Append(char.ToLower(character, CultureInfo.InvariantCulture));

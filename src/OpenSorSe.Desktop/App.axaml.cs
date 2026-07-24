@@ -80,6 +80,8 @@ public partial class App : Avalonia.Application
         services.AddSingleton<IMetadataExtractor, OpenXmlMetadataExtractor>();
         services.AddSingleton<IMetadataExtractor, ImageMetadataExtractor>();
         services.AddSingleton<IMetadataExtractionPipeline, MetadataExtractionPipeline>();
+        services.AddSingleton<IPdfPageRasterizer, PdfPageRasterizer>();
+        services.AddSingleton<ITesseractProcessRunner, TesseractProcessRunner>();
         services.AddSingleton<IOcrEngine, TesseractCliOcrEngine>();
         services.AddSingleton<IOcrService, OcrService>();
         services.AddSingleton<IContentStore>(serviceProvider =>

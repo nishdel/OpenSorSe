@@ -1,5 +1,6 @@
 using System.Text.Json;
 using OpenSorSe.Application.AI;
+using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Scanner.Models;
 
@@ -118,6 +119,37 @@ public sealed class AiPromptBuilderTests
         using var document = JsonDocument.Parse(result.Prompt);
         Assert.Equal(255,
             document.RootElement.GetProperty("inputData").GetProperty("existingLogicalFolderNames")[0].GetString()!.Length);
+    }
+
+    /// <summary>Verifies extracted text is bounded, provenance-labelled, and never includes a source path.</summary>
+    [Fact]
+    public void BuildDocumentInterpretationPrompt_BoundsTextAndOmitsPath()
+    {
+        var request = new AiDocumentTextRequest(
+            "known:1",
+            "invoice.pdf",
+            null,
+            null,
+            Enumerable.Range(1, 20)
+                .Select(page => new OcrPageResult(
+                    page,
+                    OcrPageTextSource.Ocr,
+                    OcrStatus.Completed,
+                    new string('x', 2000),
+                    null,
+                    "OCR"))
+                .ToArray());
+
+        var result = _builder.BuildDocumentInterpretationPrompt(request);
+
+        Assert.True(result.WasInputBounded);
+        Assert.Equal(AiPromptBuilder.DocumentInterpretationTaskId, result.TaskId);
+        Assert.DoesNotContain("C:\\", result.Prompt, StringComparison.Ordinal);
+        using var document = JsonDocument.Parse(result.Prompt);
+        var input = document.RootElement.GetProperty("inputData");
+        Assert.Equal("item-001", input.GetProperty("sourceFileId").GetString());
+        Assert.True(input.GetProperty("extractedTextPages").GetArrayLength() <= AiPromptLimits.MaximumDocumentTextPages);
+        Assert.Contains("Do not provide legal", result.Prompt, StringComparison.Ordinal);
     }
 
     private static AiPreferenceSummary EmptyPreferences() =>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace OpenSorSe.Application.Semantic;
 
@@ -49,15 +50,118 @@ public sealed class FeatureHashingEmbeddingProvider : IEmbeddingProvider
 
 internal static class SemanticTokenizer
 {
-    public static IReadOnlyList<string> Tokenize(string? text, int maximumTokens) =>
-        string.IsNullOrWhiteSpace(text)
-            ? []
-            : Array.AsReadOnly(text
-                .Split(
-                    [' ', '\t', '\r', '\n', '/', '\\', '-', '_', '.', ',', ';', ':', '(', ')', '[', ']'],
-                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(token => token.Trim().ToLowerInvariant())
-                .Where(token => token.Length is > 1 and <= 64)
-                .Take(maximumTokens)
-                .ToArray());
+    private static readonly string[] EnglishSuffixes = ["ing", "ed", "es", "s"];
+    private static readonly string[] GermanSuffixes = ["ern", "en", "er", "es", "e", "n", "s"];
+
+    public static IReadOnlyList<string> Tokenize(string? text, int maximumTokens)
+    {
+        if (string.IsNullOrWhiteSpace(text) || maximumTokens < 1)
+        {
+            return [];
+        }
+
+        var folded = FoldDiacritics(text);
+        var tokens = new List<string>(Math.Min(maximumTokens, 64));
+        var current = new StringBuilder();
+        foreach (var character in folded)
+        {
+            if (char.IsLetterOrDigit(character))
+            {
+                if (current.Length < 64)
+                {
+                    current.Append(char.ToLowerInvariant(character));
+                }
+            }
+            else
+            {
+                Flush(current, tokens, maximumTokens);
+            }
+
+            if (tokens.Count >= maximumTokens)
+            {
+                break;
+            }
+        }
+
+        Flush(current, tokens, maximumTokens);
+        foreach (var date in ExtractIsoDates(folded))
+        {
+            if (tokens.Count >= maximumTokens)
+            {
+                break;
+            }
+
+            AddDistinct(tokens, date);
+        }
+
+        return Array.AsReadOnly(tokens.Take(maximumTokens).ToArray());
+    }
+
+    private static void Flush(StringBuilder current, ICollection<string> tokens, int maximumTokens)
+    {
+        if (current.Length is <= 1 or > 64 || tokens.Count >= maximumTokens)
+        {
+            current.Clear();
+            return;
+        }
+
+        var token = current.ToString();
+        current.Clear();
+        AddDistinct(tokens, token);
+        if (token.Length < 6 || tokens.Count >= maximumTokens)
+        {
+            return;
+        }
+
+        foreach (var suffix in EnglishSuffixes.Concat(GermanSuffixes).Distinct(StringComparer.Ordinal))
+        {
+            if (token.EndsWith(suffix, StringComparison.Ordinal) &&
+                token.Length - suffix.Length >= 4)
+            {
+                AddDistinct(tokens, token[..^suffix.Length]);
+                break;
+            }
+        }
+    }
+
+    private static string FoldDiacritics(string value)
+    {
+        var output = new StringBuilder(value.Length);
+        foreach (var character in value.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                output.Append(character);
+            }
+        }
+
+        return output.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    private static IEnumerable<string> ExtractIsoDates(string value)
+    {
+        for (var index = 0; index <= value.Length - 10; index++)
+        {
+            var candidate = value.AsSpan(index, 10);
+            if (candidate[4] == '-' && candidate[7] == '-' &&
+                DateOnly.TryParseExact(
+                    candidate,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out _))
+            {
+                yield return candidate.ToString();
+                index += 9;
+            }
+        }
+    }
+
+    private static void AddDistinct(ICollection<string> values, string value)
+    {
+        if (!values.Contains(value))
+        {
+            values.Add(value);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using OpenSorSe.Application.AI;
+using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Scanner.Models;
 
@@ -183,6 +184,46 @@ public sealed class AiResponseParserTests
         Assert.Contains("large", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Verifies a complete document interpretation is validated and mapped to the known source.</summary>
+    [Fact]
+    public void ParseDocumentInterpretation_ValidResponse_IsAccepted()
+    {
+        const string json = """
+            {"taskId":"document-text-interpretation-v1","status":"suggestion","sourceFileId":"item-001",
+             "documentType":"Invoice","title":"Consulting invoice","tags":["Finance","Consulting"],
+             "dates":["2026-07-24"],"issuer":"Local Studio","suggestedFolder":"Invoices",
+             "reason":"Explicit invoice fields are present.","confidence":0.71}
+            """;
+        var request = DocumentRequest();
+
+        var result = _parser.ParseDocumentInterpretation(
+            json,
+            request,
+            [new AiPromptSourceMapping("item-001", "known:1", "invoice.pdf")]);
+
+        var value = Assert.IsType<AiParsedDocumentInterpretation>(result.Value);
+        Assert.Equal("known:1", value.SourceFileId);
+        Assert.Equal("Invoices", value.SuggestedFolder);
+        Assert.Equal(["finance", "consulting"], value.Tags.Select(tag => tag.NormalizedValue));
+    }
+
+    /// <summary>Verifies unsafe folder, invalid date, unknown identity, and smuggled no-suggestion values fail closed.</summary>
+    [Theory]
+    [InlineData("""{"taskId":"document-text-interpretation-v1","status":"suggestion","sourceFileId":"other","documentType":"Invoice","title":null,"tags":[],"dates":[],"issuer":null,"suggestedFolder":null,"reason":"why","confidence":0.5}""")]
+    [InlineData("""{"taskId":"document-text-interpretation-v1","status":"suggestion","sourceFileId":"item-001","documentType":"Invoice","title":null,"tags":[],"dates":["24/07/2026"],"issuer":null,"suggestedFolder":null,"reason":"why","confidence":0.5}""")]
+    [InlineData("""{"taskId":"document-text-interpretation-v1","status":"suggestion","sourceFileId":"item-001","documentType":"Invoice","title":null,"tags":[],"dates":[],"issuer":null,"suggestedFolder":"../outside","reason":"why","confidence":0.5}""")]
+    [InlineData("""{"taskId":"document-text-interpretation-v1","status":"no_suggestion","reason":"why","tags":[]}""")]
+    public void ParseDocumentInterpretation_UnsafeResponse_IsRejected(string json)
+    {
+        var result = _parser.ParseDocumentInterpretation(
+            json,
+            DocumentRequest(),
+            [new AiPromptSourceMapping("item-001", "known:1", "invoice.pdf")]);
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Value);
+    }
+
     /// <summary>Provides invalid folder graphs, paths, identities, types, and confidence values.</summary>
     public static IEnumerable<object[]> InvalidFolderResponses()
     {
@@ -231,6 +272,9 @@ public sealed class AiResponseParserTests
 
     private static AiFileRenameRequest RenameRequest(IReadOnlyList<string>? siblings = null) =>
         new(CreateFile("file:1", "invoice.pdf"), siblings ?? []);
+
+    private static AiDocumentTextRequest DocumentRequest() =>
+        new("known:1", "invoice.pdf", "Invoice date 2026-07-24 and issuer Local Studio.", null, []);
 
     private static ResultFile CreateFile(string id, string name) => new(
         id,

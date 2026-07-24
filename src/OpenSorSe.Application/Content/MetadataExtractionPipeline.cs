@@ -36,6 +36,7 @@ public sealed class MetadataExtractionPipeline : IMetadataExtractionPipeline
         var fields = new List<ExtractedMetadataField>();
         var warnings = new List<string>();
         var nativeTextParts = new List<string>();
+        var pdfPages = new List<PdfPageText>();
         int? pageCount = null;
         foreach (var extractor in _extractors.Where(candidate => candidate.Supports(extension)))
         {
@@ -54,6 +55,7 @@ public sealed class MetadataExtractionPipeline : IMetadataExtractionPipeline
                     nativeTextParts.Add(result.NativeText);
                 }
 
+                pdfPages.AddRange(result.PdfPages);
                 pageCount ??= result.PageCount;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -81,12 +83,24 @@ public sealed class MetadataExtractionPipeline : IMetadataExtractionPipeline
             .ThenBy(field => field.Value, StringComparer.Ordinal)
             .Take(MaximumFields)
             .ToArray();
+        var normalizedPdfPages = pdfPages
+            .Where(page => page.PageNumber > 0)
+            .DistinctBy(page => page.PageNumber)
+            .OrderBy(page => page.PageNumber)
+            .ToArray();
+        var hasReliableNativeText = normalizedPdfPages.Length > 0
+            ? pageCount.GetValueOrDefault(normalizedPdfPages.Length) <= normalizedPdfPages.Length
+                && normalizedPdfPages.All(page => page.HasReliableNativeText)
+            : normalizedText.Length >= ContentText.ReliableTextMinimumLength;
         return new MetadataExtractionResult(
             Array.AsReadOnly(normalizedFields),
             normalizedText.Length == 0 ? null : normalizedText,
-            normalizedText.Length >= ContentText.ReliableTextMinimumLength,
+            hasReliableNativeText,
             pageCount,
-            Array.AsReadOnly(warnings.Distinct(StringComparer.Ordinal).Take(16).ToArray()));
+            Array.AsReadOnly(warnings.Distinct(StringComparer.Ordinal).Take(16).ToArray()))
+        {
+            PdfPages = Array.AsReadOnly(normalizedPdfPages),
+        };
     }
 }
 

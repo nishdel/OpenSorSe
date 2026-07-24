@@ -16,6 +16,12 @@ public static class AiPromptLimits
 
     /// <summary>Maximum preference values included per supported preference category.</summary>
     public const int MaximumPreferenceValues = 10;
+
+    /// <summary>Maximum PDF pages included in one explicit document-text request.</summary>
+    public const int MaximumDocumentTextPages = 12;
+
+    /// <summary>Maximum extracted characters included in one explicit document-text request.</summary>
+    public const int MaximumDocumentTextCharacters = 16_384;
 }
 
 /// <summary>
@@ -51,6 +57,9 @@ public interface IAiPromptBuilder
 
     /// <summary>Builds the folder-structure prompt.</summary>
     AiPromptPackage BuildFolderStructurePrompt(AiFolderStructureRequest request, AiPreferenceSummary preferences);
+
+    /// <summary>Builds a bounded extracted-document-text interpretation prompt.</summary>
+    AiPromptPackage BuildDocumentInterpretationPrompt(AiDocumentTextRequest request);
 }
 
 /// <summary>
@@ -63,6 +72,9 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
 
     /// <summary>Gets the versioned folder-structure task identifier.</summary>
     public const string FolderStructureTaskId = "folder-structure-v1";
+
+    /// <summary>Gets the versioned extracted-text interpretation task identifier.</summary>
+    public const string DocumentInterpretationTaskId = "document-text-interpretation-v1";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -239,6 +251,110 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
         };
     }
 
+    /// <inheritdoc />
+    public AiPromptPackage BuildDocumentInterpretationPrompt(AiDocumentTextRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(request.Pages);
+        var pageInputs = request.Pages
+            .Where(page => page is not null && !string.IsNullOrWhiteSpace(page.Text))
+            .OrderBy(page => page.PageNumber)
+            .Take(AiPromptLimits.MaximumDocumentTextPages)
+            .Select(page => new DocumentTextInput(
+                page.PageNumber,
+                page.TextSource.ToString(),
+                page.Text!))
+            .ToArray();
+        var fallbackInputs = pageInputs.Length == 0
+            ? new[]
+            {
+                new DocumentTextInput(0, "NativeText", request.NativeText ?? string.Empty),
+                new DocumentTextInput(0, "Ocr", request.OcrText ?? string.Empty),
+            }.Where(item => !string.IsNullOrWhiteSpace(item.Text)).ToArray()
+            : [];
+        var inputs = pageInputs.Concat(fallbackInputs).ToArray();
+        var remaining = AiPromptLimits.MaximumDocumentTextCharacters;
+        var boundedInputs = new List<object>();
+        var wasBounded = request.Pages.Count > AiPromptLimits.MaximumDocumentTextPages;
+        foreach (var input in inputs)
+        {
+            if (remaining <= 0)
+            {
+                wasBounded = true;
+                break;
+            }
+
+            var boundedText = Bound(input.Text, remaining);
+            wasBounded |= boundedText.Length < input.Text.Length;
+            boundedInputs.Add(new
+            {
+                pageNumber = input.PageNumber,
+                provenance = input.Provenance,
+                text = boundedText,
+            });
+            remaining -= boundedText.Length;
+        }
+
+        var prompt = new
+        {
+            taskIdentifier = DocumentInterpretationTaskId,
+            objective = "Suggest bounded descriptive metadata from explicitly supplied extracted document text.",
+            inputData = new
+            {
+                sourceFileId = "item-001",
+                fileName = Bound(request.DisplayFileName, 255),
+                extractedTextPages = boundedInputs,
+                wasInputBounded = wasBounded,
+            },
+            allowedReasoningScope = new[]
+            {
+                "Use only the supplied normalized native/OCR text and filename.",
+                "Return descriptive review suggestions, not authoritative transcription or advice.",
+            },
+            mandatoryRules = new[]
+            {
+                "Copy sourceFileId item-001 exactly.",
+                "Use null or empty arrays when a value is not supported by supplied text.",
+                "Use ISO yyyy-MM-dd dates only when explicit in the text.",
+                "Keep tags at 12 or fewer, reason at 240 characters or fewer, and confidence between 0 and 1.",
+            },
+            forbiddenBehaviors = new[]
+            {
+                "Do not invent facts, identifiers, dates, issuers, content, or source identities.",
+                "Do not provide legal, financial, medical, or identity conclusions.",
+                "Do not return commands, paths, Markdown, or filesystem actions.",
+                "Do not claim OCR text is exact or verified.",
+            },
+            requiredResponseSchema = new
+            {
+                taskId = DocumentInterpretationTaskId,
+                status = "suggestion | no_suggestion",
+                sourceFileId = "item-001 for suggestion",
+                documentType = "string or null",
+                title = "string or null",
+                tags = new[] { "bounded tag" },
+                dates = new[] { "yyyy-MM-dd" },
+                issuer = "string or null",
+                suggestedFolder = "one safe folder-name component or null",
+                reason = "required bounded string",
+                confidence = "optional number from 0 through 1",
+            },
+            noSuggestionBehavior = "Return taskId, status no_suggestion, and a bounded reason; omit actionable values.",
+            outputInstruction = "Return only one JSON object. Do not wrap it in Markdown fences or add prose.",
+        };
+        return new AiPromptPackage(
+            DocumentInterpretationTaskId,
+            JsonSerializer.Serialize(prompt, JsonOptions),
+            Array.AsReadOnly([request.SourceFileId]),
+            wasBounded)
+        {
+            SourceMappings = Array.AsReadOnly([
+                new AiPromptSourceMapping("item-001", request.SourceFileId, request.DisplayFileName),
+            ]),
+            TotalInputCount = 1,
+        };
+    }
+
     private static (IReadOnlyList<string> Values, bool WasBounded) BoundStrings(IReadOnlyList<string> values, int limit)
     {
         var candidates = values
@@ -255,4 +371,6 @@ public sealed class AiPromptBuilder : IAiPromptBuilder
 
     private static string Bound(string value, int maximumLength) =>
         value.Length <= maximumLength ? value : value[..maximumLength];
+
+    private sealed record DocumentTextInput(int PageNumber, string Provenance, string Text);
 }

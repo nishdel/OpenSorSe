@@ -283,6 +283,25 @@
                                     </ItemsControl>
                                 </StackPanel>
                             </Border>
+                            <Border IsVisible="{Binding IsDocumentInterpretationVisible}"
+                                    Padding="8"
+                                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                    BorderThickness="1">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="AI document-text interpretation" FontWeight="SemiBold" />
+                                    <TextBlock Text="Sends only bounded, already extracted native/OCR text after this explicit request. Output is unverified and is never applied automatically."
+                                               TextWrapping="Wrap" />
+                                    <Button Content="Interpret extracted text for selected file"
+                                            Command="{Binding GenerateDocumentInterpretationCommand}"
+                                            AutomationProperties.Name="Interpret extracted document text with AI" />
+                                    <StackPanel IsVisible="{Binding HasDocumentInterpretation}" Spacing="4">
+                                        <TextBlock Text="{Binding DocumentInterpretationSummary}"
+                                                   TextWrapping="Wrap" />
+                                        <Button Content="Dismiss interpretation"
+                                                Command="{Binding DismissDocumentInterpretationCommand}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 

@@ -20,6 +20,13 @@ public sealed class OcrService : IOcrService
         _engine.DetectCapabilityAsync(cancellationToken);
 
     /// <inheritdoc />
+    public Task<OcrCapability> RefreshCapabilityAsync(CancellationToken cancellationToken)
+    {
+        _engine.ResetCapability();
+        return _engine.DetectCapabilityAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<OcrResult> RecognizeAsync(
         OcrRequest request,
         CancellationToken cancellationToken)
@@ -28,12 +35,15 @@ public sealed class OcrService : IOcrService
         var settings = _configurationService.Current.Content;
         if (!settings.OcrEnabled)
         {
-            return Skipped(OcrFailureCategory.Disabled, "OCR is disabled in Settings.");
+            return Skipped(request, OcrFailureCategory.Disabled, "OCR is disabled in Settings.");
         }
 
         if (settings.OcrOnlyWhenNativeTextUnavailable && request.HasReliableNativeText)
         {
-            return Skipped(OcrFailureCategory.None, "OCR was skipped because reliable native text is available.");
+            return Skipped(
+                request,
+                OcrFailureCategory.None,
+                "OCR was skipped because reliable native text is available.");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,6 +74,14 @@ public sealed class OcrService : IOcrService
             Language = settings.OcrLanguage,
             MaximumFileBytes = maximumBytes,
             MaximumPages = Math.Min(request.MaximumPages, settings.MaximumPagesPerDocument),
+            RasterizationDpi = settings.PdfRasterizationDpi,
+            MaximumRasterDimension = settings.MaximumRasterDimension,
+            MaximumTextCharacters = Math.Min(
+                request.MaximumTextCharacters,
+                settings.MaximumOcrTextCharacters),
+            MaximumTemporaryStorageBytes = Math.Min(
+                request.MaximumTemporaryStorageBytes,
+                settings.MaximumTemporaryStorageMiB * 1024L * 1024L),
             Timeout = TimeSpan.FromSeconds(Math.Min(
                 request.Timeout.TotalSeconds,
                 settings.MaximumOcrDurationSeconds)),
@@ -88,18 +106,45 @@ public sealed class OcrService : IOcrService
         }
     }
 
-    private static OcrResult Skipped(OcrFailureCategory category, string message) => new(
-        OcrStatus.Skipped,
-        null,
-        null,
-        null,
-        null,
-        [],
-        category,
-        TimeSpan.Zero,
-        "none",
-        null,
-        message);
+    private static OcrResult Skipped(
+        OcrRequest request,
+        OcrFailureCategory category,
+        string message)
+    {
+        var pages = request.PdfPages
+            .OrderBy(page => page.PageNumber)
+            .Select(page => page.HasReliableNativeText
+                ? new OcrPageResult(
+                    page.PageNumber,
+                    OcrPageTextSource.NativeText,
+                    OcrStatus.Skipped,
+                    page.NativeText,
+                    null,
+                    "Reliable PDF-native text was retained.")
+                : new OcrPageResult(
+                    page.PageNumber,
+                    OcrPageTextSource.Skipped,
+                    OcrStatus.Skipped,
+                    null,
+                    null,
+                    message))
+            .ToArray();
+        return new OcrResult(
+            OcrStatus.Skipped,
+            null,
+            null,
+            null,
+            pages.Length == 0 ? null : pages.Length,
+            [],
+            category,
+            TimeSpan.Zero,
+            "none",
+            null,
+            message)
+        {
+            Pages = Array.AsReadOnly(pages),
+        };
+    }
 
     private static OcrResult Failed(OcrFailureCategory category, string message) => new(
         OcrStatus.Failed,

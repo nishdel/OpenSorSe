@@ -414,9 +414,14 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         IsContentBusy = true;
         try
         {
-            var capability = await _ocrService.GetCapabilityAsync(CancellationToken.None);
+            var capability = await _ocrService.RefreshCapabilityAsync(CancellationToken.None);
+            var details = capability.IsAvailable
+                ? $"{capability.Message} Engine: {capability.EngineVersion ?? "version unavailable"}. " +
+                  $"Languages: {string.Join(", ", capability.AvailableLanguages)}. " +
+                  $"PDF renderer: {(capability.SupportsPdf ? $"{capability.RasterizerIdentifier} {capability.RasterizerVersion}".Trim() : "unavailable")}."
+                : capability.Message;
             ContentStatus = capability.IsAvailable
-                ? StatusPresentation.Success(capability.Message)
+                ? StatusPresentation.Success(details)
                 : StatusPresentation.Warning(capability.Message);
         }
         catch (Exception)

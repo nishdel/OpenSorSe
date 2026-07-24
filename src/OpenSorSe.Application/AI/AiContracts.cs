@@ -45,6 +45,8 @@ public enum AiSuggestionKind
     FileRename,
     /// <summary>Suggests a preview-only logical hierarchy for bounded known metadata.</summary>
     FolderStructure,
+    /// <summary>Interprets bounded locally extracted document text for review.</summary>
+    DocumentTextInterpretation,
 }
 
 /// <summary>Identifies truthful progress stages for one explicit AI request.</summary>
@@ -166,6 +168,14 @@ public sealed record AiFolderStructureRequest(
     IReadOnlyList<ResultFile> Files,
     IReadOnlyList<string> ExistingFolderNames);
 
+/// <summary>Describes bounded extracted text for one explicit review-only interpretation request.</summary>
+public sealed record AiDocumentTextRequest(
+    string SourceFileId,
+    string DisplayFileName,
+    string? NativeText,
+    string? OcrText,
+    IReadOnlyList<OpenSorSe.Application.Content.OcrPageResult> Pages);
+
 /// <summary>Represents an application-normalized tag retained for existing deterministic and historical workflows.</summary>
 public sealed record SuggestedTag(string DisplayName, string NormalizedValue);
 
@@ -202,6 +212,22 @@ public sealed record AiFolderStructurePlan(
     string Model,
     DateTimeOffset GeneratedAtUtc);
 
+/// <summary>Represents one validated, unverified interpretation of bounded extracted document text.</summary>
+public sealed record AiDocumentInterpretationSuggestion(
+    string SuggestionId,
+    string SourceFileId,
+    string? DocumentType,
+    string? Title,
+    IReadOnlyList<SuggestedTag> Tags,
+    IReadOnlyList<string> Dates,
+    string? Issuer,
+    string? SuggestedFolder,
+    string Reason,
+    double? Confidence,
+    string Provider,
+    string Model,
+    DateTimeOffset GeneratedAtUtc);
+
 /// <summary>Contains a safe result of generating one filename suggestion.</summary>
 public sealed record AiFileRenameResult(
     AiAvailabilityState State,
@@ -214,6 +240,13 @@ public sealed record AiFolderStructureResult(
     AiAvailabilityState State,
     string Message,
     AiFolderStructurePlan? Plan,
+    bool WasInputBounded = false);
+
+/// <summary>Contains a safe result for one review-only document-text interpretation.</summary>
+public sealed record AiDocumentInterpretationResult(
+    AiAvailabilityState State,
+    string Message,
+    AiDocumentInterpretationSuggestion? Suggestion,
     bool WasInputBounded = false);
 
 /// <summary>Contains a safe result for a local AI review-history operation.</summary>
@@ -328,6 +361,16 @@ public interface IAiSuggestionService
         IProgress<AiRequestProgress>? progress,
         CancellationToken cancellationToken) =>
         GenerateFolderStructureAsync(request, settings, cancellationToken);
+
+    /// <summary>Interprets bounded extracted text only after the separate capability gate is enabled.</summary>
+    Task<AiDocumentInterpretationResult> GenerateDocumentInterpretationAsync(
+        AiDocumentTextRequest request,
+        AiSettings settings,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(new AiDocumentInterpretationResult(
+            AiAvailabilityState.CapabilityDisabled,
+            "AI analysis of extracted document text is unavailable.",
+            null));
 
     /// <summary>Records a user review decision for optional local preference adaptation.</summary>
     Task<AiDecisionResult> RecordDecisionAsync(AiSuggestionDecision decision, AiSettings settings, CancellationToken cancellationToken);

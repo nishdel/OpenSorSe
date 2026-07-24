@@ -87,7 +87,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         DuplicateReview = new DuplicateReviewViewModel(externalFileLauncher);
         DuplicateReview.ShowGroupFilesRequested += OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested += OnBackToExplorerRequested;
-        AiSuggestions = new AiSuggestionsViewModel(configurationService, aiSuggestionService);
+        AiSuggestions = new AiSuggestionsViewModel(configurationService, aiSuggestionService, contentStore);
         ClearFiltersCommand = new RelayCommand(ClearFilters, CanClearFilters);
         PreviousPageCommand = new RelayCommand(GoToPreviousPage, () => CanGoPreviousPage);
         NextPageCommand = new RelayCommand(GoToNextPage, () => CanGoNextPage);

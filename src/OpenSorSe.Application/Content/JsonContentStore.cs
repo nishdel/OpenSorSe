@@ -210,10 +210,13 @@ public sealed class JsonContentStore : IContentStore
             record.Metadata.Count > 64 ||
             record.Tags is null ||
             record.Tags.Count > 32 ||
+            record.OcrPages is null ||
+            record.OcrPages.Count > 500 ||
             record.Warnings is null ||
             record.Warnings.Count > 16 ||
             record.NativeText?.Length > ContentText.MaximumTextCharacters ||
             record.OcrText?.Length > ContentText.MaximumTextCharacters ||
+            record.ExtractionFingerprint is { Length: > 128 } ||
             !Enum.IsDefined(record.OcrStatus))
         {
             throw new InvalidDataException("A local content record is invalid.");
@@ -259,6 +262,31 @@ public sealed class JsonContentStore : IContentStore
                 ProvenanceDetails = ContentText.NormalizeField(tag.ProvenanceDetails, 256),
             };
         }).ToArray();
+        var pages = record.OcrPages.Select(page =>
+        {
+            if (page is null ||
+                page.PageNumber < 1 ||
+                !Enum.IsDefined(page.TextSource) ||
+                !Enum.IsDefined(page.Status) ||
+                page.Text?.Length > ContentText.MaximumTextCharacters ||
+                page.Confidence is < 0 or > 1 ||
+                string.IsNullOrWhiteSpace(page.Message) ||
+                page.Message.Length > 256)
+            {
+                throw new InvalidDataException("A local content page result is invalid.");
+            }
+
+            return page with
+            {
+                Text = NullIfEmpty(ContentText.Normalize(page.Text)),
+                Message = ContentText.NormalizeField(page.Message, 256),
+            };
+        }).OrderBy(page => page.PageNumber).ToArray();
+        if (pages.Select(page => page.PageNumber).Distinct().Count() != pages.Length)
+        {
+            throw new InvalidDataException("A local content record contains duplicate page results.");
+        }
+
         return record with
         {
             FullPath = NormalizePath(record.FullPath),
@@ -266,6 +294,8 @@ public sealed class JsonContentStore : IContentStore
             NativeText = NullIfEmpty(ContentText.Normalize(record.NativeText)),
             OcrText = NullIfEmpty(ContentText.Normalize(record.OcrText)),
             OcrEngineIdentifier = ContentText.NormalizeField(record.OcrEngineIdentifier, 128),
+            ExtractionFingerprint = NullIfEmpty(ContentText.NormalizeField(record.ExtractionFingerprint, 128)),
+            OcrPages = Array.AsReadOnly(pages),
             Tags = Array.AsReadOnly(tags),
             Warnings = Array.AsReadOnly(record.Warnings
                 .Select(warning => ContentText.NormalizeField(warning, 256))

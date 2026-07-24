@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenSorSe.Application.AI;
+using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Core.Configuration;
 
@@ -13,6 +14,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
 {
     private readonly IAiSuggestionService? _aiSuggestionService;
     private readonly IConfigurationService _configurationService;
+    private readonly IContentStore? _contentStore;
     private readonly ObservableCollection<AiFolderStructurePlanItem> _structureItems = [];
     private IReadOnlyList<string> _existingFolderNames = Array.Empty<string>();
     private IReadOnlyList<string> _siblingFileNames = Array.Empty<string>();
@@ -20,6 +22,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     private ResultFile? _selectedFile;
     private AiFileRenameSuggestion? _renameSuggestion;
     private AiFolderStructurePlan? _folderStructurePlan;
+    private AiDocumentInterpretationSuggestion? _documentInterpretation;
     private string? _proposedFileName;
     private string _statusText = "Enable an AI capability in Settings to request review-only suggestions.";
     private StatusPresentation _status = StatusPresentation.Information("Enable an AI capability in Settings to request review-only suggestions.");
@@ -33,10 +36,14 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     private bool _isDisposed;
 
     /// <summary>Initializes the suggestion-review model over the optional application service.</summary>
-    public AiSuggestionsViewModel(IConfigurationService configurationService, IAiSuggestionService? aiSuggestionService = null)
+    public AiSuggestionsViewModel(
+        IConfigurationService configurationService,
+        IAiSuggestionService? aiSuggestionService = null,
+        IContentStore? contentStore = null)
     {
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _aiSuggestionService = aiSuggestionService;
+        _contentStore = contentStore;
         StructureItems = new ReadOnlyObservableCollection<AiFolderStructurePlanItem>(_structureItems);
         GenerateSuggestionCommand = new AsyncRelayCommand(GenerateRenameAsync, CanGenerateRename);
         AcceptRenameCommand = new AsyncRelayCommand(() => RecordRenameAsync(AiSuggestionDecisionOutcome.Accepted), CanReviewRename);
@@ -44,6 +51,12 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         GenerateFolderStructureCommand = new AsyncRelayCommand(GenerateFolderStructureAsync, CanGenerateFolderStructure);
         AcceptFolderStructureCommand = new AsyncRelayCommand(() => RecordFolderStructureAsync(AiSuggestionDecisionOutcome.Accepted), CanReviewFolderStructure);
         RejectFolderStructureCommand = new AsyncRelayCommand(() => RecordFolderStructureAsync(AiSuggestionDecisionOutcome.Rejected), CanReviewFolderStructure);
+        GenerateDocumentInterpretationCommand = new AsyncRelayCommand(
+            GenerateDocumentInterpretationAsync,
+            CanGenerateDocumentInterpretation);
+        DismissDocumentInterpretationCommand = new RelayCommand(
+            DismissDocumentInterpretation,
+            () => DocumentInterpretation is not null && !IsBusy);
         CancelAiOperationCommand = new RelayCommand(CancelOperation, () => IsBusy);
         RefreshFeatureAvailability();
     }
@@ -52,7 +65,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     public ResultFile? SelectedFile => _selectedFile;
 
     /// <summary>Gets whether any enabled AI capability should be presented.</summary>
-    public bool IsVisible => HasContext && (IsFileRenameVisible || IsFolderStructureVisible);
+    public bool IsVisible => HasContext && (IsFileRenameVisible || IsFolderStructureVisible || IsDocumentInterpretationVisible);
 
     /// <summary>Gets whether the rename capability is enabled and available.</summary>
     public bool IsFileRenameVisible =>
@@ -61,6 +74,12 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets whether the folder-structure capability is enabled and available.</summary>
     public bool IsFolderStructureVisible =>
         _aiSuggestionService is not null && _configurationService.Current.Ai.IsCapabilityEnabled(AiCapability.FolderStructureSuggestions);
+
+    /// <summary>Gets whether explicit bounded extracted-text interpretation is enabled.</summary>
+    public bool IsDocumentInterpretationVisible =>
+        _aiSuggestionService is not null &&
+        _contentStore is not null &&
+        _configurationService.Current.Ai.IsCapabilityEnabled(AiCapability.DocumentTextInterpretation);
 
     /// <summary>Gets the current validated rename proposal.</summary>
     public AiFileRenameSuggestion? RenameSuggestion
@@ -125,6 +144,65 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets the bounded model reason for the logical hierarchy.</summary>
     public string? FolderStructureReason => FolderStructurePlan?.Reason;
+
+    /// <summary>Gets the current unverified document-text interpretation proposal.</summary>
+    public AiDocumentInterpretationSuggestion? DocumentInterpretation
+    {
+        get => _documentInterpretation;
+        private set
+        {
+            if (SetProperty(ref _documentInterpretation, value))
+            {
+                OnPropertyChanged(nameof(HasDocumentInterpretation));
+                OnPropertyChanged(nameof(DocumentInterpretationSummary));
+                DismissDocumentInterpretationCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>Gets whether a validated unverified interpretation is ready for review.</summary>
+    public bool HasDocumentInterpretation => DocumentInterpretation is not null;
+
+    /// <summary>Gets a concise bounded display of the validated interpretation fields.</summary>
+    public string DocumentInterpretationSummary
+    {
+        get
+        {
+            if (DocumentInterpretation is not { } value)
+            {
+                return string.Empty;
+            }
+
+            var parts = new List<string>();
+            Add("Type", value.DocumentType);
+            Add("Title", value.Title);
+            Add("Issuer", value.Issuer);
+            Add("Folder", value.SuggestedFolder);
+            if (value.Dates.Count > 0)
+            {
+                parts.Add($"Dates: {string.Join(", ", value.Dates)}");
+            }
+
+            if (value.Tags.Count > 0)
+            {
+                parts.Add($"Tags: {string.Join(", ", value.Tags.Select(tag => tag.DisplayName))}");
+            }
+
+            parts.Add($"Reason: {value.Reason}");
+            parts.Add(value.Confidence is { } confidence
+                ? $"Model confidence estimate: {confidence:P0}; not certainty."
+                : "No model confidence estimate was supplied.");
+            return string.Join(Environment.NewLine, parts);
+
+            void Add(string label, string? text)
+            {
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    parts.Add($"{label}: {text}");
+                }
+            }
+        }
+    }
 
     /// <summary>Gets the user-safe workflow status.</summary>
     public string StatusText
@@ -206,6 +284,12 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     /// <summary>Gets the command that records rejection of a logical hierarchy.</summary>
     public IAsyncRelayCommand RejectFolderStructureCommand { get; }
 
+    /// <summary>Gets the command for one explicit bounded document-text interpretation request.</summary>
+    public IAsyncRelayCommand GenerateDocumentInterpretationCommand { get; }
+
+    /// <summary>Gets the command that dismisses the in-memory interpretation without changing anything.</summary>
+    public IRelayCommand DismissDocumentInterpretationCommand { get; }
+
     /// <summary>Gets the command that cancels the active explicit AI operation.</summary>
     public IRelayCommand CancelAiOperationCommand { get; }
 
@@ -239,6 +323,7 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         {
             RenameSuggestion = null;
             ProposedFileName = null;
+            DocumentInterpretation = null;
         }
 
         FolderStructurePlan = null;
@@ -269,13 +354,19 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
             _structureItems.Clear();
         }
 
-        if (!IsFileRenameVisible && !IsFolderStructureVisible)
+        if (!IsDocumentInterpretationVisible)
+        {
+            DocumentInterpretation = null;
+        }
+
+        if (!IsFileRenameVisible && !IsFolderStructureVisible && !IsDocumentInterpretationVisible)
         {
             CancelOperation();
         }
 
         OnPropertyChanged(nameof(IsFileRenameVisible));
         OnPropertyChanged(nameof(IsFolderStructureVisible));
+        OnPropertyChanged(nameof(IsDocumentInterpretationVisible));
         OnPropertyChanged(nameof(IsVisible));
         NotifyCommandStates();
     }
@@ -456,6 +547,75 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         Status = PresentResult(result.State, StatusText);
     }
 
+    private async Task GenerateDocumentInterpretationAsync()
+    {
+        if (_aiSuggestionService is null || _contentStore is null || _selectedFile is null ||
+            !IsDocumentInterpretationVisible)
+        {
+            return;
+        }
+
+        var (cancellation, version) = BeginOperation();
+        StatusText = "Loading bounded extracted text for an explicit AI interpretation request...";
+        Status = StatusPresentation.Progress(StatusText);
+        try
+        {
+            var content = await _contentStore.GetAsync(_selectedFile.FullPath, cancellation.Token);
+            if (content is null ||
+                string.IsNullOrWhiteSpace(content.NativeText) && string.IsNullOrWhiteSpace(content.OcrText))
+            {
+                StatusText = "No locally extracted text is available for the selected file. Scan it with content extraction enabled first.";
+                Status = StatusPresentation.Warning(StatusText);
+                return;
+            }
+
+            var result = await _aiSuggestionService.GenerateDocumentInterpretationAsync(
+                new AiDocumentTextRequest(
+                    _selectedFile.Id,
+                    _selectedFile.DisplayFileName,
+                    content.NativeText,
+                    content.OcrText,
+                    content.OcrPages),
+                _configurationService.Current.Ai,
+                cancellation.Token);
+            if (!IsCurrentOperation(cancellation, version))
+            {
+                return;
+            }
+
+            DocumentInterpretation = result.Suggestion;
+            StatusText = result.Message;
+            Status = PresentResult(result.State, result.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            if (version == Volatile.Read(ref _operationVersion))
+            {
+                StatusText = "The AI document interpretation request was cancelled.";
+                Status = StatusPresentation.Information(StatusText);
+            }
+        }
+        catch (Exception)
+        {
+            if (version == Volatile.Read(ref _operationVersion))
+            {
+                StatusText = "The AI document interpretation request failed safely. No source file was changed.";
+                Status = StatusPresentation.Error(StatusText);
+            }
+        }
+        finally
+        {
+            EndOperation(cancellation, version);
+        }
+    }
+
+    private void DismissDocumentInterpretation()
+    {
+        DocumentInterpretation = null;
+        StatusText = "The AI-generated interpretation was dismissed. Nothing was saved or changed.";
+        Status = StatusPresentation.Information(StatusText);
+    }
+
     private async Task RecordFolderStructureAsync(AiSuggestionDecisionOutcome outcome)
     {
         var plan = FolderStructurePlan;
@@ -495,6 +655,9 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
     private bool CanReviewFolderStructure() =>
         !IsBusy && IsFolderStructureVisible && FolderStructurePlan is not null;
 
+    private bool CanGenerateDocumentInterpretation() =>
+        !IsBusy && IsDocumentInterpretationVisible && _selectedFile is not null;
+
     private void NotifyCommandStates()
     {
         GenerateSuggestionCommand.NotifyCanExecuteChanged();
@@ -503,6 +666,8 @@ public sealed class AiSuggestionsViewModel : ViewModelBase, IDisposable
         GenerateFolderStructureCommand.NotifyCanExecuteChanged();
         AcceptFolderStructureCommand.NotifyCanExecuteChanged();
         RejectFolderStructureCommand.NotifyCanExecuteChanged();
+        GenerateDocumentInterpretationCommand.NotifyCanExecuteChanged();
+        DismissDocumentInterpretationCommand.NotifyCanExecuteChanged();
     }
 
     private (CancellationTokenSource Cancellation, long Version) BeginOperation()

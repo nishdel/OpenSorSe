@@ -51,11 +51,11 @@
                         AutomationProperties.Name="Global feature controls">
                     <StackPanel Spacing="7">
                         <TextBlock Text="Global controls" FontWeight="SemiBold" />
-                        <CheckBox Content="Enable AI"
+                        <CheckBox Content="Enable AI features"
                                   IsChecked="{Binding EnableAi, Mode=TwoWay}"
                                   ToolTip.Tip="Allows explicitly enabled, preview-only AI features. Enabling this switch does not contact a provider." />
                         <TextBlock Text="{Binding AiShellStatusText}" FontSize="12" />
-                        <CheckBox Content="Advanced features"
+                        <CheckBox Content="Show advanced features"
                                   IsChecked="{Binding ShowAdvancedFeatures, Mode=TwoWay}"
                                   ToolTip.Tip="Shows specialist and troubleshooting pages without changing their saved values." />
                         <TextBlock Text="{Binding AdvancedShellStatusText}" FontSize="12" />

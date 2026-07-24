@@ -193,7 +193,10 @@ public sealed class SettingsViewModelTests
         viewModel.Draft.AiEnabled = true;
         viewModel.Draft.FileRenameSuggestionsEnabled = true;
         viewModel.Draft.FolderStructureSuggestionsEnabled = false;
+        viewModel.Draft.DocumentTextInterpretationEnabled = true;
         viewModel.Draft.ShowAdvancedFeatures = true;
+        viewModel.Draft.PdfRasterizationDpi = 300;
+        viewModel.Draft.MaximumRasterDimension = 5000;
 
         await viewModel.SaveCommand.ExecuteAsync(null);
 
@@ -202,7 +205,10 @@ public sealed class SettingsViewModelTests
         Assert.True(configuration.Current.Ai.Enabled);
         Assert.True(configuration.Current.Ai.FileRenameSuggestionsEnabled);
         Assert.False(configuration.Current.Ai.FolderStructureSuggestionsEnabled);
+        Assert.True(configuration.Current.Ai.DocumentTextInterpretationEnabled);
         Assert.True(configuration.Current.Features.ShowAdvancedFeatures);
+        Assert.Equal(300, configuration.Current.Content.PdfRasterizationDpi);
+        Assert.Equal(5000, configuration.Current.Content.MaximumRasterDimension);
     }
 
     /// <summary>Verifies both documented timeout boundaries persist and out-of-range text is rejected.</summary>

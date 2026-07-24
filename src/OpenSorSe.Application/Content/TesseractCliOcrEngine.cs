@@ -1,14 +1,30 @@
 using System.Diagnostics;
+using System.Text;
+using OpenSorSe.Core.Configuration;
 
 namespace OpenSorSe.Application.Content;
 
-/// <summary>Integrates an externally managed local Tesseract CLI for supported image inputs.</summary>
+/// <summary>Integrates an externally managed local Tesseract CLI with bounded image and mixed-PDF OCR.</summary>
 public sealed class TesseractCliOcrEngine : IOcrEngine
 {
     private static readonly IReadOnlyList<string> Extensions =
-        Array.AsReadOnly([".png", ".jpg", ".jpeg", ".tif", ".tiff"]);
+        Array.AsReadOnly([".png", ".jpg", ".jpeg", ".tif", ".tiff", ".pdf"]);
     private readonly SemaphoreSlim _capabilityMutex = new(1, 1);
+    private readonly IConfigurationService _configurationService;
+    private readonly IPdfPageRasterizer _rasterizer;
+    private readonly ITesseractProcessRunner _processRunner;
     private OcrCapability? _cachedCapability;
+
+    /// <summary>Initializes the local engine with current settings and the bounded PDF renderer.</summary>
+    public TesseractCliOcrEngine(
+        IConfigurationService configurationService,
+        IPdfPageRasterizer rasterizer,
+        ITesseractProcessRunner processRunner)
+    {
+        _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+        _rasterizer = rasterizer ?? throw new ArgumentNullException(nameof(rasterizer));
+        _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
+    }
 
     /// <inheritdoc />
     public async Task<OcrCapability> DetectCapabilityAsync(CancellationToken cancellationToken)
@@ -26,42 +42,67 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
                 return _cachedCapability;
             }
 
+            var executable = GetExecutable();
             try
             {
-                using var process = CreateProcess("--version");
-                if (!process.Start())
-                {
-                    return _cachedCapability = Unavailable();
-                }
-
-                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeout.CancelAfter(TimeSpan.FromSeconds(3));
-                var output = await ReadBoundedAsync(
-                    process.StandardOutput,
+                var versionResult = await _processRunner.ExecuteAsync(
+                    executable,
+                    ["--version"],
                     512,
-                    timeout.Token).ConfigureAwait(false);
-                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-                if (process.ExitCode != 0)
+                    1024,
+                    TimeSpan.FromSeconds(3),
+                    cancellationToken).ConfigureAwait(false);
+                if (versionResult.ExitCode != 0 || versionResult.StandardOutputTruncated)
                 {
-                    return _cachedCapability = Unavailable();
+                    return Unavailable("Tesseract was found but did not return a valid bounded version response.");
                 }
 
-                var version = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                var languagesResult = await _processRunner.ExecuteAsync(
+                    executable,
+                    ["--list-langs"],
+                    4096,
+                    2048,
+                    TimeSpan.FromSeconds(3),
+                    cancellationToken).ConfigureAwait(false);
+                if (languagesResult.ExitCode != 0 || languagesResult.StandardOutputTruncated)
+                {
+                    return Unavailable("Tesseract language packs could not be detected.");
+                }
+
+                var languages = ParseLanguages(languagesResult.StandardOutput);
+                if (languages.Count == 0)
+                {
+                    return Unavailable("Tesseract reported no installed language packs.");
+                }
+
+                var rasterizer = await _rasterizer
+                    .DetectCapabilityAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                var version = versionResult.StandardOutput
+                    .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
                     .FirstOrDefault();
                 return _cachedCapability = new OcrCapability(
                     true,
                     "tesseract-cli",
                     ContentText.NormalizeField(version, 128),
                     Extensions,
-                    false,
-                    "Local Tesseract image OCR is available. Scanned-PDF OCR requires a separate local rasterizer.");
+                    rasterizer.IsAvailable,
+                    rasterizer.IsAvailable
+                        ? "Local Tesseract image and scanned-PDF OCR are available."
+                        : "Local Tesseract image OCR is available, but PDF page rendering is unavailable.")
+                {
+                    AvailableLanguages = languages,
+                    RasterizerIdentifier = rasterizer.IsAvailable ? rasterizer.Identifier : null,
+                    RasterizerVersion = rasterizer.IsAvailable ? rasterizer.Version : null,
+                };
             }
             catch (Exception exception) when (
                 exception is System.ComponentModel.Win32Exception or
                 InvalidOperationException or
+                IOException or
                 OperationCanceledException && !cancellationToken.IsCancellationRequested)
             {
-                return _cachedCapability = Unavailable();
+                return Unavailable("No compatible local Tesseract CLI was detected. Install it and the selected language packs, then recheck.");
             }
         }
         finally
@@ -69,6 +110,9 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
             _capabilityMutex.Release();
         }
     }
+
+    /// <summary>Clears a successful capability snapshot so an explicit UI recheck observes installation changes.</summary>
+    public void ResetCapability() => _cachedCapability = null;
 
     /// <inheritdoc />
     public async Task<OcrResult> RecognizeAsync(
@@ -88,6 +132,20 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
                 capability.Message);
         }
 
+        var requestedLanguages = ParseRequestedLanguages(request.Language);
+        var missingLanguages = requestedLanguages
+            .Where(language => !capability.AvailableLanguages.Contains(language, StringComparer.Ordinal))
+            .ToArray();
+        if (missingLanguages.Length > 0)
+        {
+            return Failure(
+                OcrStatus.Unavailable,
+                OcrFailureCategory.EngineUnavailable,
+                capability,
+                started.Elapsed,
+                $"The selected Tesseract language pack is unavailable: {string.Join(", ", missingLanguages)}.");
+        }
+
         var extension = Path.GetExtension(request.FullPath).ToLowerInvariant();
         if (!capability.SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
         {
@@ -96,50 +154,272 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
                 OcrFailureCategory.UnsupportedInput,
                 capability,
                 started.Elapsed,
-                extension == ".pdf"
-                    ? "Scanned-PDF OCR is unavailable because no local PDF rasterizer is configured."
-                    : "The available local OCR engine does not support this file type.");
+                "The available local OCR engine does not support this file type.");
         }
 
-        using var process = CreateProcess();
-        process.StartInfo.ArgumentList.Add(request.FullPath);
-        process.StartInfo.ArgumentList.Add("stdout");
-        process.StartInfo.ArgumentList.Add("-l");
-        process.StartInfo.ArgumentList.Add(request.Language);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(request.Timeout);
+        return extension == ".pdf"
+            ? await RecognizePdfAsync(request, capability, started, cancellationToken).ConfigureAwait(false)
+            : await RecognizeImageAsync(
+                request.FullPath,
+                request,
+                capability,
+                started,
+                cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<OcrResult> RecognizePdfAsync(
+        OcrRequest request,
+        OcrCapability capability,
+        Stopwatch started,
+        CancellationToken cancellationToken)
+    {
+        if (!capability.SupportsPdf)
+        {
+            return Failure(
+                OcrStatus.Unavailable,
+                OcrFailureCategory.EngineUnavailable,
+                capability,
+                started.Elapsed,
+                "The bundled local PDF page renderer is unavailable.");
+        }
+
+        string? workspace = null;
+        var pageResults = new List<OcrPageResult>();
+        var warnings = new List<string>();
+        var combinedOcrText = new StringBuilder();
+        var temporaryBytes = 0L;
+        var failedPages = 0;
         try
         {
-            if (!process.Start())
+            var pageCount = await _rasterizer
+                .GetPageCountAsync(request.FullPath, cancellationToken)
+                .ConfigureAwait(false);
+            if (pageCount < 1)
+            {
+                return Failure(
+                    OcrStatus.Failed,
+                    OcrFailureCategory.MalformedInput,
+                    capability,
+                    started.Elapsed,
+                    "The PDF contains no readable pages.");
+            }
+
+            var pagesToInspect = Math.Min(pageCount, request.MaximumPages);
+            if (pageCount > request.MaximumPages)
+            {
+                warnings.Add(
+                    $"The PDF has {pageCount} pages; OCR was limited to the first {request.MaximumPages} pages.");
+            }
+
+            var nativePages = request.PdfPages.ToDictionary(page => page.PageNumber);
+            for (var pageNumber = 1; pageNumber <= pagesToInspect; pageNumber++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                nativePages.TryGetValue(pageNumber, out var native);
+                if (!request.ForceReprocessAllPages && native?.HasReliableNativeText == true)
+                {
+                    pageResults.Add(new OcrPageResult(
+                        pageNumber,
+                        OcrPageTextSource.NativeText,
+                        OcrStatus.Skipped,
+                        native.NativeText,
+                        1,
+                        "Reliable native page text was retained; rasterization was skipped."));
+                    continue;
+                }
+
+                workspace ??= _rasterizer.CreateWorkspace();
+                RenderedPdfPage rendered;
+                try
+                {
+                    rendered = await _rasterizer.RenderAsync(
+                        request.FullPath,
+                        pageNumber,
+                        request.RasterizationDpi,
+                        request.MaximumRasterDimension,
+                        workspace,
+                        cancellationToken).ConfigureAwait(false);
+                    temporaryBytes += rendered.EncodedBytes;
+                    if (temporaryBytes > request.MaximumTemporaryStorageBytes)
+                    {
+                        TryDeleteFile(rendered.ImagePath);
+                        warnings.Add("PDF OCR stopped at the configured temporary-storage bound.");
+                        failedPages++;
+                        pageResults.Add(new OcrPageResult(
+                            pageNumber,
+                            OcrPageTextSource.Failed,
+                            OcrStatus.TextNotIndexedDueToBounds,
+                            null,
+                            null,
+                            "The rendered page exceeded the configured temporary-storage bound."));
+                        break;
+                    }
+
+                    var pageRequest = request with
+                    {
+                        FullPath = rendered.ImagePath,
+                        HasReliableNativeText = false,
+                        PdfPages = [],
+                    };
+                    var pageResult = await RecognizeImageAsync(
+                        rendered.ImagePath,
+                        pageRequest,
+                        capability,
+                        Stopwatch.StartNew(),
+                        cancellationToken).ConfigureAwait(false);
+                    if (pageResult.HasText)
+                    {
+                        var source = string.IsNullOrWhiteSpace(native?.NativeText)
+                            ? OcrPageTextSource.Ocr
+                            : OcrPageTextSource.NativeAndOcrFallback;
+                        pageResults.Add(new OcrPageResult(
+                            pageNumber,
+                            source,
+                            pageResult.Status,
+                            pageResult.ExtractedText,
+                            pageResult.Confidence,
+                            pageResult.Message));
+                        AppendPageBounded(
+                            combinedOcrText,
+                            pageNumber,
+                            pageResult.ExtractedText!,
+                            request.MaximumTextCharacters);
+                    }
+                    else
+                    {
+                        failedPages++;
+                        pageResults.Add(new OcrPageResult(
+                            pageNumber,
+                            OcrPageTextSource.Failed,
+                            pageResult.Status,
+                            null,
+                            null,
+                            pageResult.Message));
+                    }
+                }
+                catch (Exception exception) when (
+                    exception is IOException or InvalidDataException or
+                    UnauthorizedAccessException or ArgumentException or
+                    TypeInitializationException or DllNotFoundException)
+                {
+                    failedPages++;
+                    pageResults.Add(new OcrPageResult(
+                        pageNumber,
+                        OcrPageTextSource.Failed,
+                        OcrStatus.Failed,
+                        null,
+                        null,
+                        "The PDF page could not be rendered or recognized locally."));
+                }
+                finally
+                {
+                    if (workspace is not null)
+                    {
+                        TryDeletePageFile(workspace, pageNumber);
+                    }
+                }
+            }
+
+            var wasBounded = combinedOcrText.Length >= request.MaximumTextCharacters ||
+                             pageCount > request.MaximumPages ||
+                             temporaryBytes > request.MaximumTemporaryStorageBytes;
+            var hasOcrText = combinedOcrText.Length > 0;
+            var status = hasOcrText
+                ? failedPages > 0 || wasBounded ? OcrStatus.PartiallyCompleted : OcrStatus.Completed
+                : failedPages > 0 ? OcrStatus.Failed : OcrStatus.Skipped;
+            var failure = hasOcrText || failedPages == 0
+                ? OcrFailureCategory.None
+                : OcrFailureCategory.EngineFailure;
+            return new OcrResult(
+                status,
+                hasOcrText ? ContentText.Normalize(combinedOcrText.ToString()) : null,
+                request.Language,
+                null,
+                pageCount,
+                Array.AsReadOnly(warnings.Distinct(StringComparer.Ordinal).Take(16).ToArray()),
+                failure,
+                started.Elapsed,
+                capability.EngineIdentifier,
+                capability.EngineVersion,
+                status switch
+                {
+                    OcrStatus.Completed => "Local PDF OCR completed.",
+                    OcrStatus.PartiallyCompleted => "Local PDF OCR completed partially; review page details.",
+                    OcrStatus.Skipped => "Every bounded PDF page already had reliable native text.",
+                    _ => "Local PDF OCR could not extract usable text.",
+                })
+            {
+                Pages = Array.AsReadOnly(pageResults.ToArray()),
+                RasterizerIdentifier = capability.RasterizerIdentifier,
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (
+            exception is IOException or InvalidDataException or UnauthorizedAccessException or
+            ArgumentException or TypeInitializationException or DllNotFoundException)
+        {
+            return Failure(
+                OcrStatus.Failed,
+                OcrFailureCategory.MalformedInput,
+                capability,
+                started.Elapsed,
+                "The PDF could not be opened safely for local OCR.");
+        }
+        finally
+        {
+            if (workspace is not null)
+            {
+                try
+                {
+                    _rasterizer.DeleteWorkspace(workspace);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+        }
+    }
+
+    private async Task<OcrResult> RecognizeImageAsync(
+        string inputPath,
+        OcrRequest request,
+        OcrCapability capability,
+        Stopwatch started,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var execution = await _processRunner.ExecuteAsync(
+                GetExecutable(),
+                [inputPath, "stdout", "-l", request.Language],
+                request.MaximumTextCharacters + 1,
+                2048,
+                request.Timeout,
+                cancellationToken).ConfigureAwait(false);
+            if (execution.ExitCode != 0)
             {
                 return Failure(
                     OcrStatus.Failed,
                     OcrFailureCategory.EngineFailure,
                     capability,
                     started.Elapsed,
-                    "The local OCR process could not be started.");
+                    TranslateTesseractError(execution.StandardError));
             }
 
-            var outputTask = ReadBoundedAsync(
-                process.StandardOutput,
-                ContentText.MaximumTextCharacters + 1,
-                timeout.Token);
-            var errorTask = ReadBoundedAsync(process.StandardError, 2048, timeout.Token);
-            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-            var output = await outputTask.ConfigureAwait(false);
-            _ = await errorTask.ConfigureAwait(false);
-            if (process.ExitCode != 0)
+            if (execution.StandardOutputTruncated)
             {
                 return Failure(
-                    OcrStatus.Failed,
+                    OcrStatus.TextNotIndexedDueToBounds,
                     OcrFailureCategory.EngineFailure,
                     capability,
                     started.Elapsed,
-                    "The local OCR engine could not process this file.");
+                    "The local OCR response exceeded the configured text bound and was discarded.");
             }
 
-            var wasBounded = output.Length > ContentText.MaximumTextCharacters;
-            var normalized = ContentText.Normalize(output);
+            var normalized = ContentText.Normalize(execution.StandardOutput);
             if (normalized.Length == 0)
             {
                 return Failure(
@@ -151,28 +431,24 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
             }
 
             return new OcrResult(
-                wasBounded ? OcrStatus.PartiallyCompleted : OcrStatus.Completed,
+                OcrStatus.Completed,
                 normalized,
                 request.Language,
                 null,
                 1,
-                wasBounded ? ["OCR text was truncated at the local content bound."] : [],
+                [],
                 OcrFailureCategory.None,
                 started.Elapsed,
                 capability.EngineIdentifier,
                 capability.EngineVersion,
-                wasBounded
-                    ? "OCR completed with bounded text."
-                    : "OCR completed locally.");
+                "OCR completed locally.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            TryKill(process);
             throw;
         }
         catch (OperationCanceledException)
         {
-            TryKill(process);
             return Failure(
                 OcrStatus.Failed,
                 OcrFailureCategory.Timeout,
@@ -185,7 +461,6 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
             System.ComponentModel.Win32Exception or
             InvalidOperationException)
         {
-            TryKill(process);
             return Failure(
                 OcrStatus.Failed,
                 OcrFailureCategory.EngineFailure,
@@ -195,71 +470,94 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
         }
     }
 
-    private static Process CreateProcess(params string[] arguments)
+    private string GetExecutable()
     {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo("tesseract")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            },
-        };
-        foreach (var argument in arguments)
-        {
-            process.StartInfo.ArgumentList.Add(argument);
-        }
-
-        return process;
+        var configured = _configurationService.Current.Content.TesseractExecutablePath;
+        return string.IsNullOrWhiteSpace(configured) ? "tesseract" : Path.GetFullPath(configured);
     }
 
-    private static async Task<string> ReadBoundedAsync(
-        StreamReader reader,
-        int maximumCharacters,
-        CancellationToken cancellationToken)
-    {
-        var output = new System.Text.StringBuilder(Math.Min(4096, maximumCharacters));
-        var buffer = new char[4096];
-        while (output.Length < maximumCharacters)
-        {
-            var count = await reader.ReadAsync(buffer.AsMemory(
-                0,
-                Math.Min(buffer.Length, maximumCharacters - output.Length)),
-                cancellationToken).ConfigureAwait(false);
-            if (count == 0)
-            {
-                break;
-            }
+    internal static IReadOnlyList<string> ParseLanguages(string? output) =>
+        Array.AsReadOnly((output ?? string.Empty)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(line => !line.StartsWith("List of available languages", StringComparison.OrdinalIgnoreCase))
+            .Where(language => language.Length is > 0 and <= 32)
+            .Where(language => language.All(character =>
+                char.IsAsciiLetterOrDigit(character) || character is '_' or '-'))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(language => language, StringComparer.Ordinal)
+            .Take(128)
+            .ToArray());
 
-            output.Append(buffer, 0, count);
+    private static IReadOnlyList<string> ParseRequestedLanguages(string language) =>
+        language.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+    private static void AppendPageBounded(
+        StringBuilder output,
+        int pageNumber,
+        string text,
+        int maximumCharacters)
+    {
+        var prefix = output.Length == 0
+            ? $"[Page {pageNumber}] "
+            : $" [Page {pageNumber}] ";
+        var remaining = maximumCharacters - output.Length;
+        if (remaining <= 0)
+        {
+            return;
         }
 
-        return output.ToString();
+        output.Append(prefix.AsSpan(0, Math.Min(prefix.Length, remaining)));
+        remaining = maximumCharacters - output.Length;
+        if (remaining > 0)
+        {
+            output.Append(text.AsSpan(0, Math.Min(text.Length, remaining)));
+        }
     }
 
-    private static void TryKill(Process process)
+    private static string TranslateTesseractError(string error)
+    {
+        if (error.Contains("Failed loading language", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("Error opening data file", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Tesseract could not load the selected language pack.";
+        }
+
+        if (error.Contains("Image too large", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The rendered image exceeded the local OCR engine's supported dimensions.";
+        }
+
+        return "The local OCR engine could not process this input.";
+    }
+
+    private static void TryDeletePageFile(string workspace, int pageNumber) =>
+        TryDeleteFile(Path.Combine(
+            workspace,
+            $"page-{pageNumber.ToString("D4", System.Globalization.CultureInfo.InvariantCulture)}.png"));
+
+    private static void TryDeleteFile(string path)
     {
         try
         {
-            if (!process.HasExited)
+            if (File.Exists(path))
             {
-                process.Kill(entireProcessTree: true);
+                File.Delete(path);
             }
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
         }
     }
 
-    private static OcrCapability Unavailable() => new(
+    private static OcrCapability Unavailable(string message) => new(
         false,
         "tesseract-cli",
         null,
         Extensions,
         false,
-        "No compatible local Tesseract CLI was detected. OCR remains unavailable until it is installed and on PATH.");
+        message);
 
     private static OcrResult Failure(
         OcrStatus status,
@@ -278,4 +576,5 @@ public sealed class TesseractCliOcrEngine : IOcrEngine
             capability.EngineIdentifier,
             capability.EngineVersion,
             message);
+
 }

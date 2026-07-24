@@ -56,7 +56,7 @@
                               IsChecked="{Binding Draft.OcrEnabled, Mode=TwoWay}" />
                     <CheckBox Content="OCR only when reliable native text is unavailable"
                               IsChecked="{Binding Draft.OcrOnlyWhenNativeTextUnavailable, Mode=TwoWay}" />
-                    <TextBlock Text="OCR is off by default, remains local, and never writes recognized text into source documents. Image OCR requires an externally managed Tesseract CLI; scanned-PDF OCR also requires a compatible local rasterizer and is reported unavailable when none exists."
+                    <TextBlock Text="OCR is off by default, remains local, and never writes recognized text into source documents. OpenSorSe includes a local PDF page renderer; recognition requires an externally managed Tesseract CLI and selected language packs."
                                TextWrapping="Wrap" />
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
                         <StackPanel Spacing="3">
@@ -72,7 +72,10 @@
                         <StackPanel Grid.Row="1" Spacing="3">
                             <TextBlock Text="OCR language" FontWeight="SemiBold" />
                             <TextBox Text="{Binding Draft.OcrLanguage, Mode=TwoWay}"
+                                     PlaceholderText="eng, deu, or eng+deu"
                                      AutomationProperties.Name="OCR language" />
+                            <TextBlock Text="Use eng, deu, or eng+deu. Recheck after installing language packs."
+                                       TextWrapping="Wrap" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="3">
                             <TextBlock Text="Maximum OCR duration (seconds)" FontWeight="SemiBold" />
@@ -84,6 +87,38 @@
                                   IsVisible="{Binding IsAdvancedSettingsVisible}"
                                   Content="Allow bounded content processing in the background"
                                   IsChecked="{Binding Draft.BackgroundContentProcessingEnabled, Mode=TwoWay}" />
+                    </Grid>
+                    <Grid IsVisible="{Binding IsAdvancedSettingsVisible}"
+                          ColumnDefinitions="*,*"
+                          RowDefinitions="Auto,Auto,Auto"
+                          ColumnSpacing="8"
+                          RowSpacing="6">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="PDF rasterization DPI" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.PdfRasterizationDpi, Mode=TwoWay}"
+                                     AutomationProperties.Name="PDF rasterization DPI" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="Maximum rendered edge (pixels)" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumRasterDimension, Mode=TwoWay}"
+                                     AutomationProperties.Name="Maximum rendered PDF page edge" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Spacing="3">
+                            <TextBlock Text="Maximum OCR text characters" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumOcrTextCharacters, Mode=TwoWay}"
+                                     AutomationProperties.Name="Maximum OCR text characters" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="3">
+                            <TextBlock Text="Temporary image budget (MiB)" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumTemporaryStorageMiB, Mode=TwoWay}"
+                                     AutomationProperties.Name="Temporary OCR image budget" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="3">
+                            <TextBlock Text="Tesseract executable (optional)" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.TesseractExecutablePath, Mode=TwoWay}"
+                                     PlaceholderText="Leave blank to use tesseract from PATH"
+                                     AutomationProperties.Name="Optional Tesseract executable path" />
+                        </StackPanel>
                     </Grid>
                     <WrapPanel>
                         <Button Margin="0,0,8,8"
@@ -149,7 +184,11 @@
                                   IsChecked="{Binding Draft.FileRenameSuggestionsEnabled, Mode=TwoWay}" />
                         <CheckBox Content="Enable folder structure suggestions"
                                   IsChecked="{Binding Draft.FolderStructureSuggestionsEnabled, Mode=TwoWay}" />
-                        <TextBlock Text="Suggestions are unverified review-only proposals. Exact filenames and bounded metadata may be sent; file contents are never sent, and no suggestion changes a file or folder."
+                        <CheckBox Content="Allow local AI to analyze extracted document text"
+                                  IsChecked="{Binding Draft.DocumentTextInterpretationEnabled, Mode=TwoWay}" />
+                        <TextBlock Text="This separate switch is off by default. When enabled, an explicit interpretation request may send bounded extracted native/OCR text to the configured endpoint. Non-local endpoints receive that text outside this device."
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Suggestions are unverified review-only proposals. No AI suggestion changes a file or folder automatically."
                                    TextWrapping="Wrap" />
                         <TextBlock Text="{Binding AiSetupReadinessText}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     </StackPanel>

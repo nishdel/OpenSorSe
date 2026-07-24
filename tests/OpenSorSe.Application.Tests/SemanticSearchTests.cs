@@ -129,6 +129,48 @@ public sealed class SemanticSearchTests
         Assert.True(Assert.Single(ocr.Value).MatchedOcrText);
     }
 
+    /// <summary>Verifies German suffix variants and diacritic folding match deterministic native-text terms.</summary>
+    [Fact]
+    public async Task SemanticSearch_GermanDiacriticsAndSuffixes_MatchNormalizedTerms()
+    {
+        var configuration = new Configuration(enabled: true);
+        var embedding = new FeatureHashingEmbeddingProvider();
+        var store = new MemoryIndexStore();
+        await store.ReplaceAsync(
+            [
+                Entry(
+                    "C:\\Docs\\muenchen-2026.pdf",
+                    [],
+                    [],
+                    ["rechnung", "munchen", "2026"],
+                    embedding,
+                    DateTimeOffset.UnixEpoch),
+            ],
+            CancellationToken.None);
+        var service = new SemanticSearchService(configuration, embedding, store);
+
+        var result = await service.SearchAsync("Münchner Rechnungen 2026", CancellationToken.None);
+
+        var hit = Assert.Single(result.Value);
+        Assert.True(hit.MatchedNativeText);
+        Assert.Contains("native text", hit.Explanation, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Verifies tag normalization folds diacritics while preserving display text and provenance.</summary>
+    [Fact]
+    public void ProvenanceTagGenerator_Diacritics_UsesSearchableNormalizedValue()
+    {
+        var tags = ProvenanceTagGenerator.Generate(
+            Path.GetFullPath(Path.Combine(Path.GetTempPath(), "München", "bericht.pdf")),
+            "1:2",
+            [new ExtractedMetadataField("Keywords", "Büro", ContentProvenance.EmbeddedMetadata)],
+            null,
+            null,
+            DateTimeOffset.UnixEpoch);
+
+        Assert.Contains(tags, tag => tag.DisplayName == "Büro" && tag.NormalizedValue == "buro");
+    }
+
     /// <summary>Verifies disabled semantic search performs no index-store read.</summary>
     [Fact]
     public async Task SemanticSearch_Disabled_DoesNotReadIndex()

@@ -271,8 +271,13 @@ public static class AiSuggestionValidator
 
         var builder = new StringBuilder(display.Length);
         var previousWasSeparator = false;
-        foreach (var character in display.Normalize(NormalizationForm.FormKC))
+        foreach (var character in display.Normalize(NormalizationForm.FormD))
         {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
             if (char.IsLetterOrDigit(character))
             {
                 builder.Append(char.ToLower(character, CultureInfo.InvariantCulture));

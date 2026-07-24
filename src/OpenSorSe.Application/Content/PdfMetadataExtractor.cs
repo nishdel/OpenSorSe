@@ -1,10 +1,12 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using OpenSorSe.Scanner.Models;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
 namespace OpenSorSe.Application.Content;
 
-/// <summary>Reads bounded PDF information-dictionary values and simple native text without executing content.</summary>
+/// <summary>Reads bounded PDF metadata and page-level native text without executing embedded content.</summary>
 public sealed class PdfMetadataExtractor : IMetadataExtractor
 {
     private static readonly Regex PageRegex = new(@"/Type\s*/Page\b", RegexOptions.CultureInvariant);
@@ -31,9 +33,90 @@ public sealed class PdfMetadataExtractor : IMetadataExtractor
             return Empty("PDF metadata was skipped because the file exceeds the configured content bound.");
         }
 
-        var bytes = new byte[(int)info.Length];
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            return await Task.Run(
+                () => ExtractWithPdfPig(file.FullPath, maximumPages, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Retain the deliberately small legacy reader as a compatibility fallback for
+            // damaged files. Its output is never treated as executable content.
+            return await ExtractFallbackAsync(
+                file.FullPath,
+                info.Length,
+                maximumPages,
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static MetadataExtractionResult ExtractWithPdfPig(
+        string fullPath,
+        int maximumPages,
+        CancellationToken cancellationToken)
+    {
+        using var document = PdfDocument.Open(fullPath);
+        var pageCount = document.NumberOfPages;
+        var fields = new List<ExtractedMetadataField>();
+        AddField(fields, "Document title", document.Information.Title);
+        AddField(fields, "Author", document.Information.Author);
+        AddField(fields, "Subject", document.Information.Subject);
+        AddField(fields, "Keywords", document.Information.Keywords);
+        AddField(fields, "Application name", document.Information.Creator);
+        fields.Add(new ExtractedMetadataField(
+            "Page count",
+            pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ContentProvenance.EmbeddedMetadata));
+
+        var pages = new List<PdfPageText>(Math.Min(pageCount, maximumPages));
+        var combined = new StringBuilder();
+        var processedPages = Math.Min(pageCount, maximumPages);
+        for (var pageNumber = 1; pageNumber <= processedPages; pageNumber++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var normalized = ContentText.Normalize(
+                ContentOrderTextExtractor.GetText(document.GetPage(pageNumber)));
+            var reliable = PdfNativeTextQuality.IsReliable(normalized);
+            pages.Add(new PdfPageText(
+                pageNumber,
+                normalized.Length == 0 ? null : normalized,
+                reliable));
+            if (normalized.Length > 0)
+            {
+                AppendPage(combined, pageNumber, normalized);
+            }
+        }
+
+        var warnings = pageCount > maximumPages
+            ? new[] { "PDF page count exceeds the configured extraction bound; only the bounded prefix was inspected." }
+            : [];
+        var nativeText = ContentText.Normalize(combined.ToString());
+        return new MetadataExtractionResult(
+            Array.AsReadOnly(fields.ToArray()),
+            nativeText.Length == 0 ? null : nativeText,
+            pages.Count > 0 && pages.All(page => page.HasReliableNativeText),
+            pageCount,
+            Array.AsReadOnly(warnings))
+        {
+            PdfPages = Array.AsReadOnly(pages.ToArray()),
+        };
+    }
+
+    private static async Task<MetadataExtractionResult> ExtractFallbackAsync(
+        string fullPath,
+        long length,
+        int maximumPages,
+        CancellationToken cancellationToken)
+    {
+        var bytes = new byte[(int)length];
         await using (var stream = new FileStream(
-            file.FullPath,
+            fullPath,
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete,
@@ -45,12 +128,6 @@ public sealed class PdfMetadataExtractor : IMetadataExtractor
 
         var source = Encoding.Latin1.GetString(bytes);
         var pageCount = PageRegex.Matches(source).Count;
-        var warnings = new List<string>();
-        if (pageCount > maximumPages)
-        {
-            warnings.Add("PDF page count exceeds the configured extraction bound.");
-        }
-
         var fields = new List<ExtractedMetadataField>();
         AddDictionaryValue(fields, source, "Title", "Document title");
         AddDictionaryValue(fields, source, "Author", "Author");
@@ -62,20 +139,47 @@ public sealed class PdfMetadataExtractor : IMetadataExtractor
             pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ContentProvenance.EmbeddedMetadata));
         var nativeText = pageCount > maximumPages
-            ? null
-            : string.Join(' ', TextRegex.Matches(source)
+            ? string.Empty
+            : ContentText.Normalize(string.Join(' ', TextRegex.Matches(source)
                 .Take(2048)
-                .Select(match => UnescapePdfText(match.Groups["value"].Value)));
+                .Select(match => UnescapePdfText(match.Groups["value"].Value))));
+        var pages = pageCount == 1
+            ? new[] { new PdfPageText(1, nativeText.Length == 0 ? null : nativeText, PdfNativeTextQuality.IsReliable(nativeText)) }
+            : [];
+        var warnings = new List<string> { "PDF required the compatibility text reader; page-level extraction may be incomplete." };
+        if (pageCount > maximumPages)
+        {
+            warnings.Add("PDF page count exceeds the configured extraction bound.");
+        }
+
         return new MetadataExtractionResult(
             Array.AsReadOnly(fields.ToArray()),
-            ContentText.Normalize(nativeText),
-            ContentText.Normalize(nativeText).Length >= ContentText.ReliableTextMinimumLength,
+            nativeText.Length == 0 ? null : nativeText,
+            pages.Length > 0 && pages.All(page => page.HasReliableNativeText),
             pageCount,
-            Array.AsReadOnly(warnings.ToArray()));
+            Array.AsReadOnly(warnings.ToArray()))
+        {
+            PdfPages = Array.AsReadOnly(pages),
+        };
+    }
+
+    private static void AddField(
+        ICollection<ExtractedMetadataField> fields,
+        string displayName,
+        string? value)
+    {
+        var normalized = ContentText.NormalizeField(value, 2048);
+        if (normalized.Length > 0)
+        {
+            fields.Add(new ExtractedMetadataField(
+                displayName,
+                normalized,
+                ContentProvenance.EmbeddedMetadata));
+        }
     }
 
     private static void AddDictionaryValue(
-        List<ExtractedMetadataField> fields,
+        ICollection<ExtractedMetadataField> fields,
         string source,
         string key,
         string displayName)
@@ -86,11 +190,21 @@ public sealed class PdfMetadataExtractor : IMetadataExtractor
             RegexOptions.CultureInvariant);
         if (match.Success)
         {
-            fields.Add(new ExtractedMetadataField(
-                displayName,
-                UnescapePdfText(match.Groups["value"].Value),
-                ContentProvenance.EmbeddedMetadata));
+            AddField(fields, displayName, UnescapePdfText(match.Groups["value"].Value));
         }
+    }
+
+    private static void AppendPage(StringBuilder output, int pageNumber, string text)
+    {
+        if (output.Length > 0)
+        {
+            output.AppendLine();
+        }
+
+        output.Append("[Page ")
+            .Append(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .Append("] ")
+            .Append(text);
     }
 
     private static string UnescapePdfText(string value) => value
@@ -102,4 +216,49 @@ public sealed class PdfMetadataExtractor : IMetadataExtractor
 
     private static MetadataExtractionResult Empty(string warning) =>
         new([], null, false, null, [warning]);
+}
+
+/// <summary>Applies the documented deterministic PDF-native-text sufficiency policy.</summary>
+public static class PdfNativeTextQuality
+{
+    /// <summary>Returns whether normalized page text is meaningful enough to avoid OCR.</summary>
+    public static bool IsReliable(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Length < 32)
+        {
+            return false;
+        }
+
+        var meaningful = 0;
+        var noisy = 0;
+        var longestRun = 1;
+        var currentRun = 1;
+        for (var index = 0; index < text.Length; index++)
+        {
+            var character = text[index];
+            if (char.IsLetterOrDigit(character))
+            {
+                meaningful++;
+            }
+
+            if (character == '\uFFFD' || char.IsControl(character))
+            {
+                noisy++;
+            }
+
+            if (index > 0 && character == text[index - 1] && !char.IsWhiteSpace(character))
+            {
+                currentRun++;
+                longestRun = Math.Max(longestRun, currentRun);
+            }
+            else
+            {
+                currentRun = 1;
+            }
+        }
+
+        return meaningful >= 12 &&
+               noisy <= Math.Max(1, text.Length / 10) &&
+               longestRun < Math.Max(12, text.Length / 3);
+    }
 }

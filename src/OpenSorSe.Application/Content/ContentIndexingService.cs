@@ -3,6 +3,8 @@ using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 using OpenSorSe.Scanner.Models;
 using OpenSorSe.Application.Tags;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace OpenSorSe.Application.Content;
 
@@ -49,6 +51,10 @@ public sealed class ContentIndexingService : IContentIndexingService
         var ocrCompleted = 0;
         var ocrSkipped = 0;
         var maximumBytes = settings.MaximumFileSizeMiB * 1024L * 1024L;
+        var capability = settings.OcrEnabled && files.Count > 0
+            ? await _ocrService.GetCapabilityAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+        var extractionFingerprint = ContentCacheFingerprint.Create(settings, capability);
         foreach (var file in files)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -58,7 +64,11 @@ public sealed class ContentIndexingService : IContentIndexingService
                 var existing = await _contentStore.GetAsync(file.FullPath, cancellationToken).ConfigureAwait(false);
                 if (existing is not null &&
                     existing.SourceLength == source.Length &&
-                    existing.SourceLastWriteTimeUtc == source.LastWriteTimeUtc)
+                    existing.SourceLastWriteTimeUtc == source.LastWriteTimeUtc &&
+                    string.Equals(
+                        existing.ExtractionFingerprint,
+                        extractionFingerprint,
+                        StringComparison.Ordinal))
                 {
                     cacheHits++;
                     continue;
@@ -78,7 +88,14 @@ public sealed class ContentIndexingService : IContentIndexingService
                         maximumBytes,
                         settings.MaximumPagesPerDocument,
                         TimeSpan.FromSeconds(settings.MaximumOcrDurationSeconds),
-                        metadata.HasReliableNativeText),
+                        metadata.HasReliableNativeText)
+                    {
+                        PdfPages = metadata.PdfPages,
+                        RasterizationDpi = settings.PdfRasterizationDpi,
+                        MaximumRasterDimension = settings.MaximumRasterDimension,
+                        MaximumTextCharacters = settings.MaximumOcrTextCharacters,
+                        MaximumTemporaryStorageBytes = settings.MaximumTemporaryStorageMiB * 1024L * 1024L,
+                    },
                     cancellationToken).ConfigureAwait(false);
                 if (ocr.Status is OcrStatus.Completed or OcrStatus.PartiallyCompleted)
                 {
@@ -90,6 +107,13 @@ public sealed class ContentIndexingService : IContentIndexingService
                 }
 
                 var indexedAt = DateTimeOffset.UtcNow;
+                var generatedTags = ProvenanceTagGenerator.Generate(
+                    Path.GetFullPath(file.FullPath),
+                    $"{source.Length}:{source.LastWriteTimeUtc.UtcTicks}",
+                    metadata.Fields,
+                    metadata.NativeText,
+                    ocr.ExtractedText,
+                    indexedAt);
                 var record = new ContentRecord(
                     Path.GetFullPath(file.FullPath),
                     source.Length,
@@ -107,13 +131,12 @@ public sealed class ContentIndexingService : IContentIndexingService
                         .Take(16)
                         .ToArray()))
                 {
-                    Tags = ProvenanceTagGenerator.Generate(
-                        Path.GetFullPath(file.FullPath),
-                        $"{source.Length}:{source.LastWriteTimeUtc.UtcTicks}",
-                        metadata.Fields,
-                        metadata.NativeText,
-                        ocr.ExtractedText,
-                        indexedAt),
+                    ExtractionFingerprint = extractionFingerprint,
+                    OcrPages = ocr.Pages,
+                    Tags = MergeTags(
+                        generatedTags,
+                        existing?.Tags ?? [],
+                        $"{source.Length}:{source.LastWriteTimeUtc.UtcTicks}"),
                 };
                 await _contentStore.UpsertAsync(record, cancellationToken).ConfigureAwait(false);
                 indexed++;
@@ -148,5 +171,61 @@ public sealed class ContentIndexingService : IContentIndexingService
 
         var info = new FileInfo(file.FullPath);
         return (info.Length, new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero));
+    }
+
+    private static IReadOnlyList<OpenSorSe.Application.Models.TagAssociation> MergeTags(
+        IReadOnlyList<OpenSorSe.Application.Models.TagAssociation> generated,
+        IReadOnlyList<OpenSorSe.Application.Models.TagAssociation> existing,
+        string sourceFingerprint)
+    {
+        var retained = existing.Where(tag =>
+            tag.Source == OpenSorSe.Application.Models.TagSource.UserApproved ||
+            tag.AcceptanceState == OpenSorSe.Application.Models.TagAcceptanceState.Accepted && !tag.IsSystem ||
+            tag.AcceptanceState == OpenSorSe.Application.Models.TagAcceptanceState.Rejected &&
+            string.Equals(tag.SourceFingerprint, sourceFingerprint, StringComparison.Ordinal));
+        return Array.AsReadOnly(generated
+            .Concat(retained)
+            .GroupBy(tag => tag.NormalizedValue, StringComparer.Ordinal)
+            .Select(group => group
+                .OrderByDescending(tag => tag.Source == OpenSorSe.Application.Models.TagSource.UserApproved)
+                .ThenByDescending(tag => tag.AcceptanceState == OpenSorSe.Application.Models.TagAcceptanceState.Accepted)
+                .ThenByDescending(tag => tag.AcceptanceState == OpenSorSe.Application.Models.TagAcceptanceState.Rejected)
+                .ThenByDescending(tag => tag.Confidence)
+                .First())
+            .OrderByDescending(tag => tag.AcceptanceState == OpenSorSe.Application.Models.TagAcceptanceState.Accepted)
+            .ThenBy(tag => tag.NormalizedValue, StringComparer.Ordinal)
+            .Take(32)
+            .ToArray());
+    }
+}
+
+/// <summary>Builds the deterministic extraction-settings identity stored with local content.</summary>
+public static class ContentCacheFingerprint
+{
+    private const int SchemaVersion = 2;
+
+    /// <summary>Creates a stable non-secret fingerprint for settings and detected local OCR components.</summary>
+    public static string Create(ContentSettings settings, OcrCapability? capability)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var value = string.Join(
+            "|",
+            SchemaVersion,
+            settings.MetadataExtractionEnabled,
+            settings.OcrEnabled,
+            settings.OcrOnlyWhenNativeTextUnavailable,
+            settings.MaximumPagesPerDocument,
+            settings.MaximumFileSizeMiB,
+            settings.OcrLanguage,
+            settings.MaximumOcrDurationSeconds,
+            settings.PdfRasterizationDpi,
+            settings.MaximumRasterDimension,
+            settings.MaximumOcrTextCharacters,
+            settings.MaximumTemporaryStorageMiB,
+            capability?.EngineIdentifier ?? "none",
+            capability?.EngineVersion ?? "none",
+            capability?.RasterizerIdentifier ?? "none",
+            capability?.RasterizerVersion ?? "none");
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     }
 }

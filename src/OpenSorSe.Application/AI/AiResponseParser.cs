@@ -33,6 +33,18 @@ public sealed record AiParsedFolderStructure(
     IReadOnlyList<AiFolderStructurePlanItem> Items,
     string Reason);
 
+/// <summary>Contains validated document interpretation values before provider attribution.</summary>
+public sealed record AiParsedDocumentInterpretation(
+    string SourceFileId,
+    string? DocumentType,
+    string? Title,
+    IReadOnlyList<SuggestedTag> Tags,
+    IReadOnlyList<string> Dates,
+    string? Issuer,
+    string? SuggestedFolder,
+    string Reason,
+    double? Confidence);
+
 /// <summary>Contains either one fully valid response, a valid no-suggestion response, or one safe error.</summary>
 public sealed record AiResponseParseResult<T>(T? Value, bool IsNoSuggestion, string Message)
     where T : class
@@ -60,6 +72,12 @@ public interface IAiResponseParser
     AiResponseParseResult<AiParsedFolderStructure> ParseFolderStructure(
         string response,
         IReadOnlyList<ResultFile> includedFiles,
+        IReadOnlyList<AiPromptSourceMapping> sourceMappings);
+
+    /// <summary>Parses a document interpretation against the exact request-local identity.</summary>
+    AiResponseParseResult<AiParsedDocumentInterpretation> ParseDocumentInterpretation(
+        string response,
+        AiDocumentTextRequest request,
         IReadOnlyList<AiPromptSourceMapping> sourceMappings);
 }
 
@@ -151,6 +169,125 @@ public sealed class AiResponseParser : IAiResponseParser
                 new AiParsedFileRename(sourceMapping.KnownSourceId, normalizedFileName, reason, confidence),
                 false,
                 "A validated AI-generated rename suggestion is available for review.");
+        }
+    }
+
+    /// <inheritdoc />
+    public AiResponseParseResult<AiParsedDocumentInterpretation> ParseDocumentInterpretation(
+        string response,
+        AiDocumentTextRequest request,
+        IReadOnlyList<AiPromptSourceMapping> sourceMappings)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(sourceMappings);
+        var mapping = sourceMappings.Count == 1 &&
+                      string.Equals(sourceMappings[0].KnownSourceId, request.SourceFileId, StringComparison.Ordinal)
+            ? sourceMappings[0]
+            : null;
+        if (mapping is null)
+        {
+            return Failure<AiParsedDocumentInterpretation>("The known document identity mapping is invalid. No suggestion was used.");
+        }
+
+        if (!TryOpen(response, out var document, out var error))
+        {
+            return Failure<AiParsedDocumentInterpretation>(error);
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            if (!TryReadCommon(
+                    root,
+                    AiPromptBuilder.DocumentInterpretationTaskId,
+                    out var status,
+                    out var reason,
+                    out error))
+            {
+                return Failure<AiParsedDocumentInterpretation>(error);
+            }
+
+            if (status == NoSuggestionStatus)
+            {
+                var actionableProperties = new[]
+                {
+                    "sourceFileId", "documentType", "title", "tags", "dates", "issuer",
+                    "suggestedFolder", "confidence",
+                };
+                if (actionableProperties.Any(property => root.TryGetProperty(property, out _)))
+                {
+                    return Failure<AiParsedDocumentInterpretation>(
+                        "The AI no-suggestion response contained interpretation values. No suggestion was used.");
+                }
+
+                return new AiResponseParseResult<AiParsedDocumentInterpretation>(null, true, reason);
+            }
+
+            if (!TryReadRequiredString(root, "sourceFileId", 64, out var sourceId, out error) ||
+                !string.Equals(sourceId, mapping.RequestSourceId, StringComparison.Ordinal))
+            {
+                return Failure<AiParsedDocumentInterpretation>(
+                    "The AI interpretation referenced an unknown source file. No suggestion was used.");
+            }
+
+            if (!TryReadNullableRequiredString(root, "documentType", 96, out var documentType, out error) ||
+                !TryReadNullableRequiredString(root, "title", 240, out var title, out error) ||
+                !TryReadNullableRequiredString(root, "issuer", 160, out var issuer, out error) ||
+                !TryReadNullableRequiredString(root, "suggestedFolder", 100, out var folder, out error) ||
+                !TryReadStringArray(root, "tags", 12, 64, out var rawTags, out error) ||
+                !TryReadStringArray(root, "dates", 8, 10, out var dates, out error) ||
+                !TryReadConfidence(root, out var confidence, out error))
+            {
+                return Failure<AiParsedDocumentInterpretation>(error);
+            }
+
+            if (!AiSuggestionValidator.TryNormalizeTags(rawTags, out var tags, out error))
+            {
+                return Failure<AiParsedDocumentInterpretation>(error);
+            }
+
+            if (dates.Any(date => !DateOnly.TryParseExact(
+                    date,
+                    "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out _)))
+            {
+                return Failure<AiParsedDocumentInterpretation>(
+                    "The AI interpretation contained an invalid date. No suggestion was used.");
+            }
+
+            string? safeFolder = null;
+            if (folder is not null)
+            {
+                if (!AiSuggestionValidator.TryNormalizeFolderName(folder, out var normalizedFolder, out error))
+                {
+                    return Failure<AiParsedDocumentInterpretation>(error);
+                }
+
+                safeFolder = normalizedFolder;
+            }
+
+            if (documentType is null && title is null && issuer is null && safeFolder is null &&
+                tags.Count == 0 && dates.Count == 0)
+            {
+                return Failure<AiParsedDocumentInterpretation>(
+                    "The AI interpretation contained no reviewable values. No suggestion was used.");
+            }
+
+            return new AiResponseParseResult<AiParsedDocumentInterpretation>(
+                new AiParsedDocumentInterpretation(
+                    mapping.KnownSourceId,
+                    documentType,
+                    title,
+                    tags,
+                    dates,
+                    issuer,
+                    safeFolder,
+                    reason,
+                    confidence),
+                false,
+                "A validated unverified document interpretation is available for review.");
         }
     }
 
@@ -468,6 +605,43 @@ public sealed class AiResponseParser : IAiResponseParser
         }
 
         confidence = value;
+        return true;
+    }
+
+    private static bool TryReadStringArray(
+        JsonElement element,
+        string propertyName,
+        int maximumCount,
+        int maximumItemLength,
+        out IReadOnlyList<string> values,
+        out string error)
+    {
+        values = [];
+        error = string.Empty;
+        if (!element.TryGetProperty(propertyName, out var property) ||
+            property.ValueKind != JsonValueKind.Array ||
+            property.GetArrayLength() > maximumCount)
+        {
+            error = $"The AI response contains an invalid '{propertyName}' array. No suggestion was used.";
+            return false;
+        }
+
+        var parsed = new List<string>();
+        foreach (var item in property.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String ||
+                string.IsNullOrWhiteSpace(item.GetString()) ||
+                item.GetString()!.Length > maximumItemLength ||
+                item.GetString()!.Any(char.IsControl))
+            {
+                error = $"The AI response contains an invalid '{propertyName}' value. No suggestion was used.";
+                return false;
+            }
+
+            parsed.Add(item.GetString()!.Trim());
+        }
+
+        values = Array.AsReadOnly(parsed.Distinct(StringComparer.Ordinal).ToArray());
         return true;
     }
 

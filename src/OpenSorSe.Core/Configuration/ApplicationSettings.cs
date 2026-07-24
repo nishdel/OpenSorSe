@@ -54,6 +54,7 @@ public sealed class ApplicationSettings
             SelectedModel = Ai.SelectedModel,
             RequestTimeoutSeconds = Ai.RequestTimeoutSeconds,
             PreferenceAdaptationEnabled = Ai.PreferenceAdaptationEnabled,
+            DocumentTextInterpretationEnabled = Ai.DocumentTextInterpretationEnabled,
         },
         Catalog = Catalog,
         Content = Content,
@@ -159,6 +160,21 @@ public sealed class ContentSettings
     /// <summary>Gets or initializes the maximum OCR duration per file.</summary>
     public int MaximumOcrDurationSeconds { get; init; } = 120;
 
+    /// <summary>Gets or initializes PDF rasterization resolution used for local OCR.</summary>
+    public int PdfRasterizationDpi { get; init; } = 240;
+
+    /// <summary>Gets or initializes the maximum width or height of a rendered OCR page.</summary>
+    public int MaximumRasterDimension { get; init; } = 4096;
+
+    /// <summary>Gets or initializes the maximum combined OCR text retained per document.</summary>
+    public int MaximumOcrTextCharacters { get; init; } = 65_536;
+
+    /// <summary>Gets or initializes the temporary page-image budget per document in mebibytes.</summary>
+    public int MaximumTemporaryStorageMiB { get; init; } = 256;
+
+    /// <summary>Gets or initializes an optional absolute Tesseract executable path; null uses PATH.</summary>
+    public string? TesseractExecutablePath { get; init; }
+
     /// <summary>Gets or initializes whether content extraction may continue outside the immediate scan stage.</summary>
     public bool BackgroundProcessingEnabled { get; init; }
 
@@ -168,9 +184,20 @@ public sealed class ContentSettings
         if (MaximumPagesPerDocument is < 1 or > 500 ||
             MaximumFileSizeMiB is < 1 or > 1024 ||
             MaximumOcrDurationSeconds is < 5 or > 600 ||
+            PdfRasterizationDpi is < 150 or > 300 ||
+            MaximumRasterDimension is < 1024 or > 8192 ||
+            MaximumOcrTextCharacters is < 4096 or > 262_144 ||
+            MaximumTemporaryStorageMiB is < 16 or > 2048 ||
             string.IsNullOrWhiteSpace(OcrLanguage) ||
             OcrLanguage.Length > 32 ||
-            OcrLanguage.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not '_' and not '-' and not '+'))
+            OcrLanguage.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not '_' and not '-' and not '+') ||
+            OcrLanguage.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Any(language => language is not ("eng" or "deu")) ||
+            OcrLanguage.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length == 0 ||
+            TesseractExecutablePath is not null &&
+            (string.IsNullOrWhiteSpace(TesseractExecutablePath) ||
+             !Path.IsPathRooted(TesseractExecutablePath) ||
+             TesseractExecutablePath.Length > 1024))
         {
             throw new ConfigurationValidationException("Content extraction settings are invalid.");
         }
@@ -200,6 +227,8 @@ public enum AiCapability
     FileRenameSuggestions,
     /// <summary>Review-only logical folder hierarchies for known file metadata.</summary>
     FolderStructureSuggestions,
+    /// <summary>Review-only interpretation of bounded locally extracted document text.</summary>
+    DocumentTextInterpretation,
 }
 
 /// <summary>
@@ -268,6 +297,9 @@ public sealed class AiSettings
     /// </summary>
     public bool PreferenceAdaptationEnabled { get; init; } = true;
 
+    /// <summary>Gets or initializes whether explicit requests may send bounded extracted text to the configured provider.</summary>
+    public bool DocumentTextInterpretationEnabled { get; init; }
+
     /// <summary>
     /// Gets whether the master switch and the specified capability switch are both enabled.
     /// </summary>
@@ -277,6 +309,7 @@ public sealed class AiSettings
     {
         AiCapability.FileRenameSuggestions => FileRenameSuggestionsEnabled,
         AiCapability.FolderStructureSuggestions => FolderStructureSuggestionsEnabled,
+        AiCapability.DocumentTextInterpretation => DocumentTextInterpretationEnabled,
         _ => false,
     };
 
