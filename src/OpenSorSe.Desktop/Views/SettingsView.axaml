@@ -27,6 +27,64 @@
 
             <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
+                    <TextBlock Text="Local content and OCR (Beta)" FontSize="18" FontWeight="SemiBold" />
+                    <CheckBox Content="Extract bounded document metadata and native text"
+                              IsChecked="{Binding Draft.MetadataExtractionEnabled, Mode=TwoWay}" />
+                    <CheckBox Content="Enable local OCR"
+                              IsChecked="{Binding Draft.OcrEnabled, Mode=TwoWay}" />
+                    <CheckBox Content="OCR only when reliable native text is unavailable"
+                              IsChecked="{Binding Draft.OcrOnlyWhenNativeTextUnavailable, Mode=TwoWay}" />
+                    <TextBlock Text="OCR is off by default, remains local, and never writes recognized text into source documents. Image OCR requires an externally managed Tesseract CLI; scanned-PDF OCR also requires a compatible local rasterizer and is reported unavailable when none exists."
+                               TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="Maximum pages per document" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumOcrPages, Mode=TwoWay}"
+                                     AutomationProperties.Name="Maximum OCR pages" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="Maximum file size (MiB)" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumContentFileSizeMiB, Mode=TwoWay}"
+                                     AutomationProperties.Name="Maximum content file size" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Spacing="3">
+                            <TextBlock Text="OCR language" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.OcrLanguage, Mode=TwoWay}"
+                                     AutomationProperties.Name="OCR language" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="3">
+                            <TextBlock Text="Maximum OCR duration (seconds)" FontWeight="SemiBold" />
+                            <TextBox Text="{Binding Draft.MaximumOcrDurationSeconds, Mode=TwoWay}"
+                                     AutomationProperties.Name="Maximum OCR duration" />
+                        </StackPanel>
+                        <CheckBox Grid.Row="2"
+                                  Grid.ColumnSpan="2"
+                                  IsVisible="{Binding IsAdvancedSettingsVisible}"
+                                  Content="Allow bounded content processing in the background"
+                                  IsChecked="{Binding Draft.BackgroundContentProcessingEnabled, Mode=TwoWay}" />
+                    </Grid>
+                    <WrapPanel>
+                        <Button Margin="0,0,8,8"
+                                Content="Check local OCR capability"
+                                Command="{Binding CheckOcrCapabilityCommand}" />
+                        <Button Margin="0,0,8,8"
+                                Content="Clear cache / reprocess next scan"
+                                Command="{Binding RequestContentCacheResetCommand}" />
+                        <Button Margin="0,0,8,8"
+                                IsVisible="{Binding IsContentCacheResetPending}"
+                                Content="Confirm clear"
+                                Command="{Binding ConfirmContentCacheResetCommand}" />
+                        <Button Margin="0,0,8,8"
+                                IsVisible="{Binding IsContentCacheResetPending}"
+                                Content="Cancel"
+                                Command="{Binding CancelContentCacheResetCommand}" />
+                    </WrapPanel>
+                    <views:StatusBanner DataContext="{Binding ContentStatus}" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
                     <TextBlock Text="Optional AI assistance" FontSize="18" FontWeight="SemiBold" />
                     <CheckBox Content="Enable AI features"
                               IsChecked="{Binding Draft.AiEnabled, Mode=TwoWay}" />

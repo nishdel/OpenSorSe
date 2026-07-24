@@ -24,6 +24,14 @@ public sealed class SettingsDraft : ViewModelBase
     private string _aiRequestTimeoutText = "30";
     private bool _preferenceAdaptationEnabled = true;
     private bool _catalogEnabled;
+    private bool _metadataExtractionEnabled = true;
+    private bool _ocrEnabled;
+    private bool _ocrOnlyWhenNativeTextUnavailable = true;
+    private int _maximumOcrPages = 25;
+    private int _maximumContentFileSizeMiB = 50;
+    private string _ocrLanguage = "eng";
+    private int _maximumOcrDurationSeconds = 120;
+    private bool _backgroundContentProcessingEnabled;
 
     /// <summary>Gets or sets whether specialist and troubleshooting interface features are shown.</summary>
     public bool ShowAdvancedFeatures
@@ -144,6 +152,62 @@ public sealed class SettingsDraft : ViewModelBase
         set => SetProperty(ref _catalogEnabled, value);
     }
 
+    /// <summary>Gets or sets whether bounded local metadata and native text are extracted.</summary>
+    public bool MetadataExtractionEnabled
+    {
+        get => _metadataExtractionEnabled;
+        set => SetProperty(ref _metadataExtractionEnabled, value);
+    }
+
+    /// <summary>Gets or sets whether local OCR Beta is enabled.</summary>
+    public bool OcrEnabled
+    {
+        get => _ocrEnabled;
+        set => SetProperty(ref _ocrEnabled, value);
+    }
+
+    /// <summary>Gets or sets whether reliable native text prevents unnecessary OCR.</summary>
+    public bool OcrOnlyWhenNativeTextUnavailable
+    {
+        get => _ocrOnlyWhenNativeTextUnavailable;
+        set => SetProperty(ref _ocrOnlyWhenNativeTextUnavailable, value);
+    }
+
+    /// <summary>Gets or sets the maximum pages considered per OCR document.</summary>
+    public int MaximumOcrPages
+    {
+        get => _maximumOcrPages;
+        set => SetProperty(ref _maximumOcrPages, value);
+    }
+
+    /// <summary>Gets or sets the maximum local content input size in MiB.</summary>
+    public int MaximumContentFileSizeMiB
+    {
+        get => _maximumContentFileSizeMiB;
+        set => SetProperty(ref _maximumContentFileSizeMiB, value);
+    }
+
+    /// <summary>Gets or sets the local OCR language identifier.</summary>
+    public string OcrLanguage
+    {
+        get => _ocrLanguage;
+        set => SetProperty(ref _ocrLanguage, value ?? string.Empty);
+    }
+
+    /// <summary>Gets or sets the maximum OCR duration per file.</summary>
+    public int MaximumOcrDurationSeconds
+    {
+        get => _maximumOcrDurationSeconds;
+        set => SetProperty(ref _maximumOcrDurationSeconds, value);
+    }
+
+    /// <summary>Gets or sets whether bounded content work may continue in the background.</summary>
+    public bool BackgroundContentProcessingEnabled
+    {
+        get => _backgroundContentProcessingEnabled;
+        set => SetProperty(ref _backgroundContentProcessingEnabled, value);
+    }
+
     /// <summary>
     /// Creates a draft copied from validated application settings.
     /// </summary>
@@ -169,6 +233,14 @@ public sealed class SettingsDraft : ViewModelBase
             AiRequestTimeoutText = settings.Ai.RequestTimeoutSeconds.ToString(CultureInfo.InvariantCulture),
             PreferenceAdaptationEnabled = settings.Ai.PreferenceAdaptationEnabled,
             CatalogEnabled = settings.Catalog.Enabled,
+            MetadataExtractionEnabled = settings.Content.MetadataExtractionEnabled,
+            OcrEnabled = settings.Content.OcrEnabled,
+            OcrOnlyWhenNativeTextUnavailable = settings.Content.OcrOnlyWhenNativeTextUnavailable,
+            MaximumOcrPages = settings.Content.MaximumPagesPerDocument,
+            MaximumContentFileSizeMiB = settings.Content.MaximumFileSizeMiB,
+            OcrLanguage = settings.Content.OcrLanguage,
+            MaximumOcrDurationSeconds = settings.Content.MaximumOcrDurationSeconds,
+            BackgroundContentProcessingEnabled = settings.Content.BackgroundProcessingEnabled,
         };
     }
 
@@ -210,6 +282,17 @@ public sealed class SettingsDraft : ViewModelBase
         Catalog = new CatalogSettings
         {
             Enabled = CatalogEnabled,
+        },
+        Content = new ContentSettings
+        {
+            MetadataExtractionEnabled = MetadataExtractionEnabled,
+            OcrEnabled = OcrEnabled,
+            OcrOnlyWhenNativeTextUnavailable = OcrOnlyWhenNativeTextUnavailable,
+            MaximumPagesPerDocument = MaximumOcrPages,
+            MaximumFileSizeMiB = MaximumContentFileSizeMiB,
+            OcrLanguage = OcrLanguage.Trim(),
+            MaximumOcrDurationSeconds = MaximumOcrDurationSeconds,
+            BackgroundProcessingEnabled = BackgroundContentProcessingEnabled,
         },
         };
     }

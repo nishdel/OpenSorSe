@@ -13,6 +13,7 @@ using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Catalog;
 using OpenSorSe.Application.CatalogComparison;
 using OpenSorSe.Application.CatalogSearch;
+using OpenSorSe.Application.Content;
 using OpenSorSe.AI;
 using OpenSorSe.Desktop.Services;
 
@@ -72,6 +73,23 @@ public partial class App : Avalonia.Application
         services.AddSingleton<IProcessingSessionManager, ProcessingSessionManager>();
         services.AddSingleton<IApplicationController, ApplicationController>();
         services.AddSingleton<IResultsSnapshotProjector, ResultsSnapshotProjector>();
+        services.AddSingleton<IMetadataExtractor, FilesystemMetadataExtractor>();
+        services.AddSingleton<IMetadataExtractor, PdfMetadataExtractor>();
+        services.AddSingleton<IMetadataExtractor, OpenXmlMetadataExtractor>();
+        services.AddSingleton<IMetadataExtractor, ImageMetadataExtractor>();
+        services.AddSingleton<IMetadataExtractionPipeline, MetadataExtractionPipeline>();
+        services.AddSingleton<IOcrEngine, TesseractCliOcrEngine>();
+        services.AddSingleton<IOcrService, OcrService>();
+        services.AddSingleton<IContentStore>(serviceProvider =>
+        {
+            var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;
+            var settingsDirectory = Path.GetDirectoryName(settingsFilePath)
+                ?? throw new InvalidOperationException("The OpenSorSe settings path must include a directory.");
+            return new JsonContentStore(
+                Path.Combine(settingsDirectory, "content-index.json"),
+                serviceProvider.GetRequiredService<OpenSorSe.Core.Logging.ILoggingService>());
+        });
+        services.AddSingleton<IContentIndexingService, ContentIndexingService>();
         services.AddSingleton<ICatalogComparisonService, CatalogComparisonService>();
         services.AddSingleton<IResultsCatalogStore>(serviceProvider =>
         {

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using OpenSorSe.Application.AI;
+using OpenSorSe.Application.Content;
 using OpenSorSe.Core.Configuration;
 
 namespace OpenSorSe.Desktop.ViewModels;
@@ -15,12 +16,16 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private readonly IConfigurationService _configurationService;
     private readonly IAiSuggestionService? _aiSuggestionService;
     private readonly IAiRequestDiagnosticsStore? _aiRequestDiagnosticsStore;
+    private readonly IContentStore? _contentStore;
+    private readonly IOcrService? _ocrService;
     private readonly ObservableCollection<string> _availableAiModels = [];
     private readonly HashSet<string> _installedAiModelIds = new(StringComparer.Ordinal);
     private SettingsDraft _draft;
     private bool _restartRequired;
     private bool _isAiBusy;
     private bool _isPreferenceHistoryResetPending;
+    private bool _isContentBusy;
+    private bool _isContentCacheResetPending;
     private CancellationTokenSource? _aiOperationCancellation;
     private long _aiOperationVersion;
     private bool _isDisposed;
@@ -28,6 +33,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private string _statusText = "Ready";
     private StatusPresentation _status = StatusPresentation.Information("Ready");
     private StatusPresentation _aiStatus = StatusPresentation.Information("AI assistance is disabled until enabled and configured.");
+    private StatusPresentation _contentStatus = StatusPresentation.Information("OCR is disabled by default. Capability has not been checked.");
 
     /// <summary>
     /// Initializes a settings editor over the already initialized configuration service.
@@ -35,14 +41,20 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     /// <param name="configurationService">The centralized configuration service.</param>
     /// <param name="aiSuggestionService">The optional application-owned local AI suggestion service.</param>
     /// <param name="aiRequestDiagnosticsStore">The optional bounded session diagnostics store.</param>
+    /// <param name="contentStore">The optional application-owned local content cache.</param>
+    /// <param name="ocrService">The optional local OCR capability service.</param>
     public SettingsViewModel(
         IConfigurationService configurationService,
         IAiSuggestionService? aiSuggestionService = null,
-        IAiRequestDiagnosticsStore? aiRequestDiagnosticsStore = null)
+        IAiRequestDiagnosticsStore? aiRequestDiagnosticsStore = null,
+        IContentStore? contentStore = null,
+        IOcrService? ocrService = null)
     {
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _aiSuggestionService = aiSuggestionService;
         _aiRequestDiagnosticsStore = aiRequestDiagnosticsStore;
+        _contentStore = contentStore;
+        _ocrService = ocrService;
         _aiRequestDiagnosticsStore?.SetEnabled(
             _configurationService.Current.Ai.Enabled &&
             _configurationService.Current.Features.ShowAdvancedFeatures &&
@@ -60,6 +72,10 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         RequestPreferenceHistoryResetCommand = new RelayCommand(RequestPreferenceHistoryReset, CanRequestPreferenceHistoryReset);
         ConfirmPreferenceHistoryResetCommand = new AsyncRelayCommand(ConfirmPreferenceHistoryResetAsync, CanConfirmPreferenceHistoryReset);
         CancelPreferenceHistoryResetCommand = new RelayCommand(CancelPreferenceHistoryReset, () => IsPreferenceHistoryResetPending && !IsAiBusy);
+        CheckOcrCapabilityCommand = new AsyncRelayCommand(CheckOcrCapabilityAsync, () => _ocrService is not null && !IsContentBusy);
+        RequestContentCacheResetCommand = new RelayCommand(RequestContentCacheReset, () => _contentStore is not null && !IsContentBusy && !IsContentCacheResetPending);
+        ConfirmContentCacheResetCommand = new AsyncRelayCommand(ConfirmContentCacheResetAsync, () => _contentStore is not null && !IsContentBusy && IsContentCacheResetPending);
+        CancelContentCacheResetCommand = new RelayCommand(CancelContentCacheReset, () => !IsContentBusy && IsContentCacheResetPending);
     }
 
     /// <summary>
@@ -222,6 +238,39 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>Gets whether an explicit OCR capability or content-cache operation is running.</summary>
+    public bool IsContentBusy
+    {
+        get => _isContentBusy;
+        private set
+        {
+            if (SetProperty(ref _isContentBusy, value))
+            {
+                NotifyContentCommands();
+            }
+        }
+    }
+
+    /// <summary>Gets whether local content-cache deletion awaits confirmation.</summary>
+    public bool IsContentCacheResetPending
+    {
+        get => _isContentCacheResetPending;
+        private set
+        {
+            if (SetProperty(ref _isContentCacheResetPending, value))
+            {
+                NotifyContentCommands();
+            }
+        }
+    }
+
+    /// <summary>Gets user-safe OCR capability and local-cache status.</summary>
+    public StatusPresentation ContentStatus
+    {
+        get => _contentStatus;
+        private set => SetProperty(ref _contentStatus, value);
+    }
+
     /// <summary>
     /// Gets the permanent user-facing label for daily diagnostic-log retention.
     /// </summary>
@@ -269,6 +318,18 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets the command that cancels a pending preference-history reset.</summary>
     public IRelayCommand CancelPreferenceHistoryResetCommand { get; }
+
+    /// <summary>Gets the explicit local OCR capability check command.</summary>
+    public IAsyncRelayCommand CheckOcrCapabilityCommand { get; }
+
+    /// <summary>Gets the command that requests confirmation before clearing extracted content.</summary>
+    public IRelayCommand RequestContentCacheResetCommand { get; }
+
+    /// <summary>Gets the command that confirms clearing only the application-owned local content cache.</summary>
+    public IAsyncRelayCommand ConfirmContentCacheResetCommand { get; }
+
+    /// <summary>Gets the command that cancels a local content-cache reset.</summary>
+    public IRelayCommand CancelContentCacheResetCommand { get; }
 
     /// <summary>
     /// Reloads the editable draft from the current persisted configuration.
@@ -341,6 +402,75 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         RestartRequired = false;
         StatusText = "Unsaved changes discarded.";
         Status = StatusPresentation.Information(StatusText);
+    }
+
+    private async Task CheckOcrCapabilityAsync()
+    {
+        if (_ocrService is null)
+        {
+            return;
+        }
+
+        IsContentBusy = true;
+        try
+        {
+            var capability = await _ocrService.GetCapabilityAsync(CancellationToken.None);
+            ContentStatus = capability.IsAvailable
+                ? StatusPresentation.Success(capability.Message)
+                : StatusPresentation.Warning(capability.Message);
+        }
+        catch (Exception)
+        {
+            ContentStatus = StatusPresentation.Warning("Local OCR capability could not be checked.");
+        }
+        finally
+        {
+            IsContentBusy = false;
+        }
+    }
+
+    private void RequestContentCacheReset()
+    {
+        IsContentCacheResetPending = true;
+        ContentStatus = StatusPresentation.Warning("Confirm clearing the local OCR and extracted-content cache. Source files will not be changed.");
+    }
+
+    private async Task ConfirmContentCacheResetAsync()
+    {
+        if (_contentStore is null)
+        {
+            return;
+        }
+
+        IsContentBusy = true;
+        try
+        {
+            await _contentStore.ClearAsync(CancellationToken.None);
+            IsContentCacheResetPending = false;
+            ContentStatus = StatusPresentation.Success("Local extracted content cleared. The next eligible scan will reprocess files.");
+        }
+        catch (Exception)
+        {
+            ContentStatus = StatusPresentation.Error("The local extracted-content cache could not be cleared.");
+        }
+        finally
+        {
+            IsContentBusy = false;
+        }
+    }
+
+    private void CancelContentCacheReset()
+    {
+        IsContentCacheResetPending = false;
+        ContentStatus = StatusPresentation.Information("Local content-cache reset cancelled.");
+    }
+
+    private void NotifyContentCommands()
+    {
+        CheckOcrCapabilityCommand.NotifyCanExecuteChanged();
+        RequestContentCacheResetCommand.NotifyCanExecuteChanged();
+        ConfirmContentCacheResetCommand.NotifyCanExecuteChanged();
+        CancelContentCacheResetCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanStartAiOperation() =>

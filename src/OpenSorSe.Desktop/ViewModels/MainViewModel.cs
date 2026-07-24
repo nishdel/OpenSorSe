@@ -4,6 +4,7 @@ using OpenSorSe.Application.AI;
 using OpenSorSe.Application.Catalog;
 using OpenSorSe.Application.CatalogComparison;
 using OpenSorSe.Application.CatalogSearch;
+using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Features;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Core.Configuration;
@@ -218,7 +219,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         ICatalogComparisonService catalogComparisonService,
         IClipboardService clipboardService,
         IAiRequestDiagnosticsStore aiRequestDiagnosticsStore,
-        IExternalFileLauncher externalFileLauncher)
+        IExternalFileLauncher externalFileLauncher,
+        IContentStore? contentStore = null,
+        IOcrService? ocrService = null)
         : this(
             configurationService,
             loggingService,
@@ -231,7 +234,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             true,
             clipboardService ?? throw new ArgumentNullException(nameof(clipboardService)),
             aiRequestDiagnosticsStore ?? throw new ArgumentNullException(nameof(aiRequestDiagnosticsStore)),
-            externalFileLauncher ?? throw new ArgumentNullException(nameof(externalFileLauncher)))
+            externalFileLauncher ?? throw new ArgumentNullException(nameof(externalFileLauncher)),
+            contentStore,
+            ocrService)
     {
     }
 
@@ -247,7 +252,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         bool _,
         IClipboardService? clipboardService = null,
         IAiRequestDiagnosticsStore? aiRequestDiagnosticsStore = null,
-        IExternalFileLauncher? externalFileLauncher = null)
+        IExternalFileLauncher? externalFileLauncher = null,
+        IContentStore? contentStore = null,
+        IOcrService? ocrService = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(loggingService);
@@ -258,12 +265,21 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Dashboard = new DashboardViewModel(Navigate);
         FolderSelection = new FolderSelectionViewModel();
         ScanProgress = new ScanProgressViewModel();
-        Results = new ResultsViewModel(configurationService, aiSuggestionService, externalFileLauncher);
+        Results = new ResultsViewModel(
+            configurationService,
+            aiSuggestionService,
+            externalFileLauncher,
+            contentStore);
         Catalog = new CatalogViewModel(configurationService, catalogStore);
         CatalogSearch = new CatalogSearchViewModel(configurationService, catalogStore, savedSearchStore);
         CatalogComparison = new CatalogComparisonViewModel(configurationService, catalogStore, comparisonService);
         RuleEditor = new RuleEditorViewModel();
-        Settings = new SettingsViewModel(configurationService, aiSuggestionService, aiRequestDiagnosticsStore);
+        Settings = new SettingsViewModel(
+            configurationService,
+            aiSuggestionService,
+            aiRequestDiagnosticsStore,
+            contentStore,
+            ocrService);
         _enableAi = configurationService.Current.Ai.Enabled;
         _showAdvancedFeatures = configurationService.Current.Features.ShowAdvancedFeatures;
         NavigationItems = new ReadOnlyObservableCollection<NavigationItem>(_navigationItems);
@@ -840,6 +856,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         {
             ProcessingProgressStage.Scanning => "Scanning files...",
             ProcessingProgressStage.ReadingMetadata => "Reading file metadata...",
+            ProcessingProgressStage.ExtractingContent => "Extracting local document content...",
             ProcessingProgressStage.Hashing => "Hashing files...",
             ProcessingProgressStage.Classifying => "Classifying files...",
             ProcessingProgressStage.DetectingDuplicates => "Detecting duplicates...",

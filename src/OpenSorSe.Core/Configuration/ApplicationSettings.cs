@@ -27,6 +27,9 @@ public sealed class ApplicationSettings
     /// </summary>
     public CatalogSettings Catalog { get; init; } = new();
 
+    /// <summary>Gets or initializes bounded local content-extraction settings.</summary>
+    public ContentSettings Content { get; init; } = new();
+
     /// <summary>
     /// Creates a settings snapshot with only the two shell-wide feature switches changed.
     /// All detailed provider, capability, catalog, and logging values are preserved.
@@ -50,6 +53,7 @@ public sealed class ApplicationSettings
             PreferenceAdaptationEnabled = Ai.PreferenceAdaptationEnabled,
         },
         Catalog = Catalog,
+        Content = Content,
     };
 
     /// <summary>
@@ -87,6 +91,55 @@ public sealed class ApplicationSettings
         }
 
         Catalog.Validate();
+
+        if (Content is null)
+        {
+            throw new ConfigurationValidationException("Content extraction settings are required.");
+        }
+
+        Content.Validate();
+    }
+}
+
+/// <summary>Defines bounded local metadata extraction and OCR Beta behavior.</summary>
+public sealed class ContentSettings
+{
+    /// <summary>Gets or initializes whether defensive local metadata and native-text extraction runs after scanning.</summary>
+    public bool MetadataExtractionEnabled { get; init; } = true;
+
+    /// <summary>Gets or initializes whether local OCR Beta may run.</summary>
+    public bool OcrEnabled { get; init; }
+
+    /// <summary>Gets or initializes whether OCR is skipped when reliable native text is available.</summary>
+    public bool OcrOnlyWhenNativeTextUnavailable { get; init; } = true;
+
+    /// <summary>Gets or initializes the maximum supported document pages.</summary>
+    public int MaximumPagesPerDocument { get; init; } = 25;
+
+    /// <summary>Gets or initializes the maximum input size in mebibytes.</summary>
+    public int MaximumFileSizeMiB { get; init; } = 50;
+
+    /// <summary>Gets or initializes the local OCR language identifier.</summary>
+    public string OcrLanguage { get; init; } = "eng";
+
+    /// <summary>Gets or initializes the maximum OCR duration per file.</summary>
+    public int MaximumOcrDurationSeconds { get; init; } = 120;
+
+    /// <summary>Gets or initializes whether content extraction may continue outside the immediate scan stage.</summary>
+    public bool BackgroundProcessingEnabled { get; init; }
+
+    /// <summary>Validates bounded content settings.</summary>
+    public void Validate()
+    {
+        if (MaximumPagesPerDocument is < 1 or > 500 ||
+            MaximumFileSizeMiB is < 1 or > 1024 ||
+            MaximumOcrDurationSeconds is < 5 or > 600 ||
+            string.IsNullOrWhiteSpace(OcrLanguage) ||
+            OcrLanguage.Length > 32 ||
+            OcrLanguage.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not '_' and not '-' and not '+'))
+        {
+            throw new ConfigurationValidationException("Content extraction settings are invalid.");
+        }
     }
 }
 

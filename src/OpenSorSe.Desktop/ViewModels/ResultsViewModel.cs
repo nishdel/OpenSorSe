@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenSorSe.Application.AI;
+using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Application.Tags;
 using OpenSorSe.Core.Configuration;
@@ -26,8 +27,11 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     private readonly ObservableCollection<ResultsExtensionFilterOption> _extensionOptions = [];
     private readonly ObservableCollection<ResultsCategoryFilterOption> _categoryOptions = [];
     private readonly ObservableCollection<ResultTagRow> _userTags = [];
+    private readonly ObservableCollection<ExtractedMetadataField> _contentMetadata = [];
+    private readonly IContentStore? _contentStore;
     private readonly Dictionary<string, IReadOnlyList<TagAssociation>> _tagsByFile = new(StringComparer.Ordinal);
     private CancellationTokenSource? _queryCancellation;
+    private CancellationTokenSource? _contentDetailsCancellation;
     private long _queryVersion;
     private ResultsSnapshot? _snapshot;
     private ResultsQuery _query = ResultsQuery.Default;
@@ -41,12 +45,13 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     private ResultTagRow? _selectedUserTag;
     private bool _isLoading;
     private ResultsDisplayMode _displayMode = ResultsDisplayMode.Explorer;
+    private string _contentDetailsStatus = "Select a result to inspect local extracted metadata.";
 
     /// <summary>
     /// Initializes the result explorer and its non-mutating navigation commands.
     /// </summary>
     public ResultsViewModel()
-        : this(new PreviewConfigurationService(), null, null)
+        : this(new PreviewConfigurationService(), null, null, null)
     {
     }
 
@@ -56,7 +61,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     /// <param name="configurationService">The centralized configuration source used only by the optional suggestion workflow.</param>
     /// <param name="aiSuggestionService">The optional application-owned suggestion service.</param>
     public ResultsViewModel(IConfigurationService configurationService, IAiSuggestionService? aiSuggestionService)
-        : this(configurationService, aiSuggestionService, null)
+        : this(configurationService, aiSuggestionService, null, null)
     {
     }
 
@@ -66,7 +71,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
     public ResultsViewModel(
         IConfigurationService configurationService,
         IAiSuggestionService? aiSuggestionService,
-        IExternalFileLauncher? externalFileLauncher)
+        IExternalFileLauncher? externalFileLauncher,
+        IContentStore? contentStore = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         PageRows = new ReadOnlyObservableCollection<ResultsFileRow>(_pageRows);
@@ -76,6 +82,8 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         ExtensionOptions = new ReadOnlyObservableCollection<ResultsExtensionFilterOption>(_extensionOptions);
         CategoryOptions = new ReadOnlyObservableCollection<ResultsCategoryFilterOption>(_categoryOptions);
         UserTags = new ReadOnlyObservableCollection<ResultTagRow>(_userTags);
+        ContentMetadata = new ReadOnlyObservableCollection<ExtractedMetadataField>(_contentMetadata);
+        _contentStore = contentStore;
         DuplicateReview = new DuplicateReviewViewModel(externalFileLauncher);
         DuplicateReview.ShowGroupFilesRequested += OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested += OnBackToExplorerRequested;
@@ -117,6 +125,19 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets accepted application-owned tags for the selected result file.</summary>
     public ReadOnlyObservableCollection<ResultTagRow> UserTags { get; }
+
+    /// <summary>Gets provenance-aware local metadata for the selected known result.</summary>
+    public ReadOnlyObservableCollection<ExtractedMetadataField> ContentMetadata { get; }
+
+    /// <summary>Gets a user-safe local content-details status.</summary>
+    public string ContentDetailsStatus
+    {
+        get => _contentDetailsStatus;
+        private set => SetProperty(ref _contentDetailsStatus, value);
+    }
+
+    /// <summary>Gets whether extracted metadata is available for the selected result.</summary>
+    public bool HasContentMetadata => ContentMetadata.Count > 0;
 
     /// <summary>Gets fixed page-size choices that keep result rendering bounded.</summary>
     public IReadOnlyList<int> AvailablePageSizes => PageSizes;
@@ -253,6 +274,7 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
                     : "Tags are OpenSorSe metadata and never change the selected file.";
                 SelectedUserTag = null;
                 UpdateSelectedDetails();
+                _ = LoadContentDetailsAsync();
             }
         }
     }
@@ -563,6 +585,9 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         DuplicateReview.ShowGroupFilesRequested -= OnShowGroupFilesRequested;
         DuplicateReview.BackToExplorerRequested -= OnBackToExplorerRequested;
         DuplicateReview.Dispose();
+        var contentCancellation = Interlocked.Exchange(ref _contentDetailsCancellation, null);
+        contentCancellation?.Cancel();
+        contentCancellation?.Dispose();
         AiSuggestions.Dispose();
         _queryCancellation?.Cancel();
         _queryCancellation?.Dispose();
@@ -697,6 +722,60 @@ public sealed class ResultsViewModel : ViewModelBase, IDisposable
         RebuildSelectedTagRows(selected?.Id);
         AddUserTagsCommand.NotifyCanExecuteChanged();
         RemoveSelectedTagCommand.NotifyCanExecuteChanged();
+    }
+
+    private async Task LoadContentDetailsAsync()
+    {
+        var previous = Interlocked.Exchange(ref _contentDetailsCancellation, new CancellationTokenSource());
+        previous?.Cancel();
+        previous?.Dispose();
+        var cancellation = _contentDetailsCancellation!;
+        _contentMetadata.Clear();
+        OnPropertyChanged(nameof(HasContentMetadata));
+        if (SelectedRow is null || Snapshot is null)
+        {
+            ContentDetailsStatus = "Select a result to inspect local extracted metadata.";
+            return;
+        }
+
+        if (_contentStore is null)
+        {
+            ContentDetailsStatus = "Local extracted metadata is unavailable in this application context.";
+            return;
+        }
+
+        var selected = Snapshot.Files.FirstOrDefault(file => file.Id == SelectedRow.FileId);
+        if (selected is null)
+        {
+            ContentDetailsStatus = "The selected result is no longer available.";
+            return;
+        }
+
+        try
+        {
+            var record = await _contentStore.GetAsync(selected.FullPath, cancellation.Token);
+            if (!ReferenceEquals(_contentDetailsCancellation, cancellation))
+            {
+                return;
+            }
+
+            foreach (var field in record?.Metadata ?? [])
+            {
+                _contentMetadata.Add(field);
+            }
+
+            ContentDetailsStatus = record is null
+                ? "No extracted metadata is cached for this result."
+                : $"OCR state: {record.OcrStatus}. {record.Metadata.Count} provenance-aware field(s).";
+            OnPropertyChanged(nameof(HasContentMetadata));
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            ContentDetailsStatus = "Extracted metadata could not be loaded.";
+        }
     }
 
     private bool CanAddUserTags() => SelectedRow is not null && !IsLoading && !string.IsNullOrWhiteSpace(UserTagText);

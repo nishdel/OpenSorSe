@@ -50,6 +50,9 @@ public sealed class JsonConfigurationServiceTests
         Assert.False(service.Current.Ai.FileRenameSuggestionsEnabled);
         Assert.False(service.Current.Ai.FolderStructureSuggestionsEnabled);
         Assert.False(service.Current.Ai.RequestDiagnosticsEnabled);
+        Assert.True(service.Current.Content.MetadataExtractionEnabled);
+        Assert.False(service.Current.Content.OcrEnabled);
+        Assert.True(service.Current.Content.OcrOnlyWhenNativeTextUnavailable);
     }
 
     /// <summary>Verifies pre-v0.9.1 JSON keeps established values while new opt-ins receive safe defaults.</summary>
@@ -252,6 +255,17 @@ public sealed class JsonConfigurationServiceTests
             {
                 Enabled = true,
             },
+            Content = new ContentSettings
+            {
+                MetadataExtractionEnabled = true,
+                OcrEnabled = true,
+                OcrOnlyWhenNativeTextUnavailable = false,
+                MaximumPagesPerDocument = 12,
+                MaximumFileSizeMiB = 20,
+                OcrLanguage = "deu+eng",
+                MaximumOcrDurationSeconds = 60,
+                BackgroundProcessingEnabled = true,
+            },
         };
 
         try
@@ -275,6 +289,13 @@ public sealed class JsonConfigurationServiceTests
             Assert.Equal(45, reader.Current.Ai.RequestTimeoutSeconds);
             Assert.False(reader.Current.Ai.PreferenceAdaptationEnabled);
             Assert.True(reader.Current.Catalog.Enabled);
+            Assert.True(reader.Current.Content.OcrEnabled);
+            Assert.False(reader.Current.Content.OcrOnlyWhenNativeTextUnavailable);
+            Assert.Equal(12, reader.Current.Content.MaximumPagesPerDocument);
+            Assert.Equal(20, reader.Current.Content.MaximumFileSizeMiB);
+            Assert.Equal("deu+eng", reader.Current.Content.OcrLanguage);
+            Assert.Equal(60, reader.Current.Content.MaximumOcrDurationSeconds);
+            Assert.True(reader.Current.Content.BackgroundProcessingEnabled);
         }
         finally
         {
