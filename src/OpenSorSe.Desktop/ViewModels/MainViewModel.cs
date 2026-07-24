@@ -8,6 +8,7 @@ using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Features;
 using OpenSorSe.Application.Models;
 using OpenSorSe.Application.Semantic;
+using OpenSorSe.Application.Structure;
 using OpenSorSe.Core.Configuration;
 using OpenSorSe.Core.Logging;
 using OpenSorSe.Scanner.Models;
@@ -29,6 +30,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         new(NavigationDestination.CatalogSearch, "Catalog search", FeatureRequirement.Regular),
         new(NavigationDestination.SemanticSearch, "Semantic Search (Beta)", FeatureRequirement.SemanticSearch),
         new(NavigationDestination.CatalogComparison, "Compare snapshots", FeatureRequirement.Advanced),
+        new(NavigationDestination.StructureHistory, "Structure history", FeatureRequirement.Advanced),
         new(NavigationDestination.Rules, "Rules", FeatureRequirement.Regular),
         new(NavigationDestination.Settings, "Settings", FeatureRequirement.Regular),
         new(NavigationDestination.Diagnostics, "Diagnostics", FeatureRequirement.Advanced),
@@ -226,7 +228,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IOcrService? ocrService = null,
         ISemanticIndexer? semanticIndexer = null,
         ISemanticSearchService? semanticSearchService = null,
-        ISemanticIndexStore? semanticIndexStore = null)
+        ISemanticIndexStore? semanticIndexStore = null,
+        IStructureHistoryStore? structureHistoryStore = null,
+        IFolderRestructuringService? folderRestructuringService = null,
+        IFolderStructureSnapshotService? folderStructureSnapshotService = null,
+        IStructureComparisonService? structureComparisonService = null)
         : this(
             configurationService,
             loggingService,
@@ -244,7 +250,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             ocrService,
             semanticIndexer,
             semanticSearchService,
-            semanticIndexStore)
+            semanticIndexStore,
+            structureHistoryStore,
+            folderRestructuringService,
+            folderStructureSnapshotService,
+            structureComparisonService)
     {
     }
 
@@ -265,7 +275,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         IOcrService? ocrService = null,
         ISemanticIndexer? semanticIndexer = null,
         ISemanticSearchService? semanticSearchService = null,
-        ISemanticIndexStore? semanticIndexStore = null)
+        ISemanticIndexStore? semanticIndexStore = null,
+        IStructureHistoryStore? structureHistoryStore = null,
+        IFolderRestructuringService? folderRestructuringService = null,
+        IFolderStructureSnapshotService? folderStructureSnapshotService = null,
+        IStructureComparisonService? structureComparisonService = null)
     {
         ArgumentNullException.ThrowIfNull(configurationService);
         ArgumentNullException.ThrowIfNull(loggingService);
@@ -290,6 +304,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             semanticIndexStore,
             externalFileLauncher);
         CatalogComparison = new CatalogComparisonViewModel(configurationService, catalogStore, comparisonService);
+        StructureHistory = new StructureHistoryViewModel(
+            structureHistoryStore,
+            folderRestructuringService,
+            folderStructureSnapshotService,
+            structureComparisonService ?? new StructureComparisonService());
         RuleEditor = new RuleEditorViewModel();
         Settings = new SettingsViewModel(
             configurationService,
@@ -355,6 +374,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// Gets deterministic comparison state for two application-owned historical snapshots.
     /// </summary>
     public CatalogComparisonViewModel CatalogComparison { get; }
+
+    /// <summary>Gets advanced folder restructuring history, repeat protection, and diagrams.</summary>
+    public StructureHistoryViewModel StructureHistory { get; }
 
     /// <summary>
     /// Gets the in-memory rule-editing state hosted by the shell.
@@ -476,6 +498,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(IsCatalogSearchSelected));
                 OnPropertyChanged(nameof(IsSemanticSearchSelected));
                 OnPropertyChanged(nameof(IsCatalogComparisonSelected));
+                OnPropertyChanged(nameof(IsStructureHistorySelected));
                 OnPropertyChanged(nameof(IsRulesSelected));
                 OnPropertyChanged(nameof(IsSettingsSelected));
                 OnPropertyChanged(nameof(IsDiagnosticsSelected));
@@ -499,6 +522,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         NavigationDestination.CatalogSearch => "Catalog search",
         NavigationDestination.SemanticSearch => "Semantic Search (Beta)",
         NavigationDestination.CatalogComparison => "Compare snapshots",
+        NavigationDestination.StructureHistory => "Structure history",
         NavigationDestination.Rules => "Rules",
         NavigationDestination.Settings => "Settings",
         NavigationDestination.Diagnostics => "Diagnostics",
@@ -570,6 +594,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// </summary>
     public bool IsCatalogComparisonSelected => SelectedDestination == NavigationDestination.CatalogComparison;
 
+    /// <summary>Gets whether folder structure history is selected.</summary>
+    public bool IsStructureHistorySelected => SelectedDestination == NavigationDestination.StructureHistory;
+
     /// <summary>
     /// Gets whether the rule-editor page is currently selected.
     /// </summary>
@@ -601,7 +628,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets whether a later feature-page destination is currently selected.
     /// </summary>
-    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsSemanticSearchSelected && !IsCatalogComparisonSelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
+    public bool IsFeaturePageSelected => !IsDashboardSelected && !IsScanSelected && !IsResultsSelected && !IsCatalogSelected && !IsCatalogSearchSelected && !IsSemanticSearchSelected && !IsCatalogComparisonSelected && !IsStructureHistorySelected && !IsRulesSelected && !IsSettingsSelected && !IsDiagnosticsSelected && !IsHistorySelected && !IsHelpSelected && !IsAboutSelected;
 
     /// <summary>
     /// Selects a documented application-shell destination.
@@ -637,6 +664,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         {
             await CatalogComparison.RefreshEntriesAsync();
         }
+        else if (destination == NavigationDestination.StructureHistory)
+        {
+            await StructureHistory.RefreshAsync();
+        }
     }
 
     /// <summary>
@@ -668,6 +699,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         CatalogSearch.Dispose();
         SemanticSearch.Dispose();
         CatalogComparison.Dispose();
+        StructureHistory.Dispose();
         Settings.Dispose();
         Notifications.Dispose();
         _shellFeatureSaveGate.Dispose();
@@ -733,7 +765,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Results.AiSuggestions.ConfigureHelp(HelpTopicId.AiSuggestions, OpenHelp);
         Catalog.ConfigureHelp(HelpTopicId.SavedCatalog, OpenHelp);
         CatalogSearch.ConfigureHelp(HelpTopicId.CatalogSearch, OpenHelp);
+        SemanticSearch.ConfigureHelp(HelpTopicId.SemanticSearch, OpenHelp);
         CatalogComparison.ConfigureHelp(HelpTopicId.CompareSnapshots, OpenHelp);
+        StructureHistory.ConfigureHelp(HelpTopicId.StructureHistory, OpenHelp);
         RuleEditor.ConfigureHelp(HelpTopicId.Rules, OpenHelp);
         Settings.ConfigureHelp(HelpTopicId.Settings, OpenHelp);
         LogViewer.ConfigureHelp(HelpTopicId.Diagnostics, OpenHelp);

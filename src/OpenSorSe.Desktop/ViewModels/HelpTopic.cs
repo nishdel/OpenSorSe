@@ -19,6 +19,10 @@ public enum HelpTopicId
     CatalogSearch,
     /// <summary>Historical comparison guidance.</summary>
     CompareSnapshots,
+    /// <summary>Local hybrid Semantic Search Beta guidance.</summary>
+    SemanticSearch,
+    /// <summary>Folder restructuring history and diagram guidance.</summary>
+    StructureHistory,
     /// <summary>Deterministic rule guidance.</summary>
     Rules,
     /// <summary>Settings guidance.</summary>
@@ -113,6 +117,20 @@ public static class HelpCatalog
             ["Baseline", "Current", "Compare", "Filters"], "At least two compatible snapshots are needed.",
             "Scope differences are reported rather than hidden.", "Comparison never verifies or changes stored paths.",
             [HelpTopicId.SavedCatalog, HelpTopicId.AdvancedFeatures]),
+        Topic(HelpTopicId.SemanticSearch, "Semantic Search (Beta)", "Searches a bounded local index using filename, tag, metadata, native-text, OCR, and deterministic similarity signals.",
+            "Only the application-owned local content cache and semantic index.", "Only the rebuildable local semantic index and in-memory search results.",
+            "Source files; indexing never renames, moves, deletes, or edits them.",
+            ["Enable Semantic Search Beta in Settings.", "Build or refresh the local index.", "Enter a natural-language or exact query.", "Review why each result matched.", "Clear or rebuild the index when needed."],
+            ["Build / refresh index", "Rebuild index", "Search", "Clear local index", "Open selected result"],
+            "An empty index is normal until content metadata has been indexed.", "Missing files are removed during refresh; corrupt optional indexes recover to an empty rebuild state.",
+            "Search quality may evolve and future upgrades may require rebuilding. OCR and extracted text remain local.", [HelpTopicId.Results, HelpTopicId.Settings]),
+        Topic(HelpTopicId.StructureHistory, "Structure history", "Reviews folder restructuring proposals, applied outcomes, repeat protection, and historical structures.",
+            "Bounded relative paths, sizes, timestamps, fingerprints, and application-owned structure history.", "Preview/history records; only an exact separately confirmed proposal may move listed in-root files.",
+            "File contents. Diagrams, comparisons, refresh, filters, and preview do not modify files.",
+            ["Enter an absolute disposable root.", "Preview restructuring.", "Review source and proposed structures.", "Use Apply only after reviewing every move.", "Capture current structure or inspect past records."],
+            ["Preview restructuring", "Propose restructuring again", "Apply reviewed proposal", "Snapshot selector", "Capture current structure", "History filters"],
+            "No history is expected until a proposal is created.", "Changed roots, traversal, conflicts, missing sources, reparse destinations, cancellation, and bounds fail closed.",
+            "Only successful applies activate repeat protection. Clearing history never changes files but removes that protection record.", [HelpTopicId.AdvancedFeatures, HelpTopicId.OperationHistory]),
         Topic(HelpTopicId.Rules, "Rules", "Reviews deterministic rule data supplied in memory.",
             "Rule names, conditions, and action previews.", "Only in-memory rule state exposed by the current surface.",
             "Files; the v0.9.1 desktop does not execute rules.", ["Select a rule.", "Review its state and preview information."],

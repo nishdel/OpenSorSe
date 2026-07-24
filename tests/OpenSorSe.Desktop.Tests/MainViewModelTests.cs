@@ -31,6 +31,7 @@ public sealed class MainViewModelTests
         Assert.Equal("Dashboard", viewModel.CurrentPageTitle);
         Assert.Equal("Ready", viewModel.StatusText);
         Assert.DoesNotContain(NavigationDestination.CatalogComparison, viewModel.Destinations);
+        Assert.DoesNotContain(NavigationDestination.StructureHistory, viewModel.Destinations);
         Assert.DoesNotContain(NavigationDestination.Diagnostics, viewModel.Destinations);
         Assert.DoesNotContain(NavigationDestination.History, viewModel.Destinations);
         Assert.Contains(NavigationDestination.Scan, viewModel.Destinations);
@@ -92,6 +93,7 @@ public sealed class MainViewModelTests
         Assert.False(viewModel.IsScanSelected);
         Assert.False(viewModel.IsResultsSelected);
         Assert.False(viewModel.IsRulesSelected);
+        Assert.False(viewModel.IsStructureHistorySelected);
         Assert.False(viewModel.IsDiagnosticsSelected);
         Assert.False(viewModel.IsHistorySelected);
         Assert.False(viewModel.IsAboutSelected);
@@ -101,6 +103,7 @@ public sealed class MainViewModelTests
         Assert.Contains(nameof(MainViewModel.IsScanSelected), changedProperties);
         Assert.Contains(nameof(MainViewModel.IsResultsSelected), changedProperties);
         Assert.Contains(nameof(MainViewModel.IsRulesSelected), changedProperties);
+        Assert.Contains(nameof(MainViewModel.IsStructureHistorySelected), changedProperties);
         Assert.Contains(nameof(MainViewModel.IsSettingsSelected), changedProperties);
         Assert.Contains(nameof(MainViewModel.IsDiagnosticsSelected), changedProperties);
         Assert.Contains(nameof(MainViewModel.IsHistorySelected), changedProperties);
@@ -129,12 +132,29 @@ public sealed class MainViewModelTests
         using var viewModel = new MainViewModel(new TestConfigurationService(advancedEnabled: true), new TestLoggingService());
 
         Assert.Contains(viewModel.NavigationItems, item => item.Destination == NavigationDestination.CatalogComparison && item.Label == "Compare snapshots");
+        Assert.Contains(viewModel.NavigationItems, item => item.Destination == NavigationDestination.StructureHistory && item.Label == "Structure history");
         Assert.DoesNotContain(viewModel.NavigationItems, item => item.Label == nameof(NavigationDestination.CatalogComparison));
 
         viewModel.Navigate(NavigationDestination.CatalogSearch);
 
         Assert.Equal(NavigationDestination.CatalogSearch, viewModel.SelectedNavigationItem.Destination);
         Assert.Equal("Catalog search", viewModel.SelectedNavigationItem.Label);
+    }
+
+    /// <summary>Verifies Structure history is an advanced hosted page with a controlled unavailable state in preview composition.</summary>
+    [Fact]
+    public async Task NavigateAsync_ToStructureHistory_HostsAdvancedHistoryPage()
+    {
+        using var viewModel = new MainViewModel(
+            new TestConfigurationService(advancedEnabled: true),
+            new TestLoggingService());
+
+        await viewModel.NavigateAsync(NavigationDestination.StructureHistory);
+
+        Assert.True(viewModel.IsStructureHistorySelected);
+        Assert.False(viewModel.IsFeaturePageSelected);
+        Assert.Equal("Structure history", viewModel.CurrentPageTitle);
+        Assert.Contains("unavailable", viewModel.StructureHistory.StatusText, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies the v0.9 comparison destination is fully hosted rather than falling through to a placeholder.</summary>

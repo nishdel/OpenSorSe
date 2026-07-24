@@ -94,6 +94,9 @@
                 <Grid IsVisible="{Binding IsCatalogComparisonSelected}">
                     <views:CatalogComparisonView DataContext="{Binding CatalogComparison}" />
                 </Grid>
+                <Grid IsVisible="{Binding IsStructureHistorySelected}">
+                    <views:StructureHistoryView DataContext="{Binding StructureHistory}" />
+                </Grid>
                 <Grid IsVisible="{Binding IsRulesSelected}">
                     <views:RuleEditorView DataContext="{Binding RuleEditor}" />
                 </Grid>

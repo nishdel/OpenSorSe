@@ -15,6 +15,7 @@ using OpenSorSe.Application.CatalogComparison;
 using OpenSorSe.Application.CatalogSearch;
 using OpenSorSe.Application.Content;
 using OpenSorSe.Application.Semantic;
+using OpenSorSe.Application.Structure;
 using OpenSorSe.AI;
 using OpenSorSe.Desktop.Services;
 
@@ -103,6 +104,18 @@ public partial class App : Avalonia.Application
         });
         services.AddSingleton<ISemanticIndexer, SemanticIndexer>();
         services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
+        services.AddSingleton<IFolderStructureSnapshotService, FolderStructureSnapshotService>();
+        services.AddSingleton<IStructureComparisonService, StructureComparisonService>();
+        services.AddSingleton<IStructureHistoryStore>(serviceProvider =>
+        {
+            var settingsFilePath = serviceProvider.GetRequiredService<OpenSorSeCoreOptions>().ConfigurationFilePath;
+            var settingsDirectory = Path.GetDirectoryName(settingsFilePath)
+                ?? throw new InvalidOperationException("The OpenSorSe settings path must include a directory.");
+            return new JsonStructureHistoryStore(
+                Path.Combine(settingsDirectory, "structure-history.json"),
+                serviceProvider.GetRequiredService<OpenSorSe.Core.Logging.ILoggingService>());
+        });
+        services.AddSingleton<IFolderRestructuringService, FolderRestructuringService>();
         services.AddSingleton<ICatalogComparisonService, CatalogComparisonService>();
         services.AddSingleton<IResultsCatalogStore>(serviceProvider =>
         {

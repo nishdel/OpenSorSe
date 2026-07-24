@@ -26,6 +26,9 @@ public enum NavigationDestination
     /// <summary>Compares stored metadata from two explicit historical catalog snapshots.</summary>
     CatalogComparison,
 
+    /// <summary>Reviews folder restructuring previews, applied history, and structure diagrams.</summary>
+    StructureHistory,
+
     /// <summary>Displays rule-management controls.</summary>
     Rules,
 
